@@ -7,7 +7,7 @@ data.csv'den meclis üyeleri çek → X'ten tweets al → Kalite kontrol
 import pandas as pd
 import json
 from typing import Dict, List
-from x_scrapper import XTwitterScraper
+from x_scraper import XTwitterScraper
 
 # ============================================================================
 # CONFIG

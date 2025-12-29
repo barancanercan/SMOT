@@ -7,6 +7,7 @@ Bot detection bypass ile gerçek tweet'leri çek
 import time
 from datetime import datetime, timedelta
 from typing import List, Dict
+import random
 
 # Safe imports
 try:
@@ -31,9 +32,12 @@ except ImportError:
 class XTwitterScraper:
     """X/Twitter scraper using Undetected Chrome"""
 
-    def __init__(self, headless=True):
+    def __init__(self, headless=True, username: str = None, password: str = None):
         self.driver = None
         self.headless = headless
+        self.username = username
+        self.password = password
+        self.logged_in = False
 
         if not SELENIUM_AVAILABLE or not UNDETECTED_AVAILABLE:
             print("❌ Required libraries not installed")
@@ -41,6 +45,8 @@ class XTwitterScraper:
 
         try:
             self._init_driver()
+            if username and password:
+                self._login()
         except Exception as e:
             print(f"⚠️  Driver init failed: {e}")
             self.driver = None
@@ -82,6 +88,47 @@ class XTwitterScraper:
             print("  💡 İpucu: X'in scroll loading'i sorun yaşayabilir")
             raise
 
+    def _login(self):
+        """X'e manuel giriş yap - kullanıcı browser'da login yapıyor"""
+        try:
+            print("  🔐 X Login sayfası açılıyor...")
+            print("     Lütfen açılan tarayıcıda manuel olarak giriş yapın")
+            print("     Username: yereldeetk")
+            print("     Password: yereldeetkilesiyoruz.1")
+            print("     Giriş yaptıktan sonra, ana sayfa yüklenene kadar bekleyin...")
+
+            # Login sayfasına git
+            self.driver.get("https://x.com/login")
+            time.sleep(2)
+
+            # Ana sayfa yüklenene kadar bekle (max 60 saniye)
+            print("  ⏳ Ana sayfanın yüklenmesini bekliyor...")
+            for i in range(60):
+                try:
+                    # Kontrol: Timeline/Home sayfasında mı?
+                    self.driver.find_element(By.XPATH, "//nav[@aria-label='Primary navigation']")
+                    self.logged_in = True
+                    print("  ✅ X'e giriş başarılı!")
+                    time.sleep(2)
+                    return True
+                except:
+                    pass
+
+                # Her 1 saniyede kontrol et
+                time.sleep(1)
+                if i % 10 == 0 and i > 0:
+                    print(f"     {i}. saniye... (Giriş bekleniyor)")
+
+            print("  ⚠️  60 saniye içinde giriş algılanamadı")
+            print("     Lütfen tarayıcıda giriş yaptığınızdan emin olun")
+            self.logged_in = False
+            return False
+
+        except Exception as e:
+            print(f"  ❌ Login hatası: {e}")
+            self.logged_in = False
+            return False
+
     def _parse_tweet_date(self, timestamp_str: str) -> datetime:
         """Parse ISO format date"""
         try:
@@ -119,7 +166,7 @@ class XTwitterScraper:
 
         try:
             self.driver.get(url)
-            time.sleep(4)  # Daha uzun bekleme
+            time.sleep(random.uniform(2, 4))  # Random 2-4 saniye (page load)
 
             # Check if profile exists
             try:
@@ -184,10 +231,57 @@ class XTwitterScraper:
                                 continue
 
                             if tweet_text and tweet_text not in seen_tweets and len(tweet_text) > 5:
+                                # Retweet detection
+                                is_rt = tweet_text.strip().startswith("RT @")
+                                rt_from = None
+
+                                if is_rt:
+                                    # "RT @username: ..." formatından username'i çıkar
+                                    try:
+                                        rt_part = tweet_text.split(":")[0]  # "RT @username"
+                                        rt_from = rt_part.replace("RT", "").replace("@", "").strip()
+                                    except:
+                                        rt_from = None
+
+                                # Engagement metrics (istatistikler)
+                                likes = 0
+                                replies = 0
+                                retweets_count = 0
+
+                                try:
+                                    # Tweet container data-testid
+                                    stats = element.find_elements(By.XPATH, ".//a[@role='link']")
+                                    for stat in stats:
+                                        aria_label = stat.get_attribute("aria-label") or ""
+                                        # Parse "X replies" format
+                                        if "reply" in aria_label.lower():
+                                            try:
+                                                replies = int(''.join(filter(str.isdigit, aria_label.split()[0])) or 0)
+                                            except:
+                                                pass
+                                        elif "retweet" in aria_label.lower():
+                                            try:
+                                                retweets_count = int(
+                                                    ''.join(filter(str.isdigit, aria_label.split()[0])) or 0)
+                                            except:
+                                                pass
+                                        elif "like" in aria_label.lower():
+                                            try:
+                                                likes = int(''.join(filter(str.isdigit, aria_label.split()[0])) or 0)
+                                            except:
+                                                pass
+                                except:
+                                    pass
+
                                 tweets.append({
                                     "text": tweet_text[:500],
                                     "timestamp": tweet_date.isoformat() if tweet_date else None,
                                     "username": username,
+                                    "is_retweet": is_rt,
+                                    "retweet_from": rt_from,
+                                    "likes": likes,
+                                    "replies": replies,
+                                    "retweets": retweets_count,
                                 })
                                 seen_tweets.add(tweet_text)
                         except Exception as e:
@@ -199,9 +293,10 @@ class XTwitterScraper:
                 if found_old_tweets > 10:
                     break
 
-                # Aggressive scroll
+                # Aggressive scroll with random delays
+                delay = random.uniform(0.5, 2.0)  # Random 0.5-2 saniye
                 self.driver.execute_script("window.scrollBy(0, 1000);")
-                time.sleep(1.0)
+                time.sleep(delay)
                 scroll_count += 1
 
                 # Check if at end
@@ -224,7 +319,11 @@ class XTwitterScraper:
     def scrape_multiple(self, usernames: List[str], max_tweets: int = 50, days_back: int = 90) -> Dict[str, List[Dict]]:
         """Scrape multiple users"""
         print(f"\n🐦 X SCRAPER - {len(usernames)} users (last {days_back} days)")
-        print(f"   🔓 Bot Detection Bypass: ACTIVE\n")
+        if self.logged_in:
+            print(f"   ✅ Authenticated Mode: ON (Private accounts accessible)")
+        else:
+            print(f"   🔓 Bot Detection Bypass: ACTIVE (Public tweets only)")
+        print()
 
         results = {}
         for i, username in enumerate(usernames, 1):
@@ -232,6 +331,11 @@ class XTwitterScraper:
             tweets = self.scrape_tweets(username, max_tweets, days_back)
             if tweets:
                 results[username] = tweets
+
+            # Rate limiting: Users arasında random delay (bot detection önleme)
+            if i < len(usernames):  # Son kullanıcıdan sonra delay yapma
+                delay = random.uniform(2, 5)  # 2-5 saniye
+                time.sleep(delay)
 
         total = sum(len(t) for t in results.values())
         print(f"\n✅ Done! {total} tweets fetched (son {days_back} gün)\n")

@@ -14,7 +14,7 @@ from pathlib import Path
 import gradio as gr
 import pandas as pd
 import ollama
-from x_scrapper import XTwitterScraper
+from x_scraper import XTwitterScraper
 
 # ============================================================================
 # CONFIG
@@ -45,6 +45,12 @@ def init_database():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL,
             tweet_text TEXT NOT NULL,
+            tweet_date TEXT,
+            is_retweet BOOLEAN DEFAULT 0,
+            retweet_from TEXT,
+            likes INTEGER DEFAULT 0,
+            replies INTEGER DEFAULT 0,
+            retweets INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
@@ -70,8 +76,8 @@ def get_connection():
     return conn
 
 
-def save_tweets(username: str, tweets: List[str], name: str = "", party: str = "", district: str = ""):
-    """Save tweets to database"""
+def save_tweets(username: str, tweets: List, name: str = "", party: str = "", district: str = ""):
+    """Save tweets to database (handles both strings and dicts)"""
     if not tweets:
         return
 
@@ -86,24 +92,74 @@ def save_tweets(username: str, tweets: List[str], name: str = "", party: str = "
 
     # Clear old tweets and insert new ones
     cursor.execute("DELETE FROM tweets WHERE username = ?", (username,))
+
     for tweet in tweets:
-        cursor.execute(
-            "INSERT INTO tweets (username, tweet_text) VALUES (?, ?)",
-            (username, tweet[:500])
-        )
+        # Handle both dict and string formats
+        if isinstance(tweet, dict):
+            text = tweet.get("text", "")[:500]
+            tweet_date = tweet.get("timestamp")
+            is_rt = tweet.get("is_retweet", False)
+            rt_from = tweet.get("retweet_from")
+            likes = tweet.get("likes", 0)
+            replies = tweet.get("replies", 0)
+            retweets = tweet.get("retweets", 0)
+        else:
+            text = str(tweet)[:500]
+            tweet_date = None
+            is_rt = text.strip().startswith("RT @")
+            rt_from = None
+            likes = 0
+            replies = 0
+            retweets = 0
+            if is_rt:
+                try:
+                    rt_from = text.split(":")[0].replace("RT", "").replace("@", "").strip()
+                except:
+                    pass
+
+        if text:
+            cursor.execute(
+                "INSERT INTO tweets (username, tweet_text, tweet_date, is_retweet, retweet_from, likes, replies, retweets) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (username, text, tweet_date, is_rt, rt_from, likes, replies, retweets)
+            )
 
     conn.commit()
     conn.close()
 
 
-def get_tweets(username: str) -> List[str]:
-    """Get tweets for username"""
+def get_tweets(username: str) -> List[Dict]:
+    """Get tweets for username with full metadata"""
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT tweet_text FROM tweets WHERE username = ? LIMIT 50", (username,))
+    cursor.execute("""
+        SELECT 
+            tweet_text, 
+            tweet_date, 
+            is_retweet, 
+            retweet_from,
+            likes,
+            replies,
+            retweets
+        FROM tweets 
+        WHERE username = ? 
+        ORDER BY tweet_date DESC
+        LIMIT 50
+    """, (username,))
     results = cursor.fetchall()
     conn.close()
-    return [row[0] for row in results]
+
+    tweets_list = []
+    for row in results:
+        tweets_list.append({
+            "text": row[0],
+            "date": row[1],
+            "is_retweet": row[2],
+            "retweet_from": row[3],
+            "likes": row[4],
+            "replies": row[5],
+            "retweets": row[6],
+        })
+    return tweets_list
 
 
 def get_all_users() -> List[str]:
@@ -136,22 +192,38 @@ class Analyzer:
             print(f"❌ Ollama error: {e}")
             sys.exit(1)
 
-    def analyze(self, tweets: List[str], username: str, question: str) -> str:
+    def analyze(self, tweets: List[Dict], username: str, question: str) -> str:
         """Analyze tweets and answer question"""
         if not tweets:
             return "⚠️ Tweet yok"
 
-        # Format tweets
-        tweets_text = "\n".join([f"{i + 1}. {t[:100]}" for i, t in enumerate(tweets[:15])])
+        # Format tweets with metadata
+        tweets_formatted = []
+        for i, tweet in enumerate(tweets[:15], 1):
+            text = tweet.get("text", "")[:100]
+            date = tweet.get("date", "N/A")
+            is_rt = tweet.get("is_retweet", False)
+            rt_from = tweet.get("retweet_from")
+            likes = tweet.get("likes", 0)
+            replies = tweet.get("replies", 0)
+            retweets = tweet.get("retweets", 0)
+
+            # Format tweet with metadata
+            rt_label = f" [RT from @{rt_from}]" if is_rt else ""
+            metrics = f" | ❤️{likes} 💬{replies} 🔄{retweets}"
+
+            tweets_formatted.append(f"{i}. {text}{rt_label}{metrics}\n   📅 {date}")
+
+        tweets_text = "\n\n".join(tweets_formatted)
 
         # Advanced prompt
         prompt = f"""[ROLE] 
-Ankara Belediyesi meclis üyelerinin X/Twitter aktivitesini analiz eden uzman asistan.
+Ankara Belediyesi meclis üyelerinin X/Twitter aktivitesini analiz eden siyaset bilimi uzmanı.
 
 [ÜYENIN TWITTER ADRESÍ]
 @{username}
 
-[TWEETLER]
+[TWEETLER - METADATA İLE]
 {tweets_text}
 
 [SORU]
@@ -260,7 +332,11 @@ def scrape_and_analyze(csv_file) -> str:
     scraped_data = {}
 
     try:
-        scraper = XTwitterScraper(headless=True)
+        scraper = XTwitterScraper(
+            headless=False,  # Browser görünsün
+            username="yereldeetk",
+            password="yereldeetkilesiyoruz.1"
+        )
         results = scraper.scrape_multiple(usernames, max_tweets=60)
         scraper.close()
         scraped_data = results
