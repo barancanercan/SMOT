@@ -129,7 +129,7 @@ sudo apt-get install chromium-browser
 
 ## 📧 İletişim
 
-**Geliştirici:** Baran Can  
+**Geliştirici:** Baran Can Ercan
 **Kurum:** Ankara Metropolitan Municipality
 
 ---
