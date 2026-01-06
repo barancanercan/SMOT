@@ -4,7 +4,7 @@ import time
 from typing import List, Dict
 
 from models.database import init_database
-from config import X_USER, X_PASS, QUESTIONS
+from config import QUESTIONS
 from x_scraper import XTwitterScraper
 from src.csv_parser import parse_csv
 from src.analyzer import Analyzer
@@ -176,9 +176,7 @@ def scrape_and_analyze(csv_file) -> str:
 
     try:
         scraper = XTwitterScraper(
-            headless=False,
-            username=X_USER,
-            password=X_PASS
+            headless=False
         )
         results = scraper.scrape_multiple(usernames, max_tweets=60)
         scraper.close()

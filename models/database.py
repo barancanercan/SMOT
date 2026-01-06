@@ -88,7 +88,7 @@ def load_councilors(councilors: List[Dict]) -> int:
 
 
 def save_tweets(username: str, tweets: List[Dict]) -> int:
-    """Save tweets for a councilor"""
+    """Save tweets for a councilor - with strict validation"""
     if not tweets:
         return 0
 
@@ -101,24 +101,36 @@ def save_tweets(username: str, tweets: List[Dict]) -> int:
     count = 0
     for tweet in tweets:
         try:
+            # ✅ FIX: Strict text validation
+            text = (tweet.get('text', '') or '').strip()
+            
+            # Skip empty or short tweets
+            if not text or len(text) < 5:
+                continue
+            
+            # Ensure not None
+            text = text[:500] if text else None
+            if not text:
+                continue
+
             cursor.execute(
                 """INSERT INTO tweets 
                    (username, tweet_text, tweet_date, is_retweet, retweet_from, likes, replies, retweets)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     username,
-                    tweet.get('text', '')[:500],
+                    text,  # Now guaranteed non-empty
                     tweet.get('timestamp'),
-                    tweet.get('is_retweet', False),
+                    int(tweet.get('is_retweet', False)),
                     tweet.get('retweet_from'),
-                    tweet.get('likes', 0),
-                    tweet.get('replies', 0),
-                    tweet.get('retweets', 0)
+                    int(tweet.get('likes', 0)),
+                    int(tweet.get('replies', 0)),
+                    int(tweet.get('retweets', 0))
                 )
             )
             count += 1
         except Exception as e:
-            print(f"⚠️  Error saving tweet: {e}")
+            print(f"⚠️  Error saving tweet: {str(e)[:40]}")
 
     conn.commit()
     conn.close()

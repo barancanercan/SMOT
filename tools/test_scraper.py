@@ -83,9 +83,7 @@ def scrape_tweets(usernames: List[str], max_per_user: int = 100, days_back: int 
     try:
         # X hesabı ile giriş yap
         scraper = XTwitterScraper(
-            headless=False,
-            username="yereldeetk",
-            password="yereldeetkilesiyoruz.1"
+            headless=False
         )
 
         if scraper.driver is None:
