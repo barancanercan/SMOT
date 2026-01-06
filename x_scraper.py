@@ -5,6 +5,7 @@ Bot detection bypass ile gerçek tweet'leri çek
 """
 
 import time
+import os
 from datetime import datetime, timedelta
 from typing import List, Dict
 import random
@@ -32,12 +33,24 @@ except ImportError:
 class XTwitterScraper:
     """X/Twitter scraper using Undetected Chrome"""
 
-    def __init__(self, headless=True, username: str = None, password: str = None):
+    def __init__(self, headless=None, username: str = None, password: str = None):
         self.driver = None
-        self.headless = headless
         self.username = username
         self.password = password
         self.logged_in = False
+
+        # ✅ FIX 1: Smart headless detection
+        if headless is None:
+            # Auto-detect: GUI ortamı var mı?
+            has_display = os.environ.get('DISPLAY') or os.environ.get('BROWSER_GUI')
+            self.headless = not has_display
+
+            if self.headless:
+                print("📱 Headless Mode: ON (No GUI detected)")
+            else:
+                print("🖥️  Browser Mode: ON (GUI detected)")
+        else:
+            self.headless = headless
 
         if not SELENIUM_AVAILABLE or not UNDETECTED_AVAILABLE:
             print("❌ Required libraries not installed")
@@ -60,9 +73,12 @@ class XTwitterScraper:
             # Undetected chrome options
             options = uc.ChromeOptions()
 
-            # Headless OFF - kullanıcıyı göster (GUI environment yoksa sorun)
-            # if self.headless:
-            #     options.add_argument("--headless=new")
+            # ✅ FIX 2: Headless mode (if no GUI)
+            if self.headless:
+                options.add_argument("--headless=new")
+                print("  ⚙️  Headless mode enabled")
+            else:
+                print("  ⚙️  Browser visible mode")
 
             options.add_argument("--no-sandbox")
             options.add_argument("--disable-dev-shm-usage")
@@ -79,13 +95,13 @@ class XTwitterScraper:
             options.add_argument("--blink-settings=imagesEnabled=false")
 
             # Launch undetected chrome (version otomatik detect)
-            print("  ⏳ Undetected Chrome initializing (ilk kez yavaş olabilir)...")
+            print("  ⏳ Undetected Chrome initializing...")
             self.driver = uc.Chrome(options=options, version_main=None, use_subprocess=False)
 
             print("  ✅ Undetected Chrome ready (bot detection bypass active)")
         except Exception as e:
             print(f"  ❌ Chrome error: {e}")
-            print("  💡 İpucu: X'in scroll loading'i sorun yaşayabilir")
+            print("  💡 Hint: X scroll loading may have issues")
             raise
 
     def _login(self):
