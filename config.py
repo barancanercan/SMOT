@@ -16,7 +16,7 @@ DB_PATH = "meclis.db"
 # API CONFIGURATION
 # ============================================================================
 OLLAMA_HOST = "http://localhost:11434"
-OLLAMA_MODEL = "qwen2.5:7b-instruct-q4_K_M"
+OLLAMA_MODEL = "qwen2.5:7b"
 
 # ============================================================================
 # CREDENTIALS (from .env)
