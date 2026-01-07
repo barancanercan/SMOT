@@ -1,62 +1,52 @@
-# Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 .Python
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual Environment
 .venv/
 venv/
 ENV/
-env/
-.env
-
-# IDE
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
 .DS_Store
-*.sublime-project
-*.sublime-workspace
-
-# Project Specific
-*.db
-meclis.db
-councilors.db
-scraper_test_results.json
-tweets_*.csv
+*.db.bak
+*.db.old
+test_*.db
+debug_*.py
+*_debug.py
+test_*.py
+test.py
+*.backup
+*.bak
+*.old
+*_old.py
+temp.txt
+temp_*.py
+/10
+tweets_export.csv
+tweets_all.csv
+tweets_statistics.csv
+x_cookies.pkl
+x_cookies.json
+*.pkl
+.credentials
+.secrets
 *.log
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-
-# OS
-.DS_Store
+logs/
 Thumbs.db
-.directory
+htmlcov/
+.coverage
+.pytest_cache/
 
-# Temporary
-*.tmp
-*.temp
-.cache/
+# Additional ignored files
+llm_trying.py
+.env
+meclis.db
+
+llm_trying.py
+.env
+meclis.db

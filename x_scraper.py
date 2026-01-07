@@ -1,183 +1,219 @@
 #!/usr/bin/env python3
 """
-🐦 X/Twitter Scraper - OPTIMIZED v2.0
-Better scroll handling, improved date filtering, enhanced RT detection
+🐦 X/Twitter Scraper v4.1 - FIXED LOGIN
+- Programmatic form filling (no popup needed)
+- Advanced RT detection
+- Views extraction
 """
 
 import time
-from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Optional
+from datetime import datetime, timedelta
+from typing import List, Dict, Optional, Tuple
 import random
+import re
 
 try:
-    import undetected_chromedriver as uc
     from selenium.webdriver.common.by import By
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
-
-    UNDETECTED_AVAILABLE = True
+    from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
+    SELENIUM_AVAILABLE = True
 except ImportError as e:
+    SELENIUM_AVAILABLE = False
+
+try:
+    import undetected_chromedriver as uc
+    UNDETECTED_AVAILABLE = True
+except ImportError:
     UNDETECTED_AVAILABLE = False
-    print(f"⚠️  undetected-chromedriver not available: {e}")
 
 
 class XTwitterScraper:
-    """X/Twitter scraper - Optimized for deep scraping with proper scrolling"""
+    """X/Twitter scraper with programmatic login"""
 
-    # ========================================================================
-    # CONFIGURATION CONSTANTS - OPTIMIZED
-    # ========================================================================
-    MAX_SCROLLS = 100  # OPTIMIZED: 50 → 100 (deeper scrolling)
-    CONSECUTIVE_OLD_THRESHOLD = 20  # OPTIMIZED: 5 → 20 (more tolerant)
-    SCROLL_DISTANCE = 1500  # pixels per scroll
+    MAX_SCROLLS = 100
+    CONSECUTIVE_OLD_THRESHOLD = 20
+    SCROLL_DISTANCE = 1500
     SCROLL_DELAY_MIN = 0.3
     SCROLL_DELAY_MAX = 1.0
-    PAGE_LOAD_TIMEOUT = 25
 
-    def __init__(self, headless=False, require_login=True):
-        """Initialize scraper"""
+    def __init__(self, headless=True, username: str = None, password: str = None):
         self.driver = None
         self.headless = headless
+        self.username = username
+        self.password = password
         self.logged_in = False
-        self.require_login = require_login
 
-        if not UNDETECTED_AVAILABLE:
-            print("❌ undetected-chromedriver not installed")
+        if not SELENIUM_AVAILABLE or not UNDETECTED_AVAILABLE:
+            print("❌ Required libraries not installed")
             return
 
         try:
             self._init_driver()
-            if require_login:
-                print("\n" + "=" * 70)
-                print("🔐 LOGIN REQUIRED")
-                print("=" * 70)
-                self._login_manual()
-            else:
-                self.logged_in = True
+            if username and password:
+                self._login_programmatic()
         except Exception as e:
             print(f"⚠️  Driver init failed: {e}")
             self.driver = None
-            self.logged_in = False
 
     def _init_driver(self):
-        """Initialize Undetected Chrome with optimal settings"""
-        if not UNDETECTED_AVAILABLE:
-            raise Exception("undetected-chromedriver not available")
+        """Initialize Undetected Chrome WebDriver"""
+        if not SELENIUM_AVAILABLE or not UNDETECTED_AVAILABLE:
+            raise Exception("Required libraries not available")
 
         try:
-            print("  ⏳ Undetected Chrome initializing...")
             options = uc.ChromeOptions()
-
-            # Core options
             options.add_argument("--no-sandbox")
             options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--disable-gpu")
             options.add_argument("--window-size=1920,1080")
-
-            # Anti-detection
             options.add_argument("--disable-blink-features=AutomationControlled")
-            options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-
-            # Performance
+            options.add_argument(
+                "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            )
             options.add_argument("--blink-settings=imagesEnabled=false")
 
+            print("  ⏳ Undetected Chrome initializing...")
             self.driver = uc.Chrome(options=options, version_main=None, use_subprocess=False)
-            print("  ✅ Undetected Chrome ready (bot detection bypass ACTIVE)")
 
+            print("  ✅ Undetected Chrome ready")
         except Exception as e:
-            print(f"  ❌ Chrome init error: {e}")
+            print(f"  ❌ Chrome error: {e}")
             raise
 
-    def _login_manual(self):
-        """Wait for user to manually login in browser"""
+    def _login_programmatic(self):
+        """
+        Programmatic login - fill form fields directly
+        No popup waiting needed
+        """
         try:
-            print("\n  📱 Opening X.com login page...")
+            print("  🔐 Logging in programmatically...")
+            
+            # Go to login page
             self.driver.get("https://x.com/login")
-            time.sleep(2)
-
-            print("\n" + "=" * 70)
-            print("  ⏳ WAITING FOR LOGIN")
-            print("=" * 70)
-            print("\n  📍 Tarayıcıda aşağıdaki adımları takip et:")
-            print("     1. Email/username gir")
-            print("     2. Password gir")
-            print("     3. Giriş yap")
-            print("\n  ⏱️  Sistem otomatik 3 dakika boyunca giriş kontrol edecek")
-            print("=" * 70 + "\n")
-
-            login_timeout = 180
-            check_interval = 2
-            elapsed = 0
-
-            while elapsed < login_timeout:
-                try:
-                    current_url = self.driver.current_url
-                    if "x.com/login" not in current_url and "x.com/i/flow" not in current_url:
-                        time.sleep(3)
-                        print("  ✅ URL CHANGED - Login detected!\n")
-                        self.logged_in = True
-                        return True
-                except:
-                    pass
-
-                try:
-                    self.driver.find_element(By.XPATH, "//nav[@aria-label='Primary navigation']")
-                    print("  ✅ PRIMARY NAVIGATION FOUND - Login successful!\n")
-                    self.logged_in = True
+            time.sleep(3)
+            
+            # STEP 1: Find and fill username/email field
+            print("     ⏳ Looking for username field...")
+            try:
+                # Try multiple selectors for username input
+                username_input = None
+                selectors = [
+                    "//input[@autocomplete='username']",
+                    "//input[@name='text']",
+                    "//input[@placeholder='Phone, email or username']",
+                    "//input[@type='text'][1]"
+                ]
+                
+                for selector in selectors:
+                    try:
+                        username_input = WebDriverWait(self.driver, 5).until(
+                            EC.presence_of_element_located((By.XPATH, selector))
+                        )
+                        break
+                    except:
+                        pass
+                
+                if not username_input:
+                    print("     ❌ Username field not found")
+                    return False
+                
+                # Fill username
+                username_input.clear()
+                username_input.send_keys(self.username)
+                print(f"     ✅ Username filled: {self.username}")
+                time.sleep(1)
+                
+            except TimeoutException:
+                print("     ❌ Username field timeout")
+                return False
+            
+            # STEP 2: Click "Next" button
+            print("     ⏳ Looking for Next button...")
+            try:
+                next_buttons = self.driver.find_elements(By.XPATH, "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'next')]")
+                if not next_buttons:
+                    next_buttons = self.driver.find_elements(By.XPATH, "//button[contains(@aria-label, 'Next')]")
+                if not next_buttons:
+                    # Try any button that might be "Next"
+                    next_buttons = self.driver.find_elements(By.XPATH, "//button[@type='button' or @type='submit'][-1]")
+                
+                if next_buttons:
+                    next_buttons[0].click()
+                    print("     ✅ Next button clicked")
                     time.sleep(2)
+            except Exception as e:
+                print(f"     ⚠️  Next button error: {str(e)[:40]}")
+            
+            # STEP 3: Find and fill password field
+            print("     ⏳ Looking for password field...")
+            try:
+                password_input = WebDriverWait(self.driver, 5).until(
+                    EC.presence_of_element_located((By.XPATH, "//input[@type='password']"))
+                )
+                password_input.clear()
+                password_input.send_keys(self.password)
+                print(f"     ✅ Password filled")
+                time.sleep(1)
+                
+            except TimeoutException:
+                print("     ❌ Password field not found")
+                return False
+            
+            # STEP 4: Click Login button
+            print("     ⏳ Looking for Login button...")
+            try:
+                login_buttons = self.driver.find_elements(By.XPATH, "//button[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'log in')]")
+                if not login_buttons:
+                    login_buttons = self.driver.find_elements(By.XPATH, "//button[@role='button' and contains(text(), 'in')]")
+                if not login_buttons:
+                    # Get last button as fallback
+                    all_buttons = self.driver.find_elements(By.XPATH, "//button[@type='button' or @type='submit']")
+                    if all_buttons:
+                        login_buttons = [all_buttons[-1]]
+                
+                if login_buttons:
+                    login_buttons[0].click()
+                    print("     ✅ Login button clicked")
+                    time.sleep(3)
+            except Exception as e:
+                print(f"     ⚠️  Login button error: {str(e)[:40]}")
+            
+            # STEP 5: Wait for home feed
+            print("     ⏳ Waiting for home feed...")
+            try:
+                WebDriverWait(self.driver, 15).until(
+                    EC.presence_of_element_located((By.XPATH, "//nav[@aria-label='Primary navigation']"))
+                )
+                self.logged_in = True
+                print("  ✅ X'e giriş başarılı!")
+                return True
+            except TimeoutException:
+                print("     ⚠️  Home feed timeout - checking if already logged in...")
+                # Check if tweets are visible anyway
+                try:
+                    self.driver.find_element(By.XPATH, "//article[@data-testid='tweet']")
+                    self.logged_in = True
+                    print("  ✅ Tweets detected - logged in!")
                     return True
                 except:
-                    pass
-
-                try:
-                    elements = self.driver.find_elements(By.XPATH, "//article[@data-testid='tweet']")
-                    if elements and len(elements) > 0:
-                        print("  ✅ TWEETS FOUND - Login successful!\n")
-                        self.logged_in = True
-                        time.sleep(2)
-                        return True
-                except:
-                    pass
-
-                elapsed += check_interval
-                if elapsed % 10 == 0:
-                    remaining = login_timeout - elapsed
-                    print(f"     {elapsed}s geçti... {remaining}s kaldı")
-
-                time.sleep(check_interval)
-
-            print("  ❌ LOGIN TIMEOUT! (3 dakika doldu)\n")
-            self.logged_in = False
-            return False
+                    print("  ❌ Login verification failed")
+                    return False
 
         except Exception as e:
-            print(f"  ❌ Login error: {e}\n")
+            print(f"  ❌ Login error: {e}")
             self.logged_in = False
             return False
 
-    def _wait_for_page_load(self):
-        """Wait for page to fully load and settle"""
-        try:
-            WebDriverWait(self.driver, self.PAGE_LOAD_TIMEOUT).until(
-                lambda driver: driver.execute_script("return document.readyState") == "complete"
-            )
-        except:
-            pass
-        time.sleep(2)
-
-    def _reset_scroll_position(self):
-        """Reset scroll to top of page - IMPORTANT for consistent scraping"""
-        self.driver.execute_script("window.scrollTo(0, 0);")
-        time.sleep(1)
-
     def _parse_tweet_date(self, timestamp_str: str) -> Optional[datetime]:
-        """Parse ISO 8601 date from Twitter"""
+        """Parse ISO format date"""
         try:
             if not timestamp_str:
                 return None
             if timestamp_str.endswith('Z'):
                 timestamp_str = timestamp_str.replace('Z', '+00:00')
-            return datetime.fromisoformat(timestamp_str)
+            dt = datetime.fromisoformat(timestamp_str)
+            return dt
         except:
             return None
 
@@ -186,140 +222,178 @@ class XTwitterScraper:
         if not tweet_date:
             return False
         try:
-            now = datetime.now(timezone.utc)
-            cutoff_date = now - timedelta(days=days_back)
-            if tweet_date.tzinfo is None:
-                tweet_date = tweet_date.replace(tzinfo=timezone.utc)
+            cutoff_date = datetime.now(tweet_date.tzinfo) - timedelta(days=days_back)
             return tweet_date >= cutoff_date
         except:
             return False
 
-    def _detect_retweet(self, tweet_text: str) -> tuple:
-        """Detect retweet and extract source username"""
-        is_rt = False
-        rt_from = None
-        if tweet_text.strip().startswith("RT @"):
-            is_rt = True
+    def _detect_retweet(self, tweet_element, profile_username: str) -> Tuple[bool, Optional[str]]:
+        """Advanced RT detection using author handle comparison"""
+        try:
+            user_names_el = tweet_element.find_element(By.CSS_SELECTOR, 'div[data-testid="User-Names"]')
+            user_text = user_names_el.text
+            
+            parts = user_text.split('\n')
+            if len(parts) < 2:
+                return False, None
+            
+            author_handle = parts[1].lstrip('@').lower().strip()
+            profile_lower = profile_username.lower().lstrip('@').strip()
+            
+            is_retweet = author_handle != profile_lower
+            retweet_from = author_handle if is_retweet else None
+            
+            # Secondary confirmation
             try:
-                rt_part = tweet_text.split(":")[0]
-                rt_from = rt_part.replace("RT", "").replace("@", "").strip()
+                repost_indicators = tweet_element.find_elements(
+                    By.XPATH,
+                    './/span[contains(text(), "reposted") or contains(text(), "Reposted")]'
+                )
+                if repost_indicators:
+                    is_retweet = True
+                    if not retweet_from:
+                        retweet_from = author_handle
             except:
                 pass
-        return is_rt, rt_from
+            
+            return is_retweet, retweet_from
 
-    def _parse_engagement_metrics(self, element) -> Dict[str, int]:
-        """Parse engagement metrics (likes, replies, retweets)"""
-        metrics = {"likes": 0, "replies": 0, "retweets": 0, "views": 0}
+        except Exception as e:
+            return False, None
+
+    def _extract_views(self, tweet_element) -> int:
+        """Extract views count"""
         try:
-            buttons = element.find_elements(By.XPATH, ".//button | .//a[@role='button']")
-            for btn in buttons:
-                aria_label = (btn.get_attribute("aria-label") or "").lower()
-                if not aria_label:
-                    continue
-                try:
-                    first_word = aria_label.split()[0] if aria_label else ""
-                    nums = ''.join(filter(str.isdigit, first_word))
-                    num_value = int(nums) if nums else 0
-
-                    if "reply" in aria_label or "cevap" in aria_label:
-                        metrics["replies"] = num_value
-                    elif "retweet" in aria_label or "rt" in aria_label:
-                        metrics["retweets"] = num_value
-                    elif "like" in aria_label or "beğeni" in aria_label:
-                        metrics["likes"] = num_value
-                    elif "view" in aria_label or "görüntüleme" in aria_label:
-                        metrics["views"] = num_value
-                except:
-                    pass
+            views_elements = tweet_element.find_elements(By.XPATH, './/*[@aria-label]')
+            for elem in views_elements:
+                aria_label = elem.get_attribute('aria-label') or ""
+                match = re.search(r'([\d,\.]+[KMB]?)\s*view', aria_label.lower())
+                if match:
+                    return self._parse_number(match.group(1))
+            return 0
         except:
+            return 0
+
+    def _parse_number(self, num_str: str) -> int:
+        """Parse number string like '1.2K' to 1200"""
+        try:
+            num_str = num_str.strip().upper()
+            num_str = num_str.replace(',', '')
+            
+            if 'B' in num_str:
+                return int(float(num_str.replace('B', '')) * 1_000_000_000)
+            elif 'M' in num_str:
+                return int(float(num_str.replace('M', '')) * 1_000_000)
+            elif 'K' in num_str:
+                return int(float(num_str.replace('K', '')) * 1_000)
+            else:
+                return int(float(num_str))
+        except:
+            return 0
+
+    def _extract_engagement_metrics(self, tweet_element) -> Dict[str, int]:
+        """Extract engagement metrics"""
+        metrics = {'likes': 0, 'replies': 0, 'retweets': 0, 'views': 0}
+
+        try:
+            stat_elements = tweet_element.find_elements(By.XPATH, './/*[@aria-label]')
+            
+            for elem in stat_elements:
+                aria_label = (elem.get_attribute('aria-label') or "").lower()
+                
+                if 'repl' in aria_label:
+                    match = re.search(r'([\d,\.]+)', aria_label)
+                    if match:
+                        metrics['replies'] = self._parse_number(match.group(1))
+                
+                elif 'retweet' in aria_label:
+                    match = re.search(r'([\d,\.]+)', aria_label)
+                    if match:
+                        metrics['retweets'] = self._parse_number(match.group(1))
+                
+                elif 'like' in aria_label:
+                    match = re.search(r'([\d,\.]+)', aria_label)
+                    if match:
+                        metrics['likes'] = self._parse_number(match.group(1))
+                
+                elif 'view' in aria_label:
+                    match = re.search(r'([\d,\.]+)', aria_label)
+                    if match:
+                        metrics['views'] = self._parse_number(match.group(1))
+        
+        except Exception as e:
             pass
+
         return metrics
 
-    def _get_tweet_text(self, element) -> Optional[str]:
-        """Extract tweet text with multiple fallback selectors"""
-        selectors = [
-            ".//div[@data-testid='tweetText']//span",
-            ".//div[@data-testid='tweetText']",
-            ".//span[contains(@class, 'css-16my406')]",
-            ".//div[contains(@class, 'r-bcqeeo')]",
-        ]
-        for selector in selectors:
-            try:
-                elem = element.find_element(By.XPATH, selector)
-                text = elem.text.strip()
-                if text and len(text) > 0:
-                    return text
-            except:
-                pass
-        return None
-
-    def scrape_tweets(self, username: str, max_tweets: int = 100, days_back: int = 90) -> List[Dict]:
-        """Scrape tweets from user with optimized scrolling"""
-        if not self.driver or not self.logged_in:
-            print(f"  🔍 @{username:20s} ❌ Not initialized")
+    def scrape_tweets(self, username: str, max_tweets: int = 50, days_back: int = 90) -> List[Dict]:
+        """Scrape tweets from X profile"""
+        if not self.driver or not SELENIUM_AVAILABLE:
             return []
 
         tweets = []
         url = f"https://x.com/{username}"
+
         print(f"  🔍 @{username:20s}", end=" ", flush=True)
 
         try:
-            # Load profile
             self.driver.get(url)
-            time.sleep(3)
-            self._wait_for_page_load()
+            time.sleep(random.uniform(2, 4))
 
-            # IMPORTANT: Reset scroll to top before scraping
-            self._reset_scroll_position()
-
-            # Check for tweets on page
-            tweet_elements = self.driver.find_elements(By.XPATH, "//article[@data-testid='tweet']")
-
-            if not tweet_elements or len(tweet_elements) == 0:
-                print("⚠️  No tweets")
+            try:
+                self.driver.find_element(By.XPATH, "//span[contains(text(), 'does not exist')]")
+                print("❌ Not found")
                 return []
+            except:
+                pass
+
+            try:
+                WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_all_elements_located((By.XPATH, "//article[@data-testid='tweet']"))
+                )
+            except:
+                pass
 
             seen_tweets = set()
             last_height = self.driver.execute_script("return document.body.scrollHeight")
             scroll_count = 0
-            consecutive_old = 0
+            found_old_tweets = 0
 
-            # Scroll and collect tweets
             while scroll_count < self.MAX_SCROLLS and len(tweets) < max_tweets:
                 try:
-                    tweet_elements = self.driver.find_elements(By.XPATH, "//article[@data-testid='tweet']")
+                    tweet_elements = self.driver.find_elements(
+                        By.XPATH,
+                        "//article[@data-testid='tweet']"
+                    )
 
                     for element in tweet_elements:
                         if len(tweets) >= max_tweets:
                             break
 
                         try:
-                            tweet_text = self._get_tweet_text(element)
-                            if not tweet_text or len(tweet_text) < 5:
-                                continue
+                            text_elem = element.find_element(
+                                By.XPATH,
+                                ".//div[@data-testid='tweetText']/span"
+                            )
+                            tweet_text = text_elem.text.strip()
 
-                            # Get timestamp
                             tweet_date = None
                             try:
                                 time_elem = element.find_element(By.XPATH, ".//time")
                                 timestamp_str = time_elem.get_attribute("datetime")
                                 tweet_date = self._parse_tweet_date(timestamp_str)
                             except:
-                                pass
+                                tweet_date = None
 
-                            # Filter by date (OPTIMIZED: allow old tweets up to threshold)
                             if tweet_date and not self._is_within_days(tweet_date, days_back):
-                                consecutive_old += 1
-                                if consecutive_old > self.CONSECUTIVE_OLD_THRESHOLD:
+                                found_old_tweets += 1
+                                if found_old_tweets > self.CONSECUTIVE_OLD_THRESHOLD:
                                     break
                                 continue
-                            else:
-                                consecutive_old = 0
 
-                            # Save unique tweets
-                            if tweet_text not in seen_tweets:
-                                is_rt, rt_from = self._detect_retweet(tweet_text)
-                                metrics = self._parse_engagement_metrics(element)
+                            if tweet_text and tweet_text not in seen_tweets and len(tweet_text) > 5:
+                                is_rt, rt_from = self._detect_retweet(element, username)
+                                metrics = self._extract_engagement_metrics(element)
 
                                 tweets.append({
                                     "text": tweet_text[:500],
@@ -327,41 +401,30 @@ class XTwitterScraper:
                                     "username": username,
                                     "is_retweet": is_rt,
                                     "retweet_from": rt_from,
-                                    "likes": metrics["likes"],
-                                    "replies": metrics["replies"],
-                                    "retweets": metrics["retweets"],
-                                    "views": metrics["views"],
+                                    "likes": metrics['likes'],
+                                    "replies": metrics['replies'],
+                                    "retweets": metrics['retweets'],
+                                    "views": metrics['views'],
                                 })
                                 seen_tweets.add(tweet_text)
-                        except:
+                        except Exception as e:
                             pass
-
                 except:
                     pass
 
-                # Exit if too many old tweets found
-                if consecutive_old > self.CONSECUTIVE_OLD_THRESHOLD:
+                if found_old_tweets > self.CONSECUTIVE_OLD_THRESHOLD:
                     break
 
-                # Perform scroll
                 delay = random.uniform(self.SCROLL_DELAY_MIN, self.SCROLL_DELAY_MAX)
                 self.driver.execute_script(f"window.scrollBy(0, {self.SCROLL_DISTANCE});")
                 time.sleep(delay)
                 scroll_count += 1
 
-                # Check if new content loaded
                 new_height = self.driver.execute_script("return document.body.scrollHeight")
                 if new_height == last_height:
-                    # Try one more aggressive scroll
-                    self.driver.execute_script(f"window.scrollBy(0, {self.SCROLL_DISTANCE * 2});")
-                    time.sleep(1)
-                    new_height = self.driver.execute_script("return document.body.scrollHeight")
-                    if new_height == last_height:
-                        break  # No more content to load
-
+                    break
                 last_height = new_height
 
-            # Results
             if tweets:
                 print(f"✅ {len(tweets):2d} tweet")
             else:
@@ -370,15 +433,15 @@ class XTwitterScraper:
             return tweets
 
         except Exception as e:
-            print(f"❌ Error: {str(e)[:40]}")
+            print(f"❌ Error: {str(e)[:30]}")
             return []
 
-    def scrape_multiple(self, usernames: List[str], max_tweets: int = 100, days_back: int = 90) -> Dict[str, List[Dict]]:
-        """Scrape tweets from multiple users"""
-        print(f"\n🐦 X SCRAPER - {len(usernames)} users (Last {days_back} days)")
-        print(f"   ✅ Undetected-Chrome: BOT DETECTION BYPASS ACTIVE")
-        print(f"   ✅ Optimized scrolling: {self.MAX_SCROLLS} max scrolls")
-        print(f"   ✅ Date filter: {self.CONSECUTIVE_OLD_THRESHOLD} consecutive old threshold\n")
+    def scrape_multiple(self, usernames: List[str], max_tweets: int = 50, days_back: int = 90) -> Dict[str, List[Dict]]:
+        """Scrape multiple users"""
+        print(f"\n🐦 X SCRAPER v4.1 - {len(usernames)} users")
+        print(f"   ✅ Programmatic Login: ON")
+        print(f"   ✅ Advanced RT Detection: ON")
+        print(f"   ✅ Views Extraction: ON\n")
 
         results = {}
         for i, username in enumerate(usernames, 1):
@@ -387,7 +450,6 @@ class XTwitterScraper:
             if tweets:
                 results[username] = tweets
 
-            # Rate limiting between users
             if i < len(usernames):
                 delay = random.uniform(2, 5)
                 time.sleep(delay)
@@ -397,7 +459,7 @@ class XTwitterScraper:
         return results
 
     def close(self):
-        """Close browser gracefully"""
+        """Close browser"""
         if self.driver:
             try:
                 self.driver.quit()
@@ -409,3 +471,4 @@ class XTwitterScraper:
 
     def __exit__(self, *args):
         self.close()
+

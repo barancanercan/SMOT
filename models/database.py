@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Database v3.0 with deduplication"""
+"""Database v3.1 - With Views Field"""
 
 import sqlite3
 from datetime import datetime
@@ -8,7 +8,7 @@ from typing import List, Dict
 DB_PATH = "meclis.db"
 
 def init_database():
-    """Initialize database with clean schema"""
+    """Initialize database with updated schema"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
@@ -25,7 +25,7 @@ def init_database():
         )
     """)
 
-    # Tweets table (with tweet_id for deduplication)
+    # Tweets table (with views field)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS tweets (
             id INTEGER PRIMARY KEY,
@@ -38,6 +38,7 @@ def init_database():
             likes INTEGER DEFAULT 0,
             replies INTEGER DEFAULT 0,
             retweets INTEGER DEFAULT 0,
+            views INTEGER DEFAULT 0,
             engagement_score REAL DEFAULT 0.0,
             is_deleted BOOLEAN DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -64,10 +65,12 @@ def init_database():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tweets_username ON tweets(username)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tweets_date ON tweets(tweet_date)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tweets_id ON tweets(tweet_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_tweets_rt ON tweets(is_retweet)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_tweets_views ON tweets(views)")
 
     conn.commit()
     conn.close()
-    print(f"✅ Database v3.0 initialized: {DB_PATH}")
+    print(f"✅ Database v3.1 initialized: {DB_PATH}")
 
 def get_connection():
     """Get DB connection"""
@@ -145,17 +148,19 @@ def save_tweets(username: str, tweets: List[Dict]) -> Dict:
                 retweets = int(tweet.get('retweets', 0))
                 score = (likes * 0.3) + (replies * 0.5) + (retweets * 0.2)
 
-                # Insert
+                # Insert with views
                 cursor.execute(
                     """INSERT INTO tweets 
                        (username, tweet_id, tweet_text, tweet_date, is_retweet, 
-                        retweet_from, likes, replies, retweets, engagement_score)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        retweet_from, likes, replies, retweets, views, engagement_score)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         username, tweet_id, text, timestamp,
                         int(tweet.get('is_retweet', False)),
                         tweet.get('retweet_from'),
-                        likes, replies, retweets, score
+                        likes, replies, retweets,
+                        int(tweet.get('views', 0)),
+                        score
                     )
                 )
                 saved += 1
@@ -194,7 +199,7 @@ def get_tweets(username: str, limit: int = 100) -> List[Dict]:
     cursor = conn.cursor()
     cursor.execute(
         """SELECT tweet_id, tweet_text, tweet_date, is_retweet, retweet_from, 
-                  likes, replies, retweets, engagement_score
+                  likes, replies, retweets, views, engagement_score
            FROM tweets 
            WHERE username = ? AND is_deleted = 0
            ORDER BY tweet_date DESC
@@ -215,7 +220,8 @@ def get_tweets(username: str, limit: int = 100) -> List[Dict]:
             "likes": row[5],
             "replies": row[6],
             "retweets": row[7],
-            "engagement_score": row[8]
+            "views": row[8],
+            "engagement_score": row[9]
         })
     return tweets_list
 
@@ -236,6 +242,9 @@ def get_stats() -> Dict:
     cursor.execute("SELECT COUNT(DISTINCT username) FROM tweets WHERE is_deleted = 0")
     active = cursor.fetchone()[0]
 
+    cursor.execute("SELECT SUM(views) FROM tweets WHERE is_deleted = 0")
+    total_views = cursor.fetchone()[0] or 0
+
     conn.close()
 
     return {
@@ -243,7 +252,8 @@ def get_stats() -> Dict:
         "total_tweets": tweets,
         "total_retweets": retweets,
         "original_tweets": tweets - retweets,
-        "active_users": active
+        "active_users": active,
+        "total_views": total_views
     }
 
 if __name__ == "__main__":
@@ -252,3 +262,4 @@ if __name__ == "__main__":
     print("\n📊 Database Stats:")
     for key, value in stats.items():
         print(f"   {key}: {value}")
+
