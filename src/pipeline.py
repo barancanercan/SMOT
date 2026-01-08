@@ -2,32 +2,20 @@
 
 import time
 from typing import List, Dict
-
+import sqlite3
 from models.database import init_database
-from config import QUESTIONS
+from config import QUESTIONS, MAX_TWEETS_TO_SCRAPE, MAX_TWEETS_TO_ANALYZE, DB_PATH
 from x_scraper import XTwitterScraper
 from src.csv_parser import parse_csv
 from src.analyzer import Analyzer
-import sqlite3
 
 
-def get_connection():
-    """Get database connection"""
-    from config import DB_PATH
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-def save_tweets(username: str, tweets: List, name: str = "",
+def save_tweets(conn: sqlite3.Connection, username: str, tweets: List, name: str = "",
                 party: str = "", district: str = ""):
     """Save tweets with transaction support"""
-    from config import DB_PATH
-    
     if not tweets:
         return 0
 
-    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     try:
@@ -97,19 +85,13 @@ def save_tweets(username: str, tweets: List, name: str = "",
         conn.rollback()
         return 0
 
-    finally:
-        conn.close()
 
-
-def get_tweets(username: str) -> List[Dict]:
+def get_tweets(conn: sqlite3.Connection, username: str) -> List[Dict]:
     """Get tweets from database"""
-    from config import DB_PATH
-    
-    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT 
             tweet_text, 
             tweet_date, 
@@ -121,11 +103,10 @@ def get_tweets(username: str) -> List[Dict]:
         FROM tweets 
         WHERE username = ? 
         ORDER BY tweet_date DESC
-        LIMIT 50
+        LIMIT {MAX_TWEETS_TO_ANALYZE}
     """, (username,))
     
     results = cursor.fetchall()
-    conn.close()
 
     tweets_list = []
     for row in results:
@@ -178,7 +159,7 @@ def scrape_and_analyze(csv_file) -> str:
         scraper = XTwitterScraper(
             headless=False
         )
-        results = scraper.scrape_multiple(usernames, max_tweets=60)
+        results = scraper.scrape_multiple(usernames, max_tweets=MAX_TWEETS_TO_SCRAPE)
         scraper.close()
         scraped_data = results
     except Exception as e:
@@ -187,6 +168,7 @@ def scrape_and_analyze(csv_file) -> str:
 
     # Step 3: Save to database (YENİ - metadata ile)
     print("\n[3/4] DATABASE'YE KAYDEDILIYOR...")
+    conn = sqlite3.connect(DB_PATH)
     for username in usernames:
         tweets_data = scraped_data.get(username, [])
         tweet_texts = []
@@ -201,6 +183,7 @@ def scrape_and_analyze(csv_file) -> str:
         
         # save_tweets ile name, party, district'i gönder
         save_tweets(
+            conn,
             username, 
             tweet_texts,
             name=user_meta.get("name", "Unknown"),
@@ -219,7 +202,7 @@ def scrape_and_analyze(csv_file) -> str:
     report = "# 📊 Ankara Meclis Üyeleri Analiz Raporu\n\n"
 
     for idx, username in enumerate(usernames, 1):
-        tweets = get_tweets(username)
+        tweets = get_tweets(conn, username)
 
         if not tweets:
             continue
@@ -240,6 +223,7 @@ def scrape_and_analyze(csv_file) -> str:
 
         report += "---\n\n"
 
+    conn.close()
     print("\n" + "=" * 60)
     print("✅ RAPOR TAMAMLANDI!")
     print("=" * 60 + "\n")
