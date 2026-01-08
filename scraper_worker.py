@@ -1,242 +1,224 @@
 #!/usr/bin/env python3
 """
-🐦 Scraper Worker v3.1 - With improved rate limiting
+🐦 Scraper Worker v3.3 - Aggressive Collection
+✅ max_tweets: 500 (increased from 100)
+✅ Time-based aggressive scraping
 """
 
-import pandas as pd
-from datetime import datetime, timedelta
-from typing import List, Dict
-import time
-import random
-
+import csv
+import sqlite3
 from x_scraper import XTwitterScraper
-from models.database import (
-    init_database, load_councilors, save_tweets, get_stats, 
-    get_connection
-)
+
+DB_PATH = "meclis.db"
+CSV_PATH = "data/data.csv"
 
 
-def load_data_csv(csv_path: str = "data/data.csv") -> List[Dict]:
-    """Load councilor data from CSV"""
-    try:
-        df = pd.read_csv(csv_path)
-        councilors = []
-        
-        for _, row in df.iterrows():
-            link = str(row.get("link", "")).strip()
-            username = link.split("x.com/")[-1].strip("/").replace("@", "") if link else ""
-            
-            if username:
+def load_councilors():
+    """Load councilors from CSV"""
+    councilors = []
+    with open(CSV_PATH, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            link = row.get("link", "")
+            if "x.com/" in link:
+                username = link.split("x.com/")[-1].strip("/").replace("@", "")
                 councilors.append({
                     "username": username,
                     "name": row.get("Meclis Üyesi", ""),
                     "party": row.get("Parti", ""),
                     "district": row.get("İlçe", "")
                 })
-        
-        return councilors
-    except Exception as e:
-        print(f"❌ CSV Error: {e}")
-        return []
+    return councilors
 
 
-def detect_retweet(tweet_text: str) -> tuple:
-    """Improved RT detection"""
-    if not tweet_text:
-        return False, None
-    
-    text = tweet_text.strip()
-    
-    if text.startswith("RT @"):
-        try:
-            rt_part = text.split(":")[0]
-            rt_from = rt_part.replace("RT", "").replace("@", "").strip()
-            return True, rt_from if rt_from else None
-        except:
-            pass
-    
-    if "X reposted" in text or "[X reposted]" in text:
-        return True, None
-    
-    if text.startswith("Quote") or "originally posted" in text.lower():
-        return True, None
-    
-    return False, None
+def save_councilors(councilors):
+    """Save councilors to database"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    for c in councilors:
+        cursor.execute("""
+            INSERT OR REPLACE INTO councilors (username, name, party, district)
+            VALUES (?, ?, ?, ?)
+        """, (c["username"], c["name"], c["party"], c["district"]))
+
+    conn.commit()
+    conn.close()
 
 
-def enhanced_tweet_extraction(raw_tweets: List[Dict]) -> List[Dict]:
-    """Process raw tweets with RT detection"""
-    processed = []
-    
-    for tweet in raw_tweets:
-        text = (tweet.get('text', '') or '').strip()
-        if not text or len(text) < 5:
+def save_tweets(username: str, tweets: list):
+    """Save tweets to database with views support"""
+    if not tweets:
+        print("⚠️  No tweets")
+        return 0, 0
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    saved_count = 0
+    duplicate_count = 0
+
+    for tweet in tweets:
+        # Check for duplicate
+        cursor.execute("""
+            SELECT id FROM tweets 
+            WHERE username = ? AND tweet_text = ?
+        """, (username, tweet.get("text", "")))
+
+        if cursor.fetchone():
+            duplicate_count += 1
             continue
-        
-        is_rt, rt_from = detect_retweet(text)
-        
-        processed.append({
-            'text': text,
-            'timestamp': tweet.get('timestamp'),
-            'is_retweet': is_rt,
-            'retweet_from': rt_from,
-            'likes': int(tweet.get('likes', 0)),
-            'replies': int(tweet.get('replies', 0)),
-            'retweets': int(tweet.get('retweets', 0))
-        })
-    
-    return processed
+
+        # Insert with views
+        try:
+            cursor.execute("""
+                INSERT INTO tweets 
+                (username, tweet_text, tweet_date, is_retweet, retweet_from,
+                 likes, replies, retweets, views)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                username,
+                tweet.get("text", "")[:500],
+                tweet.get("timestamp"),
+                tweet.get("is_retweet", False),
+                tweet.get("retweet_from"),
+                tweet.get("likes", 0),
+                tweet.get("replies", 0),
+                tweet.get("retweets", 0),
+                tweet.get("views", 0),
+            ))
+            saved_count += 1
+        except Exception as e:
+            print(f"  ⚠️  Insert error: {e}")
+
+    conn.commit()
+    conn.close()
+
+    print(f"✅ {saved_count} saved", end="")
+    if duplicate_count > 0:
+        print(f", {duplicate_count} dup", end="")
+    print()
+
+    return saved_count, duplicate_count
 
 
-def scrape_and_save(
-    usernames: List[str],
-    max_tweets: int = 100,
-    days_back: int = 90
-) -> Dict:
-    """Main scraping pipeline with improved rate limiting"""
-    
+def get_stats():
+    """Get database statistics"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    stats = {}
+
+    cursor.execute("SELECT COUNT(*) FROM councilors")
+    stats["total_councilors"] = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM tweets")
+    stats["total_tweets"] = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM tweets WHERE is_retweet = 1")
+    stats["total_retweets"] = cursor.fetchone()[0]
+
+    stats["total_original"] = stats["total_tweets"] - stats["total_retweets"]
+
+    cursor.execute("SELECT COUNT(DISTINCT username) FROM tweets")
+    stats["active_users"] = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COALESCE(SUM(views), 0) FROM tweets")
+    stats["total_views"] = cursor.fetchone()[0]
+
+    conn.close()
+    return stats
+
+
+def main():
+    """Main scraper workflow"""
     print("\n" + "=" * 70)
-    print(f"🐦 SCRAPER WORKER v3.1 - {len(usernames)} users")
-    print(f"   Max tweets/user: {max_tweets}")
-    print(f"   Time window: {days_back} days")
-    print(f"   Rate limiting: AGGRESSIVE (10-30s delays)")
+    print("🐦 SCRAPER WORKER v3.3 - Aggressive Collection")
     print("=" * 70 + "\n")
-    
-    results = {
-        "total_scraped": 0,
-        "total_saved": 0,
-        "total_duplicates": 0,
-        "users": {}
-    }
-    
-    try:
-        scraper = XTwitterScraper(headless=False)
-        
-        if not scraper.driver:
-            print("❌ Scraper initialization failed")
-            return results
-        
-        for i, username in enumerate(usernames, 1):
-            print(f"[{i:2d}/{len(usernames)}] @{username:20s}", end=" ", flush=True)
-            
-            try:
-                # Scrape
-                raw_tweets = scraper.scrape_tweets(
-                    username,
-                    max_tweets=max_tweets,
-                    days_back=days_back
-                )
-                
-                if not raw_tweets:
-                    print("⚠️  No tweets")
-                    results["users"][username] = {"status": "no_tweets", "count": 0}
-                    # Rate limiting even for no-tweets
-                    if i < len(usernames):
-                        delay = random.uniform(15, 30)  # 15-30 saniye
-                        print(f"   ⏳ Rate limiting: {delay:.1f}s", end="", flush=True)
-                        time.sleep(delay)
-                        print("\r" + " " * 50 + "\r", end="", flush=True)
-                    continue
-                
-                # Process (RT detection)
-                processed_tweets = enhanced_tweet_extraction(raw_tweets)
-                
-                # Save to DB
-                save_result = save_tweets(username, processed_tweets)
-                
-                results["total_scraped"] += len(raw_tweets)
-                results["total_saved"] += save_result["saved"]
-                results["total_duplicates"] += save_result["duplicates"]
-                
-                results["users"][username] = {
-                    "status": "success",
-                    "scraped": len(raw_tweets),
-                    "saved": save_result["saved"],
-                    "duplicates": save_result["duplicates"]
-                }
-                
-                print(f"✅ {save_result['saved']} saved")
-                
-                # AGGRESSIVE rate limiting between users
-                if i < len(usernames):
-                    delay = random.uniform(15, 30)  # 15-30 saniye X.com tarafından
-                    print(f"   ⏳ Rate limiting: {delay:.1f}s", end="", flush=True)
-                    
-                    # Show countdown
-                    for remaining in range(int(delay), 0, -1):
-                        time.sleep(1)
-                        if remaining % 5 == 0:
-                            print(f"\r   ⏳ Rate limiting: {remaining}s   ", end="", flush=True)
-                    
-                    print("\r" + " " * 50 + "\r", end="", flush=True)
-                    
-            except KeyboardInterrupt:
-                print("\n\n⚠️  User interrupted - saving partial results...")
-                break
-            except Exception as e:
-                print(f"❌ Error: {str(e)[:40]}")
-                results["users"][username] = {"status": "error", "error": str(e)}
-                # Still apply rate limiting after error
-                if i < len(usernames):
-                    delay = random.uniform(15, 30)
-                    time.sleep(delay)
-        
-        scraper.close()
-        
-    except Exception as e:
-        print(f"\n❌ Fatal error: {e}")
-    
-    return results
 
+    # Load councilors
+    councilors = load_councilors()
+    print(f"✅ Loaded {len(councilors)} councilors")
 
-def print_summary(results: Dict):
-    """Print summary statistics"""
+    save_councilors(councilors)
+    print(f"✅ {len(councilors)} councilors saved to DB\n")
+
+    usernames = [c["username"] for c in councilors]
+
+    # Scrape tweets with HIGHER limit
+    scraper = XTwitterScraper(headless=False, require_manual_login=True)
+
+    if not scraper.driver:
+        print("❌ Scraper failed to initialize")
+        return
+
+    print("=" * 70)
+    print(f"🐦 SCRAPER WORKER v3.3 - {len(usernames)} users")
+    print(f"   Max tweets/user: 500 (INCREASED)")
+    print(f"   Time window: 90 days")
+    print(f"   Strategy: AGGRESSIVE TIME-BASED")
+    print("=" * 70 + "\n")
+
+    total_scraped = 0
+    total_saved = 0
+    total_duplicates = 0
+    user_stats = []
+
+    for i, username in enumerate(usernames, 1):
+        print(f"[{i:2d}/{len(usernames)}] @{username:20s}", end=" ")
+
+        # INCREASED: 100 → 500 max tweets
+        tweets = scraper.scrape_tweets(username, max_tweets=500, days_back=90)
+
+        if tweets:
+            total_scraped += len(tweets)
+            saved, dup = save_tweets(username, tweets)
+            total_saved += saved
+            total_duplicates += dup
+
+            user_stats.append({
+                "username": username,
+                "scraped": len(tweets),
+                "saved": saved,
+                "duplicates": dup
+            })
+        else:
+            user_stats.append({
+                "username": username,
+                "status": "no_tweets"
+            })
+
+    scraper.close()
+
+    # Summary
     print("\n" + "=" * 70)
     print("📊 SCRAPING SUMMARY")
-    print("=" * 70)
-    
-    print(f"\n📈 Totals:")
-    print(f"   Scraped: {results['total_scraped']}")
-    print(f"   Saved: {results['total_saved']}")
-    print(f"   Duplicates: {results['total_duplicates']}")
-    
-    print(f"\n👤 By User:")
-    for username, data in sorted(results['users'].items()):
-        if data.get('status') == 'success':
-            print(f"   ✅ @{username:20s} → {data['saved']} saved, {data['duplicates']} dup")
+    print("=" * 70 + "\n")
+
+    print(f"📈 Totals:")
+    print(f"   Scraped: {total_scraped}")
+    print(f"   Saved: {total_saved}")
+    print(f"   Duplicates: {total_duplicates}\n")
+
+    print(f"👤 By User:")
+    for stat in user_stats:
+        if "status" in stat:
+            print(f"   ⚠️  @{stat['username']:20s} → {stat['status']}")
         else:
-            print(f"   ⚠️  @{username:20s} → {data['status']}")
-    
+            print(f"   ✅ @{stat['username']:20s} → {stat['saved']} saved, {stat['duplicates']} dup")
+
     # Database stats
-    stats = get_stats()
+    db_stats = get_stats()
     print(f"\n💾 Database Stats:")
-    print(f"   Total Councilors: {stats['total_councilors']}")
-    print(f"   Total Tweets: {stats['total_tweets']}")
-    print(f"   Retweets: {stats['total_retweets']}")
-    print(f"   Original: {stats['original_tweets']}")
-    print(f"   Active Users: {stats['active_users']}")
-    
+    print(f"   Total Councilors: {db_stats['total_councilors']}")
+    print(f"   Total Tweets: {db_stats['total_tweets']}")
+    print(f"   Retweets: {db_stats['total_retweets']}")
+    print(f"   Original: {db_stats['total_original']}")
+    print(f"   Active Users: {db_stats['active_users']}")
+    print(f"   Total Views: {db_stats['total_views']:,}")
+
     print("\n" + "=" * 70)
 
 
 if __name__ == "__main__":
-    init_database()
-    
-    councilors = load_data_csv("data/data.csv")
-    if not councilors:
-        print("❌ No councilors loaded")
-        exit(1)
-    
-    print(f"\n✅ Loaded {len(councilors)} councilors")
-    loaded_count = load_councilors(councilors)
-    print(f"✅ {loaded_count} councilors saved to DB")
-    
-    usernames = [c['username'] for c in councilors]
-    results = scrape_and_save(
-        usernames,
-        max_tweets=100,
-        days_back=90
-    )
-    
-    print_summary(results)
-
+    main()

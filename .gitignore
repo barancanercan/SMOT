@@ -46,3 +46,4 @@ htmlcov/
 llm_trying.py
 .env
 meclis.db
+*.csv
