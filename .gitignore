@@ -46,7 +46,3 @@ htmlcov/
 llm_trying.py
 .env
 meclis.db
-
-llm_trying.py
-.env
-meclis.db
