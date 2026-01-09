@@ -1,16 +1,11 @@
 #!/usr/bin/env python3
 """
-📊 Enhanced CSV Export v3.2
-✅ Views column added
-✅ RT detection results
-✅ Full tweet statistics
+CSV Export v3.2 - Views column, RT detection, statistics
 """
 
 import sqlite3
 import csv
-from datetime import datetime
-
-DB_PATH = "meclis.db"
+from config import DB_PATH
 
 
 def export_all_tweets(output_file="tweets_export_v3_2.csv"):

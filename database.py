@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 """
-📊 Database Schema v3.2
-✅ Added: views column to tweets table
+Database Schema v3.2
 """
 
 import sqlite3
-from datetime import datetime
 from typing import List, Dict, Optional
-
-DB_PATH = "meclis.db"
+from config import DB_PATH
 
 
 def init_database():
