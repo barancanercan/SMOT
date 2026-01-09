@@ -235,9 +235,9 @@ class XTwitterScraper:
             seen_tweets = set()
             last_height = self.driver.execute_script("return document.body.scrollHeight")
             scroll_count = 0
-            max_scrolls = 200  # INCREASED: 50 → 200
+            max_scrolls = 300  # INCREASED: 200 → 300
             consecutive_no_new = 0  # Counter for stale scrolls
-            max_consecutive_no_new = 5  # Stop if 5 scrolls with no new tweets
+            max_consecutive_no_new = 15  # INCREASED: 5 → 15 (Twitter lazy loading)
 
             while scroll_count < max_scrolls and len(tweets) < max_tweets:
                 old_tweet_count = len(tweets)
@@ -391,10 +391,10 @@ class XTwitterScraper:
                     consecutive_no_new = 0
 
                 # ==========================================
-                # AGGRESSIVE SCROLL
+                # SCROLL WITH TWITTER-FRIENDLY DELAY
                 # ==========================================
-                delay = random.uniform(0.3, 1.0)  # FASTER: 0.3-1s (was 0.5-2s)
-                self.driver.execute_script("window.scrollBy(0, 1500);")  # BIGGER: 1500px (was 1000px)
+                delay = random.uniform(1.0, 2.0)  # Slower for Twitter lazy load
+                self.driver.execute_script("window.scrollBy(0, 800);")  # Smaller scroll for more tweets
                 time.sleep(delay)
                 scroll_count += 1
 
