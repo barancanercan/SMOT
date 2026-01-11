@@ -1,26 +1,95 @@
 # Meclis Istihbarat Sistemi
 
-**v1.0** - Ankara Belediyesi meclis uyelerinin X/Twitter aktivitesini toplayan veri kazima sistemi.
+**v2.0** - Ankara Buyuksehir Belediyesi meclis uyelerinin X/Twitter aktivitesini toplayan, analiz eden ve raporlayan sistem.
 
 ---
 
-## Sistem Akisi
+## Ozellikler
+
+- **Tweet Toplama:** 86 meclis uyesi, son 3 aylik tweetler
+- **Akilli Scraping:** Session crash durumunda otomatik devam (`--resume`)
+- **LLM Analizi:** Ollama + qwen2.5 ile icerik analizi
+- **Vector Database:** ChromaDB ile semantic search
+- **Raporlama:** Tek/toplu kullanici raporlari, Markdown export
+- **Web UI:** Streamlit tabanli kullanici dostu arayuz
+
+---
+
+## Hizli Baslangic
+
+### 1. Kurulum
+
+```bash
+git clone https://github.com/barancanercan/MeclisIstihbaratSistemi.git
+cd MeclisIstihbaratSistemi
+python3.10 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 2. Veritabani Olustur
+
+```bash
+python database.py
+```
+
+### 3. Tweet Toplama
+
+```bash
+# Tum kullanicilar (ilk calistirma)
+python run_full_scrape.py
+
+# Eksik/basarisiz kullanicilari tamamla
+python run_full_scrape.py --resume
+
+# Belirli indexten devam et
+python run_full_scrape.py --start 31
+```
+
+### 4. Web Arayuzu
+
+```bash
+# Streamlit (onerilen)
+streamlit run ui/streamlit_app.py
+
+# Gradio (alternatif)
+python ui/app.py
+```
+
+---
+
+## Sistem Mimarisi
 
 ```
-CSV (Meclis Uyeleri)
-    |
-X/Twitter Scraping (Selenium + Undetected Chrome)
-    |-- Tweet Text
-    |-- Timestamp
-    |-- Engagement (likes, replies, retweets, views)
-    |-- RT Detection
-    |-- Date Filtering (90 gun)
-    |
-SQLite Database
-    |-- Deduplication
-    |-- Councilor metadata
-    |
-CSV Export
+data/data.csv (86 Meclis Uyesi)
+        |
+        v
+[Tweet Scraping]
+    x_scraper.py (Selenium + Undetected Chrome)
+    run_full_scrape.py (Batch scraping)
+        |
+        v
+[SQLite Database] meclis.db
+    - councilors (kullanici bilgileri)
+    - tweets (12,480+ tweet)
+    - profile_history (takipci gecmisi)
+    - report_cache (rapor onbellegi)
+        |
+        v
+[Analysis Layer]
+    - Vector DB (ChromaDB + embeddings)
+    - LLM (Ollama + qwen2.5:7b)
+        |
+        v
+[Reporting]
+    - Metrik hesaplama
+    - Engagement analizi
+    - LLM destekli icerik analizi
+        |
+        v
+[Web UI]
+    - Streamlit (sade, hizli)
+    - Dashboard, Raporlar, En Iyi Tweetler
 ```
 
 ---
@@ -30,98 +99,127 @@ CSV Export
 ```
 MeclisIstihbaratSistemi/
 |
-|-- config.py           # Merkezi konfigurason
-|-- database.py         # SQLite islemleri
-|-- x_scraper.py        # XTwitterScraper sinifi
-|-- scraper_worker.py   # Ana veri toplama scripti
-|-- export_to_csv.py    # CSV export
+|-- config.py                # Konfigurason
+|-- database.py              # SQLite islemleri
+|-- x_scraper.py             # Tweet scraper
+|-- run_full_scrape.py       # Toplu veri toplama
+|
+|-- analysis/
+|   |-- analyzer.py          # LLM analizi
+|   |-- embeddings.py        # Vector embedding
+|   |-- vector_db.py         # ChromaDB
+|   |-- prompts.py           # LLM prompt sablonlari
+|
+|-- reporting/
+|   |-- report_generator.py  # Rapor olusturma
+|   |-- metrics.py           # Metrik hesaplama
+|
+|-- ui/
+|   |-- streamlit_app.py     # Streamlit UI (onerilen)
+|   |-- app.py               # Gradio UI (alternatif)
+|
+|-- scraping/
+|   |-- profile_scraper.py   # Profil bilgileri
+|
+|-- workers/
+|   |-- update_worker.py     # Haftalik guncelleme
 |
 |-- data/
-|   |-- data.csv        # Meclis uyeleri listesi
+|   |-- data.csv             # Meclis uyeleri listesi
 |
-|-- meclis.db           # SQLite veritabani
+|-- docs/
+|   |-- ROADMAP.md           # Gelistirme plani
+|
+|-- meclis.db                # Veritabani
 |-- requirements.txt
-|-- .env                # X credentials
+|-- .env                     # X credentials
 ```
 
 ---
 
-## Kurulum
+## Mevcut Durum (v2.0)
 
-### 1. Gereksinimler
-```bash
-sudo apt-get install -y python3.10 chromium-browser
-```
-
-### 2. Proje Setup
-```bash
-git clone https://github.com/barancanercan/MeclisIstihbaratSistemi.git
-cd MeclisIstihbaratSistemi
-python3.10 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 3. Veritabani Olustur
-```bash
-python database.py
-```
+| Metrik | Deger |
+|--------|-------|
+| Toplam Tweet | 12,480 |
+| Orijinal Tweet | 3,764 |
+| Retweet | 8,716 |
+| Aktif Kullanici | 85/86 |
 
 ---
 
-## Kullanim
+## Komut Referansi
 
 ### Veri Toplama
+
 ```bash
-python scraper_worker.py
-```
-- Browser acilir, manuel X login gerekir
-- 120 saniye login suresi
-- Tum kullanicilar icin tweet toplanir
+# Tum kullanicilar
+python run_full_scrape.py
 
-### CSV Export
+# Sadece basarisiz/eksik olanlar
+python run_full_scrape.py --resume
+
+# Belirli indexten basla
+python run_full_scrape.py --start 31
+```
+
+### Raporlama
+
 ```bash
-python export_to_csv.py
-```
-Cikti dosyalari:
-- `tweets_export_v3_2.csv` - Tum tweetler
-- `tweets_statistics_v3_2.csv` - Kullanici istatistikleri
-- `rt_analysis_v3_2.csv` - RT analizi
+# Tek kullanici raporu (hizli)
+python reporting/report_generator.py --user username --no-llm
 
----
+# Tek kullanici raporu (LLM ile)
+python reporting/report_generator.py --user username
 
-## Konfigurason
+# Toplu rapor
+python reporting/report_generator.py --users user1 user2 user3
 
-`config.py`:
-```python
-DB_PATH = "meclis.db"
-CSV_PATH = "data/data.csv"
-MAX_TWEETS_PER_USER = 500
-DAYS_BACK = 90
+# Cache temizle
+python reporting/report_generator.py --clear-cache
 ```
 
----
+### Metrikler
 
-## Veritabani Semasi
+```bash
+# Etkilesim siralamasi
+python reporting/metrics.py --users user1 user2 --ranking
 
-**councilors**
-- username, name, party, district
+# En iyi tweetler
+python reporting/metrics.py --users user1 --top 10
+```
 
-**tweets**
-- username, tweet_text, tweet_date
-- is_retweet, retweet_from
-- likes, replies, retweets, views
+### Web UI
+
+```bash
+# Streamlit (port 8501)
+streamlit run ui/streamlit_app.py
+
+# Gradio (port 7860)
+python ui/app.py
+```
 
 ---
 
 ## Teknik Stack
 
-| Katman | Arac |
-|--------|------|
-| Dil | Python 3.10+ |
-| Scraper | Selenium |
-| Bot Bypass | undetected-chromedriver |
-| Database | SQLite3 |
+| Katman | Arac | Aciklama |
+|--------|------|----------|
+| Scraping | Selenium + undetected-chromedriver | Bot detection bypass |
+| Database | SQLite | Lightweight, local |
+| Vector DB | ChromaDB | Semantic search |
+| Embedding | sentence-transformers | all-MiniLM-L6-v2 |
+| LLM | Ollama + qwen2.5:7b | Turkce destekli |
+| UI | Streamlit | Hizli, kullanici dostu |
+
+---
+
+## Gereksinimler
+
+- Python 3.10+
+- Chrome/Chromium browser
+- 16GB+ RAM (LLM icin onerilen)
+- Ollama (LLM analizi icin)
 
 ---
 
