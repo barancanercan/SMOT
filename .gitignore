@@ -47,3 +47,4 @@ llm_trying.py
 .env
 meclis.db
 *.csv
+!data/*.csv
