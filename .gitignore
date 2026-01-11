@@ -45,6 +45,6 @@ htmlcov/
 # Additional ignored files
 llm_trying.py
 .env
-meclis.db
+# meclis.db - artık track ediliyor
 *.csv
 !data/*.csv
