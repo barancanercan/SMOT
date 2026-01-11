@@ -261,7 +261,7 @@ def get_top_tweets(
         eng_rate = (engagement / views * 100) if views > 0 else 0
 
         results.append({
-            'text': tweet_text[:200] + '...' if len(tweet_text) > 200 else tweet_text,
+            'text': tweet_text,
             'full_text': tweet_text,
             'date': tweet_date,
             'likes': likes,

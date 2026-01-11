@@ -1,154 +1,195 @@
 #!/usr/bin/env python3
 """
-Prompts v1.0 - Turkce LLM Prompt Sablonlari
+Prompts v2.0 - Profesyonel Turkce LLM Prompt Sablonlari
 
-3 Analiz Sorusu:
-1. Ana konular nedir?
-2. Parti/lider savunusu
-3. Muhalefet elestirisi
+Analiz Kategorileri:
+1. Tematik Analiz (Ana konular)
+2. Siyasi Pozisyon Analizi (Parti/lider savunusu)
+3. Elestiri Analizi (Muhalefet elestirisi)
 """
 
 # ============================================================================
-# SISTEM PROMPTLARI
+# SISTEM PROMPTU
 # ============================================================================
 
-SYSTEM_PROMPT = """Sen bir siyasi analiz uzmanısin. Twitter/X paylasimlari uzerinden milletvekillerinin siyasi durusunu analiz ediyorsun.
+SYSTEM_PROMPT = """Sen deneyimli bir siyasi iletisim ve sosyal medya analistisin.
+Gorev: Turkiye Buyuk Millet Meclisi uyelerinin Twitter/X paylasimlari uzerinden siyasi iletisim stratejilerini analiz etmek.
 
-Kurallar:
-- Sadece verilen tweetlere dayanarak analiz yap
-- Tarafsiz ve objektif ol
-- Turkce yanit ver
-- Kisa ve oz yanıtlar ver
-- Spekülasyon yapma, sadece tweetlerdeki acik ifadeleri kullan"""
+Analiz Ilkeleri:
+- Sadece verilen tweet verileriyle sinirli kal, disaridan bilgi ekleme
+- Objektif ve tarafsiz bir dil kullan
+- Somut orneklerle destekle
+- Akademik ve profesyonel bir uslup benimse
+- Spekulasyondan kacin, dogrudan gozlemlere dayan
+- Turkce terminoloji kullan
+
+Cikti Formati: Yapilandirilmis markdown formatinda, basliklar ve maddeler halinde."""
 
 
 # ============================================================================
-# SORU 1: ANA KONULAR
+# SORU 1: TEMATIK ANALIZ
 # ============================================================================
 
-PROMPT_MAIN_TOPICS = """Asagidaki tweetleri analiz et ve bu kisinin en cok hangi konularda paylasim yaptigini belirle.
+PROMPT_MAIN_TOPICS = """## Tematik Icerik Analizi
 
-TWEETLER:
+Asagidaki tweet arsivini inceleyerek kullanicinin iletisim stratejisindeki ana temalari belirle.
+
+**Tweet Arsivi:**
 {tweets}
 
-GOREV:
-1. En cok vurgulanan 5 ana konuyu listele
-2. Her konu icin kac tweet oldugunu belirt
-3. Kisaca ozeti yaz
+**Analiz Gereksinimleri:**
+1. En sik islenen 5 ana temayi tespit et
+2. Her tema icin frekans ve ornek tweet belirt
+3. Genel iletisim stratejisi hakkinda degerlendirme yap
 
-FORMAT:
-## Ana Konular
+**Beklenen Cikti Formati:**
 
-1. **[Konu Adi]** (X tweet)
-   - Kisa aciklama
+### Ana Temalar
 
-2. **[Konu Adi]** (X tweet)
-   - Kisa aciklama
+1. **[Tema Adi]** (X tweet)
+   - Aciklama: [Temanin nasil islendigi]
+   - Ornek: "[Tweet alintisi]"
 
-...
+2. **[Tema Adi]** (X tweet)
+   - Aciklama: [Temanin nasil islendigi]
+   - Ornek: "[Tweet alintisi]"
 
-## Ozet
-[1-2 cumlelik genel degerlendirme]"""
+[Diger temalar...]
+
+### Iletisim Stratejisi Degerlendirmesi
+[Kullanicinin genel iletisim yaklasimi hakkinda 2-3 cumlelik profesyonel degerlendirme]"""
 
 
 # ============================================================================
-# SORU 2: PARTI/LIDER SAVUNUSU
+# SORU 2: SIYASI POZISYON ANALIZI
 # ============================================================================
 
-PROMPT_PARTY_DEFENSE = """Asagidaki tweetleri analiz et ve bu kisinin parti/lider savunusu yapip yapmadigini belirle.
+PROMPT_PARTY_DEFENSE = """## Siyasi Pozisyon Analizi
 
-TWEETLER:
+Asagidaki tweet arsivini inceleyerek kullanicinin parti/lider destegi baglamindaki pozisyonunu analiz et.
+
+**Tweet Arsivi:**
 {tweets}
 
-GOREV:
-1. Hangi parti veya lideri savundugunu belirle
-2. Savunma iceren tweet ornekleri ver (en fazla 3)
-3. Savunma siddeti: Guclu / Orta / Zayif / Yok
+**Analiz Gereksinimleri:**
+1. Desteklenen parti veya siyasi lider(ler)i tespit et
+2. Destek ifadelerinin yogunlugunu degerlendir
+3. Somut ornek tweetler sun
 
-FORMAT:
-## Parti/Lider Savunusu Analizi
+**Beklenen Cikti Formati:**
 
-**Savunulan Parti/Lider:** [Isim veya "Belirgin savunma yok"]
+### Siyasi Destek Analizi
 
-**Savunma Siddeti:** [Guclu/Orta/Zayif/Yok]
+**Desteklenen Parti/Lider:** [Tespit edilen isim(ler) veya "Belirgin destek ifadesi yok"]
+
+**Destek Yogunlugu:** [Yuksek / Orta / Dusuk / Belirsiz]
+
+**Kanitlayici Ornekler:**
+1. "[Tweet alintisi]" - [Kisa yorum]
+2. "[Tweet alintisi]" - [Kisa yorum]
+
+### Degerlendirme
+[Siyasi pozisyon hakkinda objektif, 2-3 cumlelik analiz]"""
+
+
+# ============================================================================
+# SORU 3: ELESTIRI ANALIZI
+# ============================================================================
+
+PROMPT_OPPOSITION_CRITICISM = """## Siyasi Elestiri Analizi
+
+Asagidaki tweet arsivini inceleyerek kullanicinin muhalefet partileri/siyasetcilere yonelik elestirel tutumunu analiz et.
+
+**Tweet Arsivi:**
+{tweets}
+
+**Analiz Gereksinimleri:**
+1. Elestiri yoneltilen parti veya siyasetcileri tespit et
+2. Elestiri tonunu ve yogunlugunu degerlendir
+3. Somut ornek tweetler sun
+
+**Beklenen Cikti Formati:**
+
+### Elestiri Analizi
+
+**Elestirilen Taraf(lar):** [Tespit edilen isim(ler) veya "Belirgin elestiri yok"]
+
+**Elestiri Tonu:** [Sert / Olculu / Hafif / Belirsiz]
+
+**Kanitlayici Ornekler:**
+1. "[Tweet alintisi]" - [Kisa yorum]
+2. "[Tweet alintisi]" - [Kisa yorum]
+
+### Degerlendirme
+[Elestirel tutum hakkinda objektif, 2-3 cumlelik analiz]"""
+
+
+# ============================================================================
+# KAPSAMLI ANALIZ (TUM KATEGORILER)
+# ============================================================================
+
+PROMPT_FULL_ANALYSIS = """## Kapsamli Siyasi Iletisim Analizi
+
+**Meclis Uyesi:** @{username}
+**Parti:** {party}
+**Analiz Edilen Tweet Sayisi:** {tweet_count}
+**Analiz Donemi:** {period}
+
+---
+
+**Tweet Arsivi:**
+{tweets}
+
+---
+
+**Analiz Gereksinimleri:**
+
+Asagidaki uc kategoriyi ayrintili sekilde analiz et:
+
+### 1. TEMATIK ANALIZ
+- En sik islenen konulari tespit et (en az 3, en fazla 5)
+- Her konu icin somut tweet ornegi ver
+
+### 2. SIYASI POZISYON
+- Parti veya lider destegi var mi? Kim(ler)?
+- Destek yogunlugunu degerlendir (Yuksek/Orta/Dusuk/Yok)
+- Ornek tweet(ler) sun
+
+### 3. ELESTIRI ANALIZI
+- Hangi parti veya siyasetcilere elestiri var?
+- Elestiri tonunu degerlendir (Sert/Olculu/Hafif/Yok)
+- Ornek tweet(ler) sun
+
+---
+
+**Beklenen Cikti Formati:**
+
+## 1. Tematik Analiz
+
+| Tema | Aciklama |
+|------|----------|
+| [Tema 1] | [Kisa aciklama] |
+| [Tema 2] | [Kisa aciklama] |
+| [Tema 3] | [Kisa aciklama] |
 
 **Ornek Tweetler:**
-1. "[Tweet metni]"
-2. "[Tweet metni]"
+- "[Tweet alintisi]"
 
-**Degerlendirme:**
-[1-2 cumlelik analiz]"""
+## 2. Siyasi Pozisyon
 
+**Desteklenen:** [Parti/Lider veya "Belirgin destek yok"]
+**Yogunluk:** [Yuksek/Orta/Dusuk/Yok]
+**Ornek:** "[Tweet alintisi]"
 
-# ============================================================================
-# SORU 3: MUHALEFET ELESTIRISI
-# ============================================================================
+## 3. Elestiri Analizi
 
-PROMPT_OPPOSITION_CRITICISM = """Asagidaki tweetleri analiz et ve bu kisinin muhalefete yonelik elestirileri belirle.
-
-TWEETLER:
-{tweets}
-
-GOREV:
-1. Hangi parti veya kisileri elestirdigini belirle
-2. Elestiri iceren tweet ornekleri ver (en fazla 3)
-3. Elestiri siddeti: Sert / Orta / Hafif / Yok
-
-FORMAT:
-## Muhalefet Elestirisi Analizi
-
-**Elestirilen Parti/Kisiler:** [Isimler veya "Belirgin elestiri yok"]
-
-**Elestiri Siddeti:** [Sert/Orta/Hafif/Yok]
-
-**Ornek Tweetler:**
-1. "[Tweet metni]"
-2. "[Tweet metni]"
-
-**Degerlendirme:**
-[1-2 cumlelik analiz]"""
-
-
-# ============================================================================
-# GENEL ANALIZ (TUM SORULAR BIR ARADA)
-# ============================================================================
-
-PROMPT_FULL_ANALYSIS = """Asagidaki tweetleri detayli analiz et.
-
-KULLANICI: @{username}
-TWEET SAYISI: {tweet_count}
-DONEM: {period}
-
-TWEETLER:
-{tweets}
-
-GOREV:
-Asagidaki 3 soruyu yanitla:
-
-1. ANA KONULAR: Bu kisi en cok hangi konularda paylasim yapiyor? (En az 3, en fazla 5 konu)
-
-2. PARTI SAVUNUSU: Hangi parti veya lideri savunuyor? Ornekler ver.
-
-3. MUHALEFET ELESTIRISI: Kimleri elestiriyor? Ornekler ver.
-
-FORMAT:
-## 1. Ana Konular
-- [Konu 1]: [Kisa aciklama]
-- [Konu 2]: [Kisa aciklama]
-- [Konu 3]: [Kisa aciklama]
-
-## 2. Parti/Lider Savunusu
-**Savunulan:** [Parti/Lider adi veya "Yok"]
-**Ornek:** "[Tweet]"
-**Siddet:** [Guclu/Orta/Zayif/Yok]
-
-## 3. Muhalefet Elestirisi
-**Elestirilen:** [Parti/Kisi adi veya "Yok"]
-**Ornek:** "[Tweet]"
-**Siddet:** [Sert/Orta/Hafif/Yok]
+**Elestirilen:** [Parti/Kisi veya "Belirgin elestiri yok"]
+**Ton:** [Sert/Olculu/Hafif/Yok]
+**Ornek:** "[Tweet alintisi]"
 
 ## Genel Degerlendirme
-[2-3 cumlelik ozet]"""
+
+[Meclis uyesinin siyasi iletisim stratejisi hakkinda 3-4 cumlelik profesyonel ve objektif bir ozet. Parti aidiyeti ({party}) baglaminda tutarlilik degerlendirmesi de dahil edilebilir.]"""
 
 
 # ============================================================================
@@ -167,7 +208,7 @@ def format_tweets_for_prompt(tweets: list, max_tweets: int = 30) -> str:
         Formatli tweet metni
     """
     if not tweets:
-        return "[Tweet bulunamadi]"
+        return "[Tweet verisi bulunamadi]"
 
     # En fazla max_tweets kadar al
     tweets = tweets[:max_tweets]
@@ -177,12 +218,15 @@ def format_tweets_for_prompt(tweets: list, max_tweets: int = 30) -> str:
         text = t.get('text', t.get('tweet_text', ''))
         date = t.get('date', t.get('tweet_date', ''))
 
+        # Tarihi formatla
         if date:
-            lines.append(f"{i}. [{date}] {text}")
+            # ISO formatindan sadece tarihi al
+            date_short = str(date)[:10] if len(str(date)) > 10 else date
+            lines.append(f"[{i}] ({date_short}) {text}")
         else:
-            lines.append(f"{i}. {text}")
+            lines.append(f"[{i}] {text}")
 
-    return "\n".join(lines)
+    return "\n\n".join(lines)
 
 
 def get_prompt(prompt_type: str, **kwargs) -> str:
@@ -191,7 +235,7 @@ def get_prompt(prompt_type: str, **kwargs) -> str:
 
     Args:
         prompt_type: 'main_topics', 'party_defense', 'opposition', 'full'
-        **kwargs: Sablon degiskenleri (tweets, username, etc.)
+        **kwargs: Sablon degiskenleri (tweets, username, party, etc.)
 
     Returns:
         Doldurulmus prompt
@@ -210,6 +254,10 @@ def get_prompt(prompt_type: str, **kwargs) -> str:
     # tweets listesi varsa formatla
     if 'tweets' in kwargs and isinstance(kwargs['tweets'], list):
         kwargs['tweets'] = format_tweets_for_prompt(kwargs['tweets'])
+
+    # Varsayilan degerler
+    if 'party' not in kwargs:
+        kwargs['party'] = 'Bilinmiyor'
 
     return template.format(**kwargs)
 
@@ -236,8 +284,8 @@ if __name__ == "__main__":
     prompt = get_prompt('full',
                         tweets=test_tweets,
                         username="test_user",
+                        party="AKP",
                         tweet_count=3,
                         period="2024-01-01 - 2024-01-03")
     print("FULL ANALYSIS PROMPT:")
-    print(prompt[:500])
-    print("...")
+    print(prompt)

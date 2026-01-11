@@ -49,10 +49,15 @@ class ReportGenerator:
 
         if use_llm:
             try:
+                print("[DEBUG] TweetAnalyzer import ediliyor...")
                 from analysis.analyzer import TweetAnalyzer
+                print("[DEBUG] TweetAnalyzer olusturuluyor...")
                 self.analyzer = TweetAnalyzer()
+                print(f"[DEBUG] TweetAnalyzer hazir, model: {self.analyzer.model}")
             except Exception as e:
+                import traceback
                 print(f"LLM baslatilamadi: {e}")
+                print(f"[DEBUG] Traceback: {traceback.format_exc()}")
                 self.use_llm = False
 
     def generate_report(self, username: str, force_refresh: bool = False) -> str:
@@ -222,7 +227,7 @@ class ReportGenerator:
         lines = ["## En Cok Etkilesim Alan Tweetler\n"]
 
         for i, t in enumerate(tweets, 1):
-            text = t['text'][:150] + "..." if len(t['text']) > 150 else t['text']
+            text = t['text']
             lines.append(f"""### {i}. Tweet
 > {text}
 
@@ -238,12 +243,19 @@ class ReportGenerator:
         if not self.analyzer:
             return "\n## LLM Analizi\n*LLM kullanilabilir degil*\n"
 
-        # Tweetleri al
+        # Tweetleri ve parti bilgisini al
         import sqlite3
         from config import DB_PATH
 
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
+
+        # Parti bilgisini al
+        cursor.execute("SELECT party FROM councilors WHERE username = ?", (username,))
+        party_row = cursor.fetchone()
+        party = party_row[0] if party_row else "Bilinmiyor"
+
+        # Tweetleri al
         cursor.execute("""
             SELECT tweet_text, tweet_date
             FROM tweets
@@ -259,11 +271,20 @@ class ReportGenerator:
 
         tweets = [{'text': row[0], 'date': row[1]} for row in rows]
 
+        # Tarih araligi
+        dates = [t['date'] for t in tweets if t['date']]
+        period = f"{min(dates)[:10]} - {max(dates)[:10]}" if dates else "Bilinmiyor"
+
         # Tam analiz yap
         try:
-            result = self.analyzer.analyze_full(tweets, username)
+            print(f"[DEBUG] analyze_full cagiriliyor, {len(tweets)} tweet, parti: {party}...")
+            result = self.analyzer.analyze_full(tweets, username, period=period, party=party)
+            print(f"[DEBUG] Analiz tamamlandi!")
             return f"\n## LLM Analizi\n\n{result['raw_response']}\n"
         except Exception as e:
+            import traceback
+            print(f"[DEBUG] Analiz hatasi: {e}")
+            print(f"[DEBUG] Traceback: {traceback.format_exc()}")
             return f"\n## LLM Analizi\n*Analiz hatasi: {e}*\n"
 
     def _generate_footer(self) -> str:

@@ -2,7 +2,7 @@
 """
 Analyzer v1.0 - Ollama LLM Entegrasyonu
 
-- Ollama API baglantisi
+- Ollama API baglantisi (HTTP)
 - Tweet analizi (3 soru)
 - Response parsing
 """
@@ -11,6 +11,7 @@ import sys
 import os
 from typing import Dict, List, Optional
 import time
+import requests
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -19,10 +20,11 @@ from .prompts import SYSTEM_PROMPT, get_prompt
 # Default model
 DEFAULT_MODEL = "qwen2.5:7b"
 FALLBACK_MODEL = "qwen2.5:3b"
+OLLAMA_URL = "http://127.0.0.1:11434"
 
 
 class TweetAnalyzer:
-    """Ollama ile tweet analizi"""
+    """Ollama ile tweet analizi (HTTP API)"""
 
     def __init__(self, model: str = None):
         """
@@ -30,28 +32,25 @@ class TweetAnalyzer:
             model: Ollama model adi (default: qwen2.5:7b)
         """
         self.model = model or DEFAULT_MODEL
-        self.client = None
-        self._init_client()
+        self.base_url = OLLAMA_URL
+        self._check_connection()
 
-    def _init_client(self):
-        """Ollama client baslat"""
+    def _check_connection(self):
+        """Ollama baglantisini kontrol et"""
         try:
-            import ollama
-            self.client = ollama
-            # Model mevcut mu kontrol et
-            try:
-                models = ollama.list()
-                model_names = [m['name'] for m in models.get('models', [])]
+            resp = requests.get(f"{self.base_url}/api/tags", timeout=5)
+            if resp.status_code == 200:
+                data = resp.json()
+                models = data.get('models', [])
+                model_names = [m.get('name', '') for m in models]
                 if self.model not in model_names and f"{self.model}:latest" not in model_names:
-                    print(f"Model '{self.model}' bulunamadi. Mevcut modeller: {model_names}")
-            except:
-                pass
-        except ImportError:
-            raise ImportError("ollama yuklu degil: pip install ollama")
+                    print(f"Model '{self.model}' bulunamadi. Mevcut: {model_names}")
+        except Exception as e:
+            print(f"Ollama baglanti kontrolu: {e}")
 
     def _call_llm(self, prompt: str, max_retries: int = 2) -> str:
         """
-        LLM'e istek gonder
+        LLM'e istek gonder (HTTP API)
 
         Args:
             prompt: Kullanici promptu
@@ -60,20 +59,26 @@ class TweetAnalyzer:
         Returns:
             LLM yaniti
         """
+        url = f"{self.base_url}/api/chat"
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt}
+            ],
+            "options": {
+                "temperature": 0.3,
+                "num_predict": 1024
+            },
+            "stream": False
+        }
+
         for attempt in range(max_retries + 1):
             try:
-                response = self.client.chat(
-                    model=self.model,
-                    messages=[
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": prompt}
-                    ],
-                    options={
-                        "temperature": 0.3,  # Daha tutarli yanitlar
-                        "num_predict": 1024,  # Max token
-                    }
-                )
-                return response['message']['content']
+                resp = requests.post(url, json=payload, timeout=120)
+                resp.raise_for_status()
+                data = resp.json()
+                return data.get('message', {}).get('content', '')
 
             except Exception as e:
                 if attempt < max_retries:
@@ -156,7 +161,7 @@ class TweetAnalyzer:
             'elapsed_seconds': elapsed
         }
 
-    def analyze_full(self, tweets: List[Dict], username: str, period: str = None) -> Dict:
+    def analyze_full(self, tweets: List[Dict], username: str, period: str = None, party: str = None) -> Dict:
         """
         Tam analiz (3 soru birden)
 
@@ -164,6 +169,7 @@ class TweetAnalyzer:
             tweets: Tweet listesi
             username: Kullanici adi
             period: Analiz donemi
+            party: Meclis uyesinin partisi
 
         Returns:
             Tam analiz sonucu
@@ -172,11 +178,12 @@ class TweetAnalyzer:
             'full',
             tweets=tweets,
             username=username,
+            party=party or "Bilinmiyor",
             tweet_count=len(tweets),
             period=period or "Tum zamanlar"
         )
 
-        print(f"  @{username} tam analiz yapiliyor...")
+        print(f"  @{username} ({party or 'Parti?'}) tam analiz yapiliyor...")
         start = time.time()
         response = self._call_llm(prompt)
         elapsed = time.time() - start
@@ -184,6 +191,7 @@ class TweetAnalyzer:
 
         return {
             'username': username,
+            'party': party,
             'tweet_count': len(tweets),
             'period': period,
             'raw_response': response,

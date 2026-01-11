@@ -31,20 +31,28 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Minimal CSS
+# Beyaz Tema CSS
 st.markdown("""
 <style>
-    .main-header {
-        font-size: 2rem;
-        font-weight: bold;
-        margin-bottom: 1rem;
+    /* Ana arka plan beyaz */
+    .stApp {
+        background-color: #ffffff;
     }
+
+    /* Sidebar beyaz */
+    [data-testid="stSidebar"] {
+        background-color: #f8f9fa;
+    }
+
+    /* Metrikler */
     .metric-card {
         background: #f8f9fa;
         padding: 1rem;
         border-radius: 8px;
         margin: 0.5rem 0;
     }
+
+    /* Tweet kartları */
     .tweet-card {
         background: #ffffff;
         border: 1px solid #e0e0e0;
@@ -52,7 +60,21 @@ st.markdown("""
         border-radius: 8px;
         margin: 0.5rem 0;
     }
+
+    /* Selectbox beyaz */
     .stSelectbox > div > div {
+        background-color: white;
+    }
+
+    /* Expander içerikleri */
+    .streamlit-expanderContent {
+        background-color: #fafafa;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    /* Multiselect */
+    .stMultiSelect > div {
         background-color: white;
     }
 </style>
@@ -64,16 +86,33 @@ st.markdown("""
 
 @st.cache_data(ttl=300)
 def get_all_users():
-    """Tum kullanicilari getir"""
+    """Tum kullanicilari getir (councilors tablosundan)"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT DISTINCT username FROM tweets
+        SELECT username FROM councilors
         ORDER BY username
     """)
     users = [row[0] for row in cursor.fetchall()]
     conn.close()
     return users
+
+
+@st.cache_data(ttl=300)
+def get_all_councilors():
+    """Tum meclis uyelerini detayli getir"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT c.username, c.name, c.party, c.district,
+               COALESCE(ph.followers_count, 0) as followers
+        FROM councilors c
+        LEFT JOIN profile_history ph ON c.username = ph.username
+        ORDER BY c.name
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    return [{'username': r[0], 'name': r[1], 'party': r[2], 'district': r[3], 'followers': r[4]} for r in rows]
 
 
 @st.cache_data(ttl=300)
@@ -210,9 +249,10 @@ with st.sidebar:
 
     # Hizli istatistikler
     stats = get_db_stats()
+    all_users = get_all_users()
     if stats:
         st.metric("Toplam Tweet", f"{stats['total_tweets']:,}")
-        st.metric("Kullanici", stats['active_users'])
+        st.metric("Meclis Uyesi", len(all_users))
 
 
 # ============================================================================
@@ -249,7 +289,7 @@ if page == "📊 Dashboard":
 
         for i, tweet in enumerate(top_tweets, 1):
             with st.container():
-                st.markdown(f"**{i}.** {tweet['text'][:200]}...")
+                st.markdown(f"**{i}.** {tweet['text']}")
                 cols = st.columns(4)
                 cols[0].caption(f"❤️ {tweet['likes']:,}")
                 cols[1].caption(f"💬 {tweet['replies']:,}")
@@ -581,7 +621,59 @@ elif page == "📋 Rapor Olustur":
     # Coklu kullanici raporu
     st.markdown("### Toplu Rapor")
 
-    selected_users = st.multiselect("Kullanicilari Sec", users, key="multi_users")
+    # Hizli secim butonlari
+    councilors = get_all_councilors()
+    parties = list(set([c['party'] for c in councilors if c['party']]))
+
+    st.markdown("**Hizli Secim:**")
+    col_btns = st.columns(5)
+
+    # Session state for selected users
+    if 'selected_users_list' not in st.session_state:
+        st.session_state.selected_users_list = []
+
+    with col_btns[0]:
+        if st.button("✅ Tumunu Sec", use_container_width=True):
+            st.session_state.selected_users_list = users.copy()
+            st.rerun()
+
+    with col_btns[1]:
+        if st.button("❌ Temizle", use_container_width=True):
+            st.session_state.selected_users_list = []
+            st.rerun()
+
+    with col_btns[2]:
+        if st.button("🔴 CHP", use_container_width=True):
+            chp_users = [c['username'] for c in councilors if str(c['party']).upper() in ['CHP', 'CUMHURIYET HALK PARTISI'] or 'CUMHURIYET' in str(c['party']).upper()]
+            st.session_state.selected_users_list = chp_users
+            st.rerun()
+
+    with col_btns[3]:
+        if st.button("🟠 AKP", use_container_width=True):
+            akp_users = [c['username'] for c in councilors if str(c['party']).upper() in ['AKP', 'AK PARTI', 'ADALET VE KALKINMA PARTISI'] or 'ADALET' in str(c['party']).upper()]
+            st.session_state.selected_users_list = akp_users
+            st.rerun()
+
+    with col_btns[4]:
+        if st.button("🔵 Diger", use_container_width=True):
+            chp_check = lambda p: str(p).upper() in ['CHP', 'CUMHURIYET HALK PARTISI'] or 'CUMHURIYET' in str(p).upper()
+            akp_check = lambda p: str(p).upper() in ['AKP', 'AK PARTI', 'ADALET VE KALKINMA PARTISI'] or 'ADALET' in str(p).upper()
+            other_users = [c['username'] for c in councilors if not chp_check(c['party']) and not akp_check(c['party'])]
+            st.session_state.selected_users_list = other_users
+            st.rerun()
+
+    # Multiselect with default from session state
+    selected_users = st.multiselect(
+        "Kullanicilari Sec",
+        users,
+        default=st.session_state.selected_users_list,
+        key="multi_users"
+    )
+
+    # Update session state
+    st.session_state.selected_users_list = selected_users
+
+    st.caption(f"Secili: {len(selected_users)} / {len(users)} kullanici")
 
     col1, col2 = st.columns([1, 1])
     with col1:
