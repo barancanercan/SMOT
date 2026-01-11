@@ -48,3 +48,5 @@ llm_trying.py
 # meclis.db - artık track ediliyor
 *.csv
 !data/*.csv
+
+.claude/
