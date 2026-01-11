@@ -2,7 +2,7 @@
 """
 Streamlit Web UI - Meclis Istihbarat Sistemi
 
-Sade ve kullanici dostu arayuz
+Sade ve kullanici dostu arayuz + Dashboard Grafikleri
 """
 
 import sys
@@ -12,10 +12,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import streamlit as st
 import sqlite3
 from datetime import datetime
+import plotly.express as px
+import plotly.graph_objects as go
+import pandas as pd
 
 from config import DB_PATH
 from database import get_stats, get_latest_profile, init_database
-from reporting import generate_report, generate_quick_report, get_top_tweets, get_user_engagement_stats
+from reporting import generate_report, generate_quick_report, get_top_tweets, get_user_engagement_stats, export_to_excel, export_engagement_excel
 
 # ============================================================================
 # SAYFA AYARLARI
@@ -101,6 +104,93 @@ def generate_user_report_cached(username, use_llm=False):
     return generate_quick_report(username)
 
 
+@st.cache_data(ttl=300)
+def get_followers_data():
+    """Takipci verilerini getir (profile_history'den)"""
+    conn = sqlite3.connect(DB_PATH)
+    query = """
+        SELECT
+            ph.username,
+            c.name,
+            c.party,
+            c.district,
+            ph.followers_count
+        FROM profile_history ph
+        JOIN councilors c ON ph.username = c.username
+        WHERE ph.scrape_date = (
+            SELECT MAX(scrape_date) FROM profile_history WHERE username = ph.username
+        )
+        ORDER BY ph.followers_count DESC
+    """
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
+
+
+@st.cache_data(ttl=300)
+def get_party_stats():
+    """Parti bazli istatistikler"""
+    conn = sqlite3.connect(DB_PATH)
+    query = """
+        SELECT
+            c.party,
+            COUNT(DISTINCT c.username) as member_count,
+            COALESCE(SUM(ph.followers_count), 0) as total_followers
+        FROM councilors c
+        LEFT JOIN profile_history ph ON c.username = ph.username
+        GROUP BY c.party
+        ORDER BY total_followers DESC
+    """
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
+
+
+@st.cache_data(ttl=300)
+def get_engagement_by_user():
+    """Kullanici bazli engagement verileri"""
+    conn = sqlite3.connect(DB_PATH)
+    query = """
+        SELECT
+            t.username,
+            c.name,
+            c.party,
+            COUNT(*) as tweet_count,
+            COALESCE(SUM(t.likes), 0) as total_likes,
+            COALESCE(SUM(t.retweets), 0) as total_retweets,
+            COALESCE(SUM(t.views), 0) as total_views,
+            COALESCE(SUM(t.likes + t.retweets + t.replies), 0) as total_engagement
+        FROM tweets t
+        JOIN councilors c ON t.username = c.username
+        WHERE t.is_retweet = 0
+        GROUP BY t.username
+        ORDER BY total_engagement DESC
+    """
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
+
+
+@st.cache_data(ttl=300)
+def get_district_stats():
+    """Ilce bazli istatistikler"""
+    conn = sqlite3.connect(DB_PATH)
+    query = """
+        SELECT
+            c.district,
+            COUNT(DISTINCT c.username) as member_count,
+            COALESCE(SUM(ph.followers_count), 0) as total_followers
+        FROM councilors c
+        LEFT JOIN profile_history ph ON c.username = ph.username
+        GROUP BY c.district
+        HAVING member_count > 0
+        ORDER BY total_followers DESC
+    """
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
+
+
 # ============================================================================
 # SIDEBAR
 # ============================================================================
@@ -112,7 +202,7 @@ with st.sidebar:
     # Sayfa secimi
     page = st.radio(
         "Sayfa",
-        ["📊 Dashboard", "📋 Rapor Olustur", "🔥 En Iyi Tweetler", "⚙️ Sistem"],
+        ["📊 Dashboard", "📈 Grafikler", "📋 Rapor Olustur", "🔥 En Iyi Tweetler", "⚙️ Sistem"],
         label_visibility="collapsed"
     )
 
@@ -185,6 +275,274 @@ if page == "📊 Dashboard":
                 st.metric("Toplam View", f"{stats['total_views']:,}")
             with col6:
                 st.metric("Aktif Kullanici", stats['active_users'])
+
+
+# ============================================================================
+# GRAFIKLER SAYFASI
+# ============================================================================
+
+elif page == "📈 Grafikler":
+    st.markdown("# 📈 Analiz Grafikleri")
+
+    # Tab yapisi
+    tab1, tab2, tab3, tab4 = st.tabs(["👥 Takipci Siralaması", "🏛️ Parti Analizi", "📊 Engagement", "🗺️ Ilce Analizi"])
+
+    # ----- TAB 1: TAKIPCI SIRALAMASI -----
+    with tab1:
+        st.markdown("### En Cok Takipcisi Olan Meclis Uyeleri")
+
+        followers_df = get_followers_data()
+
+        if not followers_df.empty:
+            # Top 20 bar chart
+            top_20 = followers_df.head(20)
+
+            fig = px.bar(
+                top_20,
+                x='followers_count',
+                y='name',
+                orientation='h',
+                color='party',
+                title='Top 20 - Takipci Sayisina Gore',
+                labels={'followers_count': 'Takipci', 'name': 'Meclis Uyesi', 'party': 'Parti'},
+                color_discrete_map={
+                    'Cumhuriyet Halk Partisi': '#e31b23',
+                    'Adalet Ve Kalkınma Partisi': '#ffa500',
+                    'Milliyetçi Hareket Partisi': '#c8102e',
+                    'Büyük Birlik Partisi': '#1e3a8a',
+                    'Yeniden Refah Partisi': '#006400',
+                    'Bağımsız': '#808080'
+                }
+            )
+            fig.update_layout(yaxis={'categoryorder': 'total ascending'}, height=600)
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Tablo
+            st.markdown("### Tam Liste")
+            st.dataframe(
+                followers_df[['name', 'party', 'district', 'followers_count']].rename(columns={
+                    'name': 'Isim',
+                    'party': 'Parti',
+                    'district': 'Ilce',
+                    'followers_count': 'Takipci'
+                }),
+                use_container_width=True,
+                height=400
+            )
+
+            # Excel Export
+            st.markdown("### Export")
+            export_data = followers_df.to_dict('records')
+            if st.button("📥 Excel Olarak Indir", key="export_followers"):
+                filepath = export_to_excel(export_data, f"takipci_listesi_{datetime.now().strftime('%Y%m%d')}")
+                if filepath:
+                    with open(filepath, 'rb') as f:
+                        st.download_button(
+                            "💾 Excel Dosyasini Kaydet",
+                            f.read(),
+                            file_name=filepath.split('/')[-1],
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+        else:
+            st.info("Takipci verisi bulunamadi. Profile scraper calistirilmali.")
+
+    # ----- TAB 2: PARTI ANALIZI -----
+    with tab2:
+        st.markdown("### Parti Bazli Analiz")
+
+        party_df = get_party_stats()
+
+        if not party_df.empty and party_df['total_followers'].sum() > 0:
+            col1, col2 = st.columns(2)
+
+            with col1:
+                # Parti uye sayisi pie chart
+                fig1 = px.pie(
+                    party_df,
+                    values='member_count',
+                    names='party',
+                    title='Parti Bazli Uye Dagilimi',
+                    color='party',
+                    color_discrete_map={
+                        'Cumhuriyet Halk Partisi': '#e31b23',
+                        'Adalet Ve Kalkınma Partisi': '#ffa500',
+                        'Milliyetçi Hareket Partisi': '#c8102e',
+                        'Büyük Birlik Partisi': '#1e3a8a',
+                        'Yeniden Refah Partisi': '#006400',
+                        'Bağımsız': '#808080'
+                    }
+                )
+                st.plotly_chart(fig1, use_container_width=True)
+
+            with col2:
+                # Parti toplam takipci bar chart
+                fig2 = px.bar(
+                    party_df,
+                    x='party',
+                    y='total_followers',
+                    title='Parti Bazli Toplam Takipci',
+                    labels={'party': 'Parti', 'total_followers': 'Toplam Takipci'},
+                    color='party',
+                    color_discrete_map={
+                        'Cumhuriyet Halk Partisi': '#e31b23',
+                        'Adalet Ve Kalkınma Partisi': '#ffa500',
+                        'Milliyetçi Hareket Partisi': '#c8102e',
+                        'Büyük Birlik Partisi': '#1e3a8a',
+                        'Yeniden Refah Partisi': '#006400',
+                        'Bağımsız': '#808080'
+                    }
+                )
+                fig2.update_layout(showlegend=False)
+                st.plotly_chart(fig2, use_container_width=True)
+
+            # Parti istatistikleri tablosu
+            st.markdown("### Parti Istatistikleri")
+            party_display = party_df.copy()
+            party_display['avg_followers'] = (party_display['total_followers'] / party_display['member_count']).astype(int)
+            st.dataframe(
+                party_display.rename(columns={
+                    'party': 'Parti',
+                    'member_count': 'Uye Sayisi',
+                    'total_followers': 'Toplam Takipci',
+                    'avg_followers': 'Ortalama Takipci'
+                }),
+                use_container_width=True
+            )
+        else:
+            st.info("Parti verisi bulunamadi.")
+
+    # ----- TAB 3: ENGAGEMENT -----
+    with tab3:
+        st.markdown("### Engagement Analizi")
+
+        engagement_df = get_engagement_by_user()
+
+        if not engagement_df.empty:
+            # Top 15 engagement bar chart
+            top_15 = engagement_df.head(15)
+
+            fig = px.bar(
+                top_15,
+                x='total_engagement',
+                y='name',
+                orientation='h',
+                color='party',
+                title='Top 15 - Toplam Engagement (Like + RT + Reply)',
+                labels={'total_engagement': 'Engagement', 'name': 'Meclis Uyesi'},
+                color_discrete_map={
+                    'Cumhuriyet Halk Partisi': '#e31b23',
+                    'Adalet Ve Kalkınma Partisi': '#ffa500',
+                    'Milliyetçi Hareket Partisi': '#c8102e',
+                    'Büyük Birlik Partisi': '#1e3a8a',
+                    'Yeniden Refah Partisi': '#006400',
+                    'Bağımsız': '#808080'
+                }
+            )
+            fig.update_layout(yaxis={'categoryorder': 'total ascending'}, height=500)
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Like vs Retweet scatter
+            st.markdown("### Like vs Retweet Dagilimi")
+            fig2 = px.scatter(
+                engagement_df,
+                x='total_likes',
+                y='total_retweets',
+                size='tweet_count',
+                color='party',
+                hover_name='name',
+                title='Like vs Retweet (Boyut = Tweet Sayisi)',
+                labels={'total_likes': 'Toplam Like', 'total_retweets': 'Toplam Retweet'},
+                color_discrete_map={
+                    'Cumhuriyet Halk Partisi': '#e31b23',
+                    'Adalet Ve Kalkınma Partisi': '#ffa500',
+                    'Milliyetçi Hareket Partisi': '#c8102e',
+                    'Büyük Birlik Partisi': '#1e3a8a',
+                    'Yeniden Refah Partisi': '#006400',
+                    'Bağımsız': '#808080'
+                }
+            )
+            st.plotly_chart(fig2, use_container_width=True)
+
+            # Tablo
+            st.markdown("### Detayli Tablo")
+            st.dataframe(
+                engagement_df[['name', 'party', 'tweet_count', 'total_likes', 'total_retweets', 'total_views']].rename(columns={
+                    'name': 'Isim',
+                    'party': 'Parti',
+                    'tweet_count': 'Tweet',
+                    'total_likes': 'Like',
+                    'total_retweets': 'RT',
+                    'total_views': 'View'
+                }),
+                use_container_width=True,
+                height=400
+            )
+
+            # Excel Export
+            st.markdown("### Export")
+            engagement_export = engagement_df.to_dict('records')
+            if st.button("📥 Excel Olarak Indir", key="export_engagement"):
+                filepath = export_to_excel(engagement_export, f"engagement_raporu_{datetime.now().strftime('%Y%m%d')}")
+                if filepath:
+                    with open(filepath, 'rb') as f:
+                        st.download_button(
+                            "💾 Excel Dosyasini Kaydet",
+                            f.read(),
+                            file_name=filepath.split('/')[-1],
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key="download_engagement"
+                        )
+        else:
+            st.info("Engagement verisi bulunamadi.")
+
+    # ----- TAB 4: ILCE ANALIZI -----
+    with tab4:
+        st.markdown("### Ilce Bazli Analiz")
+
+        district_df = get_district_stats()
+
+        if not district_df.empty:
+            col1, col2 = st.columns(2)
+
+            with col1:
+                # Ilce uye sayisi
+                fig1 = px.bar(
+                    district_df.head(15),
+                    x='district',
+                    y='member_count',
+                    title='Ilce Bazli Uye Sayisi',
+                    labels={'district': 'Ilce', 'member_count': 'Uye Sayisi'},
+                    color='member_count',
+                    color_continuous_scale='Blues'
+                )
+                fig1.update_layout(showlegend=False)
+                st.plotly_chart(fig1, use_container_width=True)
+
+            with col2:
+                # Ilce takipci sayisi
+                fig2 = px.bar(
+                    district_df.head(15),
+                    x='district',
+                    y='total_followers',
+                    title='Ilce Bazli Toplam Takipci',
+                    labels={'district': 'Ilce', 'total_followers': 'Toplam Takipci'},
+                    color='total_followers',
+                    color_continuous_scale='Reds'
+                )
+                fig2.update_layout(showlegend=False)
+                st.plotly_chart(fig2, use_container_width=True)
+
+            # Tablo
+            st.dataframe(
+                district_df.rename(columns={
+                    'district': 'Ilce',
+                    'member_count': 'Uye Sayisi',
+                    'total_followers': 'Toplam Takipci'
+                }),
+                use_container_width=True
+            )
+        else:
+            st.info("Ilce verisi bulunamadi.")
 
 
 # ============================================================================

@@ -17,5 +17,8 @@ from .report_generator import (
     ReportGenerator,
     generate_report,
     generate_reports_batch,
-    generate_quick_report
+    generate_quick_report,
+    export_to_excel,
+    export_to_pdf,
+    export_engagement_excel
 )

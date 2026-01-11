@@ -28,27 +28,24 @@ Bu dosya, projenin diger bilgisayardan calistirildiginda Claude Code'un takip ed
 ### Veritabani Istatistikleri
 
 ```
-Toplam Tweet: 12,480
-Orijinal Tweet: 3,764
-Retweet: 8,716
-Aktif Kullanici: 85/86
-Profile History: 0 (henuz toplanmadi)
+Toplam Meclis Uyesi: 86 (X hesabi olan)
+Toplam Tweet: 599
+Orijinal Tweet: 162
+Retweet: 437
+Profile History: 76 kayit
+Toplam Takipci (toplam): 1,500,000+
 ```
 
 ---
 
 ## BILINEN PROBLEMLER
 
-### 1. Profil Bilgileri Eksik
-**Problem:** `profile_history` tablosu bos, takipci/takip sayilari toplanmamis.
-**Cozum:** Profile scraper calistirilmali.
-```bash
-python scraping/profile_scraper.py --all
-```
+### 1. ~~Profil Bilgileri Eksik~~ (COZULDU)
+~~**Problem:** `profile_history` tablosu bos, takipci/takip sayilari toplanmamis.~~
+**Durum:** ✅ total_data.csv'den 76 uyenin takipci bilgileri yuklendi.
 
-### 2. Bazi Raporlarda "Profil verisi bulunamadi"
-**Problem:** Rapor olusturulurken profil bilgileri gosterilemiyor.
-**Cozum:** Yukaridaki profil scraper calistirilmali.
+### 2. ~~Bazi Raporlarda "Profil verisi bulunamadi"~~ (COZULDU)
+**Durum:** ✅ Profil bilgileri artik mevcut.
 
 ### 3. Gradio UI Uyumsuzluk Uyarisi
 **Problem:** Gradio 6.0 ile theme/css parametreleri launch()'a tasinmis.
@@ -111,15 +108,16 @@ python scraping/profile_scraper.py --all
 ## GELECEK GELISTIRMELER (V3)
 
 ### Oncelik 1: Profil Scraping
-- [ ] Takipci/takip sayilarini topla
-- [ ] Haftalik karsilastirma icin gecmis kaydet
-- [ ] Raporlara profil bilgilerini ekle
+- [x] Takipci/takip sayilarini topla (CSV'den 76 uye eklendi)
+- [x] Haftalik karsilastirma icin gecmis kaydet (profile_history tablosu aktif)
+- [x] Raporlara profil bilgilerini ekle
 
 ### Oncelik 2: Dashboard Grafikleri
-- [ ] Engagement trend grafigi
-- [ ] Kullanici karsilastirma grafigi
-- [ ] Parti bazli analiz
-- [ ] Streamlit'e Plotly entegrasyonu
+- [x] Engagement trend grafigi
+- [x] Kullanici karsilastirma grafigi
+- [x] Parti bazli analiz
+- [x] Streamlit'e Plotly entegrasyonu
+- [x] Ilce bazli analiz
 
 ### Oncelik 3: Otomatik Haftalik Scraping
 - [ ] Cron job veya systemd timer
@@ -127,13 +125,13 @@ python scraping/profile_scraper.py --all
 - [ ] Hata raporlama
 
 ### Oncelik 4: Karsilastirmali Rapor
-- [ ] Birden fazla kullanici karsilastirmasi
-- [ ] Parti bazli karsilastirma
+- [x] Birden fazla kullanici karsilastirmasi
+- [x] Parti bazli karsilastirma
 - [ ] Zaman bazli trend analizi
 
 ### Oncelik 5: Export Ozellikleri
-- [ ] PDF export
-- [ ] Excel export
+- [x] PDF export (report_generator.py)
+- [x] Excel export (Streamlit UI'da)
 - [ ] Otomatik rapor arsivleme
 
 ---

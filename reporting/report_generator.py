@@ -309,6 +309,236 @@ def generate_quick_report(username: str) -> str:
 
 
 # ============================================================================
+# EXPORT FONKSIYONLARI
+# ============================================================================
+
+def export_to_excel(data: List[Dict], filename: str) -> str:
+    """
+    Veriyi Excel dosyasina aktar
+
+    Args:
+        data: Liste halinde sozluk verileri
+        filename: Cikti dosya adi (.xlsx uzantisi olmadan)
+
+    Returns:
+        Olusturulan dosya yolu
+    """
+    try:
+        import pandas as pd
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill
+        from openpyxl.utils.dataframe import dataframe_to_rows
+
+        df = pd.DataFrame(data)
+        filepath = f"{filename}.xlsx"
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Rapor"
+
+        # Header stilleri
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+
+        # DataFrame'i Excel'e yaz
+        for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), 1):
+            for c_idx, value in enumerate(row, 1):
+                cell = ws.cell(row=r_idx, column=c_idx, value=value)
+                if r_idx == 1:
+                    cell.font = header_font
+                    cell.fill = header_fill
+                    cell.alignment = Alignment(horizontal="center")
+
+        # Sutun genislikleri
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            ws.column_dimensions[column_letter].width = min(max_length + 2, 50)
+
+        wb.save(filepath)
+        return filepath
+
+    except Exception as e:
+        print(f"Excel export hatasi: {e}")
+        return None
+
+
+def export_to_pdf(markdown_content: str, filename: str, title: str = "Rapor") -> str:
+    """
+    Markdown icerigini PDF'e aktar
+
+    Args:
+        markdown_content: Markdown formatinda metin
+        filename: Cikti dosya adi (.pdf uzantisi olmadan)
+        title: PDF basligi
+
+    Returns:
+        Olusturulan dosya yolu
+    """
+    try:
+        from fpdf import FPDF
+        import re
+
+        filepath = f"{filename}.pdf"
+
+        pdf = FPDF()
+        pdf.add_page()
+
+        # Font ayarlari - Turkce karakter destegi icin
+        pdf.add_font('DejaVu', '', 'C:/Windows/Fonts/arial.ttf', uni=True)
+        pdf.set_font('DejaVu', '', 12)
+
+        # Baslik
+        pdf.set_font('DejaVu', '', 18)
+        pdf.cell(0, 15, title, ln=True, align='C')
+        pdf.ln(5)
+
+        # Markdown'i satirlara bol
+        lines = markdown_content.split('\n')
+
+        for line in lines:
+            line = line.strip()
+
+            if not line:
+                pdf.ln(3)
+                continue
+
+            # Baslik kontrolu
+            if line.startswith('# '):
+                pdf.set_font('DejaVu', '', 16)
+                pdf.multi_cell(0, 8, line[2:])
+                pdf.ln(2)
+            elif line.startswith('## '):
+                pdf.set_font('DejaVu', '', 14)
+                pdf.multi_cell(0, 7, line[3:])
+                pdf.ln(2)
+            elif line.startswith('### '):
+                pdf.set_font('DejaVu', '', 12)
+                pdf.multi_cell(0, 6, line[4:])
+                pdf.ln(1)
+            elif line.startswith('---'):
+                pdf.ln(3)
+                pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                pdf.ln(3)
+            elif line.startswith('> '):
+                pdf.set_font('DejaVu', '', 10)
+                pdf.set_x(15)
+                pdf.multi_cell(0, 5, line[2:])
+                pdf.set_x(10)
+            elif line.startswith('|'):
+                # Tablo satiri - basitce yaz
+                clean_line = line.replace('|', ' ').strip()
+                if clean_line and not all(c in '-| ' for c in line):
+                    pdf.set_font('DejaVu', '', 10)
+                    pdf.multi_cell(0, 5, clean_line)
+            elif line.startswith('- ') or line.startswith('* '):
+                pdf.set_font('DejaVu', '', 11)
+                pdf.multi_cell(0, 5, "  " + line)
+            else:
+                # Normal metin
+                pdf.set_font('DejaVu', '', 11)
+                # Bold isaretlerini kaldir
+                clean = re.sub(r'\*\*(.*?)\*\*', r'\1', line)
+                pdf.multi_cell(0, 5, clean)
+
+        pdf.output(filepath)
+        return filepath
+
+    except Exception as e:
+        print(f"PDF export hatasi: {e}")
+        return None
+
+
+def export_engagement_excel(usernames: List[str] = None) -> str:
+    """
+    Tum kullanicilarin engagement verilerini Excel'e aktar
+
+    Args:
+        usernames: Kullanici listesi (None = hepsi)
+
+    Returns:
+        Dosya yolu
+    """
+    import sqlite3
+    from config import DB_PATH
+    from datetime import datetime
+
+    conn = sqlite3.connect(DB_PATH)
+
+    if usernames:
+        placeholders = ','.join(['?' for _ in usernames])
+        query = f"""
+            SELECT
+                c.username,
+                c.name,
+                c.party,
+                c.district,
+                COALESCE(ph.followers_count, 0) as followers,
+                COUNT(t.id) as tweet_count,
+                COALESCE(SUM(t.likes), 0) as total_likes,
+                COALESCE(SUM(t.retweets), 0) as total_retweets,
+                COALESCE(SUM(t.replies), 0) as total_replies,
+                COALESCE(SUM(t.views), 0) as total_views
+            FROM councilors c
+            LEFT JOIN profile_history ph ON c.username = ph.username
+            LEFT JOIN tweets t ON c.username = t.username AND t.is_retweet = 0
+            WHERE c.username IN ({placeholders})
+            GROUP BY c.username
+            ORDER BY total_likes DESC
+        """
+        cursor = conn.execute(query, usernames)
+    else:
+        query = """
+            SELECT
+                c.username,
+                c.name,
+                c.party,
+                c.district,
+                COALESCE(ph.followers_count, 0) as followers,
+                COUNT(t.id) as tweet_count,
+                COALESCE(SUM(t.likes), 0) as total_likes,
+                COALESCE(SUM(t.retweets), 0) as total_retweets,
+                COALESCE(SUM(t.replies), 0) as total_replies,
+                COALESCE(SUM(t.views), 0) as total_views
+            FROM councilors c
+            LEFT JOIN profile_history ph ON c.username = ph.username
+            LEFT JOIN tweets t ON c.username = t.username AND t.is_retweet = 0
+            GROUP BY c.username
+            ORDER BY total_likes DESC
+        """
+        cursor = conn.execute(query)
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    data = [
+        {
+            'Username': row[0],
+            'Isim': row[1],
+            'Parti': row[2],
+            'Ilce': row[3],
+            'Takipci': row[4],
+            'Tweet Sayisi': row[5],
+            'Toplam Like': row[6],
+            'Toplam RT': row[7],
+            'Toplam Reply': row[8],
+            'Toplam View': row[9],
+            'Engagement': row[6] + row[7] + row[8]
+        }
+        for row in rows
+    ]
+
+    filename = f"meclis_rapor_{datetime.now().strftime('%Y%m%d_%H%M')}"
+    return export_to_excel(data, filename)
+
+
+# ============================================================================
 # CLI
 # ============================================================================
 
