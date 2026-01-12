@@ -196,22 +196,18 @@ Asagidaki uc kategoriyi ayrintili sekilde analiz et:
 # YARDIMCI FONKSIYONLAR
 # ============================================================================
 
-def format_tweets_for_prompt(tweets: list, max_tweets: int = 15) -> str:
+def format_tweets_for_prompt(tweets: list) -> str:
     """
-    Tweet listesini prompt icin formatla
+    Tweet listesini prompt icin formatla (tum tweetler)
 
     Args:
         tweets: Tweet listesi [{'text': str, 'date': str, ...}, ...]
-        max_tweets: Maksimum tweet sayisi
 
     Returns:
         Formatli tweet metni
     """
     if not tweets:
         return "[Tweet verisi bulunamadi]"
-
-    # En fazla max_tweets kadar al
-    tweets = tweets[:max_tweets]
 
     lines = []
     for i, t in enumerate(tweets, 1):

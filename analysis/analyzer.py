@@ -275,13 +275,12 @@ class TweetAnalyzer:
 # YARDIMCI FONKSIYONLAR
 # ============================================================================
 
-def analyze_user(username: str, limit: int = 15) -> Dict:
+def analyze_user(username: str) -> Dict:
     """
-    Kullanici icin tam analiz yap
+    Kullanici icin tam analiz yap (tum tweetler)
 
     Args:
         username: Twitter kullanici adi
-        limit: Analiz edilecek tweet sayisi
 
     Returns:
         Analiz sonucu
@@ -289,7 +288,7 @@ def analyze_user(username: str, limit: int = 15) -> Dict:
     import sqlite3
     from config import DB_PATH
 
-    # Tweetleri al
+    # Tweetleri al (tum tweetler)
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
@@ -298,8 +297,7 @@ def analyze_user(username: str, limit: int = 15) -> Dict:
         FROM tweets
         WHERE username = ? AND is_retweet = 0
         ORDER BY tweet_date DESC
-        LIMIT ?
-    """, (username, limit))
+    """, (username,))
 
     rows = cursor.fetchall()
     conn.close()
@@ -329,14 +327,14 @@ def analyze_user(username: str, limit: int = 15) -> Dict:
     return result
 
 
-def analyze_user_with_vector_search(username: str, query: str, limit: int = 15) -> Dict:
+def analyze_user_with_vector_search(username: str, query: str, n_results: int = 50) -> Dict:
     """
     Vector search ile ilgili tweetleri bulup analiz et
 
     Args:
         username: Kullanici adi
         query: Arama sorgusu (ornegin "ekonomi politikasi")
-        limit: Kac tweet analiz edilecek
+        n_results: Arama sonucu sayisi (default: 50)
 
     Returns:
         Analiz sonucu
@@ -344,7 +342,7 @@ def analyze_user_with_vector_search(username: str, query: str, limit: int = 15) 
     from .vector_db import search_similar
 
     # Ilgili tweetleri bul
-    results = search_similar(query, n_results=limit, username=username)
+    results = search_similar(query, n_results=n_results, username=username)
 
     if not results:
         return {'error': f'@{username} icin "{query}" ile ilgili tweet bulunamadi'}
@@ -370,7 +368,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Tweet Analiz (Ollama LLM)")
     parser.add_argument("--user", help="Kullanici adi")
     parser.add_argument("--query", help="Vector search sorgusu")
-    parser.add_argument("--limit", type=int, default=30, help="Tweet limiti")
     parser.add_argument("--model", help="Ollama model (default: qwen2.5:7b)")
     parser.add_argument("--test", action="store_true", help="Baglanti testi")
 
@@ -387,9 +384,9 @@ if __name__ == "__main__":
 
     elif args.user:
         if args.query:
-            result = analyze_user_with_vector_search(args.user, args.query, args.limit)
+            result = analyze_user_with_vector_search(args.user, args.query)
         else:
-            result = analyze_user(args.user, args.limit)
+            result = analyze_user(args.user)
 
         if 'error' in result:
             print(f"Hata: {result['error']}")
