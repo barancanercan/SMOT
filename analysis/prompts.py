@@ -196,7 +196,7 @@ Asagidaki uc kategoriyi ayrintili sekilde analiz et:
 # YARDIMCI FONKSIYONLAR
 # ============================================================================
 
-def format_tweets_for_prompt(tweets: list, max_tweets: int = 30) -> str:
+def format_tweets_for_prompt(tweets: list, max_tweets: int = 15) -> str:
     """
     Tweet listesini prompt icin formatla
 
