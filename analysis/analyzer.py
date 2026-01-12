@@ -275,7 +275,7 @@ class TweetAnalyzer:
 # YARDIMCI FONKSIYONLAR
 # ============================================================================
 
-def analyze_user(username: str, limit: int = 30) -> Dict:
+def analyze_user(username: str, limit: int = 15) -> Dict:
     """
     Kullanici icin tam analiz yap
 
@@ -329,7 +329,7 @@ def analyze_user(username: str, limit: int = 30) -> Dict:
     return result
 
 
-def analyze_user_with_vector_search(username: str, query: str, limit: int = 20) -> Dict:
+def analyze_user_with_vector_search(username: str, query: str, limit: int = 15) -> Dict:
     """
     Vector search ile ilgili tweetleri bulup analiz et
 
