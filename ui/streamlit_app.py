@@ -84,6 +84,40 @@ st.markdown("""
 # YARDIMCI FONKSIYONLAR
 # ============================================================================
 
+def normalize_party(party: str) -> str:
+    """Parti isimlerini normalize et (CHP = Cumhuriyet Halk Partisi, etc.)"""
+    if not party:
+        return "BAGIMSIZ"
+
+    party_upper = str(party).upper().strip()
+
+    # CHP eşleştirmesi
+    if party_upper in ['CHP', 'CUMHURIYET HALK PARTISI', 'CUMHURIYET HALK PARTİSİ'] or 'CUMHURIYET' in party_upper:
+        return 'CHP'
+
+    # AKP eşleştirmesi
+    if party_upper in ['AKP', 'AK PARTI', 'ADALET VE KALKINMA PARTISI', 'ADALET VE KALKINMA PARTİSİ'] or 'ADALET' in party_upper or 'KALKINMA' in party_upper:
+        return 'AKP'
+
+    # MHP eşleştirmesi
+    if party_upper in ['MHP', 'MILLIYETCI HAREKET PARTISI', 'MİLLİYETÇİ HAREKET PARTİSİ'] or 'MILLIYETCI' in party_upper or 'MİLLİYETÇİ' in party_upper:
+        return 'MHP'
+
+    # BBP eşleştirmesi
+    if party_upper in ['BBP', 'BUYUK BIRLIK PARTISI', 'BÜYÜK BİRLİK PARTİSİ', 'BÜYÜK BIRLIK'] or 'BUYUK BIRLIK' in party_upper or 'BÜYÜK BİRLİK' in party_upper:
+        return 'BBP'
+
+    # YRP eşleştirmesi
+    if party_upper in ['YRP', 'YENIDEN REFAH PARTISI', 'YENİDEN REFAH PARTİSİ'] or 'REFAH' in party_upper:
+        return 'YRP'
+
+    # Bağımsız
+    if party_upper in ['BAGIMSIZ', 'BAĞIMSIZ', 'INDEPENDENT']:
+        return 'BAGIMSIZ'
+
+    return party_upper
+
+
 @st.cache_data(ttl=300)
 def get_all_users():
     """Tum kullanicilari getir (councilors tablosundan)"""
@@ -628,58 +662,55 @@ elif page == "📋 Rapor Olustur":
     st.markdown("**Hizli Secim:**")
     col_btns = st.columns(5)
 
-    # Session state for selected users
-    if 'selected_users_list' not in st.session_state:
-        st.session_state.selected_users_list = []
+    # Session state for selected users - use widget key directly
+    if 'multi_users_selection' not in st.session_state:
+        st.session_state.multi_users_selection = []
 
     with col_btns[0]:
         if st.button("✅ Tumunu Sec", use_container_width=True):
-            st.session_state.selected_users_list = users.copy()
+            st.session_state.multi_users_selection = users.copy()
             st.rerun()
 
     with col_btns[1]:
         if st.button("❌ Temizle", use_container_width=True):
-            st.session_state.selected_users_list = []
+            st.session_state.multi_users_selection = []
             st.rerun()
 
     with col_btns[2]:
         if st.button("🔴 CHP", use_container_width=True):
-            chp_users = [c['username'] for c in councilors if str(c['party']).upper() in ['CHP', 'CUMHURIYET HALK PARTISI'] or 'CUMHURIYET' in str(c['party']).upper()]
-            st.session_state.selected_users_list = chp_users
+            chp_users = [c['username'] for c in councilors if normalize_party(c['party']) == 'CHP']
+            st.session_state.multi_users_selection = chp_users
             st.rerun()
 
     with col_btns[3]:
         if st.button("🟠 AKP", use_container_width=True):
-            akp_users = [c['username'] for c in councilors if str(c['party']).upper() in ['AKP', 'AK PARTI', 'ADALET VE KALKINMA PARTISI'] or 'ADALET' in str(c['party']).upper()]
-            st.session_state.selected_users_list = akp_users
+            akp_users = [c['username'] for c in councilors if normalize_party(c['party']) == 'AKP']
+            st.session_state.multi_users_selection = akp_users
             st.rerun()
 
     with col_btns[4]:
         if st.button("🔵 Diger", use_container_width=True):
-            chp_check = lambda p: str(p).upper() in ['CHP', 'CUMHURIYET HALK PARTISI'] or 'CUMHURIYET' in str(p).upper()
-            akp_check = lambda p: str(p).upper() in ['AKP', 'AK PARTI', 'ADALET VE KALKINMA PARTISI'] or 'ADALET' in str(p).upper()
-            other_users = [c['username'] for c in councilors if not chp_check(c['party']) and not akp_check(c['party'])]
-            st.session_state.selected_users_list = other_users
+            other_users = [c['username'] for c in councilors if normalize_party(c['party']) not in ['CHP', 'AKP']]
+            st.session_state.multi_users_selection = other_users
             st.rerun()
 
-    # Multiselect with default from session state
+    # Multiselect - value directly from session state
     selected_users = st.multiselect(
         "Kullanicilari Sec",
         users,
-        default=st.session_state.selected_users_list,
-        key="multi_users"
+        default=st.session_state.multi_users_selection
     )
 
-    # Update session state
-    st.session_state.selected_users_list = selected_users
+    # Sync back to session state when user manually changes selection
+    if selected_users != st.session_state.multi_users_selection:
+        st.session_state.multi_users_selection = selected_users
 
     st.caption(f"Secili: {len(selected_users)} / {len(users)} kullanici")
 
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        multi_llm = st.checkbox("LLM Analizi", value=False, key="multi_llm")
+    # LLM checkbox - separate from multiselect to avoid interference
+    multi_llm = st.checkbox("LLM Analizi Ekle", value=False, key="toplu_llm_checkbox")
 
-    if st.button("Toplu Rapor Olustur", disabled=len(selected_users) == 0):
+    if st.button("Toplu Rapor Olustur", type="primary", disabled=len(selected_users) == 0):
         all_reports = []
         progress = st.progress(0)
 
