@@ -255,13 +255,13 @@ class ReportGenerator:
         party_row = cursor.fetchone()
         party = party_row[0] if party_row else "Bilinmiyor"
 
-        # Tweetleri al
+        # Tweetleri al (15 tweet - LLM icin optimize edilmis)
         cursor.execute("""
             SELECT tweet_text, tweet_date
             FROM tweets
             WHERE username = ? AND is_retweet = 0
             ORDER BY tweet_date DESC
-            LIMIT 30
+            LIMIT 15
         """, (username,))
         rows = cursor.fetchall()
         conn.close()
