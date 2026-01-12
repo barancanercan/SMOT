@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-🐦 X/Twitter Scraper v3.0 - Time-Based Collection
-✅ Aggressive scrolling until date cutoff
-✅ No "10 old tweets then stop" logic
+🐦 X/Twitter Scraper v3.1 - Exact 3-Month Collection
+✅ Scrolls until exactly 3 months (90 days) of tweets collected
+✅ Stops when 5 consecutive old tweets detected (date boundary reached)
 ✅ Collects ALL tweets within time window
 ✅ Enhanced RT detection + Views
 """
@@ -84,7 +84,7 @@ class XTwitterScraper:
             options.add_argument("--blink-settings=imagesEnabled=false")
 
             # Launch undetected chrome
-            self.driver = uc.Chrome(options=options, version_main=None, use_subprocess=False)
+            self.driver = uc.Chrome(options=options, headless=False)
 
             print("  ✅ Browser ready (bot detection bypass active)")
         except Exception as e:
@@ -230,16 +230,19 @@ class XTwitterScraper:
                 pass
 
             # ==========================================
-            # AGGRESSIVE SCROLLING STRATEGY
+            # TIME-BASED SCROLLING STRATEGY
             # ==========================================
             seen_tweets = set()
             last_height = self.driver.execute_script("return document.body.scrollHeight")
             scroll_count = 0
-            max_scrolls = 300  # INCREASED: 200 → 300
+            max_scrolls = 500  # Increased for 3-month window
             consecutive_no_new = 0  # Counter for stale scrolls
-            max_consecutive_no_new = 15  # INCREASED: 5 → 15 (Twitter lazy loading)
+            max_consecutive_no_new = 20  # More tolerance for lazy loading
+            consecutive_old_tweets = 0  # Track old tweets to detect 3-month boundary
+            max_consecutive_old = 15  # Stop after 15 consecutive old tweets (more tolerant)
+            reached_date_limit = False
 
-            while scroll_count < max_scrolls and len(tweets) < max_tweets:
+            while scroll_count < max_scrolls and len(tweets) < max_tweets and not reached_date_limit:
                 old_tweet_count = len(tweets)
 
                 # Get tweet elements
@@ -254,7 +257,18 @@ class XTwitterScraper:
                             break
 
                         try:
-                            # Get FULL tweet text
+                            # Click "Show more" button if present (for long tweets)
+                            try:
+                                show_more_btn = element.find_element(
+                                    By.XPATH,
+                                    ".//button[@data-testid='tweet-text-show-more-link']"
+                                )
+                                show_more_btn.click()
+                                time.sleep(0.3)  # Brief wait for expansion
+                            except:
+                                pass  # No "Show more" button, tweet is already full
+
+                            # Get FULL tweet text (after expanding if needed)
                             text_elem = element.find_element(
                                 By.XPATH,
                                 ".//div[@data-testid='tweetText']"
@@ -270,18 +284,12 @@ class XTwitterScraper:
                             except:
                                 tweet_date = None
 
-                            # ==========================================
-                            # TIME FILTER: Skip old tweets but CONTINUE
-                            # ==========================================
-                            if tweet_date and not self._is_within_days(tweet_date, days_back):
-                                continue  # ✅ Skip but DON'T STOP!
-
-                            # Deduplication
+                            # Deduplication first
                             if not tweet_text or tweet_text in seen_tweets or len(tweet_text) < 5:
                                 continue
 
                             # ==========================================
-                            # RT DETECTION
+                            # RT DETECTION (before time filter)
                             # ==========================================
                             is_rt = False
                             rt_from = None
@@ -310,6 +318,21 @@ class XTwitterScraper:
                                     rt_from = rt_part.replace("RT", "").replace("@", "").strip()
                                 except:
                                     pass
+
+                            # ==========================================
+                            # TIME FILTER: Only for original tweets
+                            # Retweets show original date, so skip time check for RTs
+                            # ==========================================
+                            if not is_rt and tweet_date and not self._is_within_days(tweet_date, days_back):
+                                consecutive_old_tweets += 1
+                                if consecutive_old_tweets >= max_consecutive_old:
+                                    # Reached 3-month boundary, stop scrolling
+                                    reached_date_limit = True
+                                    break
+                                continue
+                            elif not is_rt:
+                                # Reset counter only for original tweets within range
+                                consecutive_old_tweets = 0
 
                             # ==========================================
                             # ENGAGEMENT METRICS
@@ -362,9 +385,9 @@ class XTwitterScraper:
                             except:
                                 pass
 
-                            # Save tweet
+                            # Save tweet (full text, no character limit)
                             tweets.append({
-                                "text": tweet_text[:500],
+                                "text": tweet_text,
                                 "timestamp": tweet_date.isoformat() if tweet_date else None,
                                 "username": username,
                                 "is_retweet": is_rt,
@@ -408,8 +431,12 @@ class XTwitterScraper:
                     consecutive_no_new = 0
                     last_height = new_height
 
+            # Status output with reason
             if tweets:
-                print(f"✅ {len(tweets):3d} tweet")
+                if reached_date_limit:
+                    print(f"✅ {len(tweets):3d} tweet (3 ay sinirina ulasti)")
+                else:
+                    print(f"✅ {len(tweets):3d} tweet")
             else:
                 print(f"⚠️  No tweets")
 
