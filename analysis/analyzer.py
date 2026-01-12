@@ -18,8 +18,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from .prompts import SYSTEM_PROMPT, get_prompt
 
 # Default model
-DEFAULT_MODEL = "qwen2.5:7b"
-FALLBACK_MODEL = "qwen2.5:3b"
+DEFAULT_MODEL = "qwen2.5:3b"
+FALLBACK_MODEL = "qwen2.5:7b"
 OLLAMA_URL = "http://127.0.0.1:11434"
 
 
