@@ -1,186 +1,83 @@
+# Meclis Istihbarat Sistemi - ROADMAP (v3.0 - Professional Edition)
 
-# Meclis Istihbarat Sistemi - ROADMAP
-
-**Son Guncelleme:** 2026-01-11
-**Versiyon:** 2.0
-
----
-
-## CLAUDE CODE ICIN REHBER
-
-Bu dosya, projenin diger bilgisayardan calistirildiginda Claude Code'un takip edecegi adimlari icerir.
+**Son Güncelleme:** 2026-01-13
+**Hedef:** MVP'den Ürüne (From MVP to Product)
 
 ---
 
-## MEVCUT DURUM
+## 🎯 VİZYON
 
-### Tamamlanan Ozellikler
-
-| Ozellik | Durum | Notlar |
-|---------|-------|--------|
-| Tweet Scraping | ✅ TAMAM | 12,480 tweet, 85/86 kullanici |
-| Database Schema | ✅ TAMAM | SQLite v4.1 |
-| Rapor Olusturma | ✅ TAMAM | Tek/toplu rapor, Markdown export |
-| LLM Entegrasyonu | ✅ TAMAM | Ollama + qwen2.5:7b |
-| Vector Database | ✅ TAMAM | ChromaDB + embeddings |
-| Streamlit UI | ✅ TAMAM | Yeni eklendi |
-| Resume Scraping | ✅ TAMAM | `--resume` parametresi |
-
-### Veritabani Istatistikleri
-
-```
-Toplam Meclis Uyesi: 86 (X hesabi olan)
-Toplam Tweet: 599
-Orijinal Tweet: 162
-Retweet: 437
-Profile History: 76 kayit
-Toplam Takipci (toplam): 1,500,000+
-```
+Bu proje, sadece bir tweet toplama scripti değil; siyasi analiz, veri madenciliği ve istihbarat raporlaması yapan profesyonel, satılabilir bir **SaaS (Software as a Service)** ürününe dönüşecektir. Bunu yaparken **maliyet etkinliği (yerel LLM + ücretsiz scraping)** korunacaktır.
 
 ---
 
-## BILINEN PROBLEMLER
+## 📅 GELİŞTİRME PLANI
 
-### 1. ~~Profil Bilgileri Eksik~~ (COZULDU)
-~~**Problem:** `profile_history` tablosu bos, takipci/takip sayilari toplanmamis.~~
-**Durum:** ✅ total_data.csv'den 76 uyenin takipci bilgileri yuklendi.
+### FAZ 1: Temizlik ve Standartlaşma (Code Quality)
 
-### 2. ~~Bazi Raporlarda "Profil verisi bulunamadi"~~ (COZULDU)
-**Durum:** ✅ Profil bilgileri artik mevcut.
+_Kod tabanını profesyonel standartlara getirme._
 
-### 3. Gradio UI Uyumsuzluk Uyarisi
-**Problem:** Gradio 6.0 ile theme/css parametreleri launch()'a tasinmis.
-**Cozum:** Streamlit UI kullanilmali (onerilen).
+- [ ] **Linter & Formatter Entegrasyonu:** `ruff` ve `mypy` kurulumu ve tüm kodun taranması.
+- [ ] **Logging Mekanizması:** `print()` ifadelerinin `logging` modülü ile değiştirilmesi ve logların dosyaya yazılması.
+- [ ] **Konfigürasyon Yönetimi:** `config.py` ve `.env` yapısının `pydantic-settings` ile modernize edilmesi.
+- [ ] **Proje Dokümantasyonu:** Kod içi docstring'lerin tamamlanması.
 
-### 4. Cok Fazla Retweet
-**Problem:** 8,716 retweet vs 3,764 orijinal tweet. Raporlar sadece orijinal tweetleri gosteriyor.
-**Cozum:** Bu kasitli bir tasarim karari - retweet'ler analiz icin anlamli degil.
+### FAZ 2: Veri Toplama Dayanıklılığı (Scraping Resilience)
 
----
+_Selenium yapısını koruyarak "kurşun geçirmez" hale getirme._
 
-## DIGER BILGISAYAR ICIN ADIMLAR
+- [ ] **Retry Mekanizması:** Scraping hatalarında "Exponential Backoff" ile tekrar deneme yapısının kurulması (`tenacity` kütüphanesi).
+- [ ] **Headless & Docker:** Scraping işleminin izole bir Docker container içinde (Browserless veya kendi imajımız) çalıştırılması.
+- [ ] **User-Agent & Fingerprint Yönetimi:** Bot tespitini aşmak için daha gelişmiş teknikler.
+- [ ] **Hata Yakalama:** X.com arayüz değişikliklerine karşı anlık uyarı sistemi.
 
-### Adim 1: Kodu Cek
-```bash
-cd ~/Desktop
-git clone https://github.com/barancanercan/MeclisIstihbaratSistemi.git
-# veya mevcut repo varsa:
-git pull origin main
-```
+### FAZ 3: Veritabanı ve Backend Dönüşümü
 
-### Adim 2: Ortami Kur
-```bash
-cd MeclisIstihbaratSistemi
-python3.10 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+_Tek kişilik yapıdan çoklu kullanıcıya geçiş._
 
-### Adim 3: Streamlit'i Yukle (eger requirements.txt guncellenmemisse)
-```bash
-pip install streamlit>=1.30.0
-```
+- [ ] **PostgreSQL Geçişi:** `SQLite`'tan `PostgreSQL` veri tabanına migrasyon.
+- [ ] **ORM Entegrasyonu:** `SQLAlchemy 2.0` ile modern ORM yapısı.
+- [ ] **Backend API:** Mantıksal katmanın `FastAPI` arkasına alınması (UI ile Logic'in ayrılması).
 
-### Adim 4: Veritabani Kontrol
-```bash
-# Eger meclis.db yoksa veya bozuksa:
-python database.py
+### FAZ 4: AI Mühendisliği (AI Engineering)
 
-# Mevcut verileri gormek icin:
-python -c "from database import get_stats; print(get_stats())"
-```
+_Daha güvenilir ve yapısal analizler._
 
-### Adim 5: UI Baslat
-```bash
-# Streamlit (onerilen)
-streamlit run ui/streamlit_app.py
+- [ ] **Structured Output:** LLM çıktılarının metin değil, %100 geçerli JSON olması (`Pydantic` veya `Instructor` ile).
+- [ ] **Prompt Versiyonlama:** Promptların kod içinde değil, yönetilebilir bir yapıda tutulması.
+- [ ] **Task Queue:** Analiz işlemlerinin `Celery` + `Redis` ile arka plana alınması.
 
-# veya Gradio
-python ui/app.py
-```
+### FAZ 5: Modern Arayüz ve Ticarileşme
 
-### Adim 6: Profil Bilgilerini Topla (opsiyonel)
-```bash
-python scraping/profile_scraper.py --all
-```
+_Müşteriye sunulabilir arayüz._
+
+- [ ] **Dashboard Yenileme:** Streamlit yerine React/Next.js (Opsiyonel ama önerilen) veya çok gelişmiş bir Streamlit dashboard'u.
+- [ ] **Authentication:** Kullanıcı girişi ve yetkilendirme.
+- [ ] **Deployment:** Tek komutla (`docker-compose up`) kurulum paketi.
 
 ---
 
-## GELECEK GELISTIRMELER (V3)
+## ✅ MEVCUT DURUM (v2.1)
 
-### Oncelik 1: Profil Scraping
-- [x] Takipci/takip sayilarini topla (CSV'den 76 uye eklendi)
-- [x] Haftalik karsilastirma icin gecmis kaydet (profile_history tablosu aktif)
-- [x] Raporlara profil bilgilerini ekle
-
-### Oncelik 2: Dashboard Grafikleri
-- [x] Engagement trend grafigi
-- [x] Kullanici karsilastirma grafigi
-- [x] Parti bazli analiz
-- [x] Streamlit'e Plotly entegrasyonu
-- [x] Ilce bazli analiz
-
-### Oncelik 3: Otomatik Haftalik Scraping
-- [ ] Cron job veya systemd timer
-- [ ] Email/Telegram bildirimi
-- [ ] Hata raporlama
-
-### Oncelik 4: Karsilastirmali Rapor
-- [x] Birden fazla kullanici karsilastirmasi
-- [x] Parti bazli karsilastirma
-- [ ] Zaman bazli trend analizi
-
-### Oncelik 5: Export Ozellikleri
-- [x] PDF export (report_generator.py)
-- [x] Excel export (Streamlit UI'da)
-- [ ] Otomatik rapor arsivleme
+| Özellik           | Durum                            |
+| ----------------- | -------------------------------- |
+| Temel Scraping    | ✅ Çalışıyor                     |
+| Yerel LLM Analizi | ✅ Çalışıyor (Ollama)            |
+| Raporlama         | ✅ Çalışıyor (PDF/Excel)         |
+| Arayüz            | ✅ Streamlit (Temel)             |
+| Kod Kalitesi      | ⚠️ Geliştirilmeli (Script-level) |
+| Hata Toleransı    | ⚠️ Düşük (Kırılgan)              |
+| Mimari            | ⚠️ Monolitik/Script              |
 
 ---
 
-## DOSYA DEGISIKLIKLERI (Bu Oturum)
+## 🛠 TEKNİK YIĞIN (Hedef)
 
-### Yeni Dosyalar
-- `ui/streamlit_app.py` - Yeni Streamlit UI
-- `docs/ROADMAP.md` - Bu dosya
-
-### Guncellenen Dosyalar
-- `README.md` - v2.0 icin guncellendi
-- `requirements.txt` - streamlit eklendi
-- `run_full_scrape.py` - `--resume` ve `--start` parametreleri eklendi
+- **Backend:** Python 3.10+, FastAPI
+- **Database:** PostgreSQL + pgvector
+- **Queue:** Redis + Celery
+- **Scraping:** Selenium (Dockerized)
+- **AI:** Ollama (Local), LangChain (Orchestration)
+- **DevOps:** Docker, Docker Compose
 
 ---
-
-## NOTLAR
-
-1. **LLM Performansi:** CPU'da qwen2.5:7b yavas (~30-60sn/soru). Hizli mod (`--no-llm`) onerilen.
-
-2. **Session Crash:** Tweet scraping sirasinda browser crash olursa `--resume` ile devam edilebilir.
-
-3. **Veri Boyutu:** 12,480 tweet ~5MB SQLite dosyasi. ChromaDB ayrica ~50MB.
-
-4. **UI Tercihi:** Streamlit daha hizli ve sade. Gradio daha fazla ozellik sunuyor ama yavas.
-
----
-
-## HIZLI REFERANS
-
-```bash
-# Tweet toplama
-python run_full_scrape.py --resume
-
-# Hizli rapor
-python reporting/report_generator.py --user USERNAME --no-llm
-
-# UI baslat
-streamlit run ui/streamlit_app.py
-
-# Cache temizle
-python reporting/report_generator.py --clear-cache
-
-# Metrik sirala
-python reporting/metrics.py --users user1 user2 --ranking
-```
-
----
-
-*Bu dosya Claude Code tarafindan otomatik olusturulmustur.*

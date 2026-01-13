@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  meclis-istihbarat:
+    build: .
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+      - ./chroma_db:/app/chroma_db
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    environment:
+      - STREAMLIT_SERVER_PORT=8501
+    restart: unless-stopped
+
+  # Optional: Add local Ollama service reflection if needed
+  # or rely on host Ollama via 172.17.0.1

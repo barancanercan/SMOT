@@ -1,203 +1,114 @@
-# Meclis Istihbarat Sistemi
+# 🏛️ Meclis İstihbarat Sistemi v2.0 (Professional Edition)
 
-**v2.1** - Ankara Buyuksehir Belediyesi meclis uyelerinin X/Twitter aktivitesini toplayan, analiz eden ve raporlayan sistem.
-
----
-
-## Ozellikler
-
-### Veri Toplama
-- **86 Meclis Uyesi:** Ankara BB meclis uyelerinin Twitter hesaplari
-- **Akilli Scraping:** Session crash durumunda otomatik devam (`--resume`)
-- **Profil Takibi:** Takipci sayisi degisim gecmisi
-
-### Analiz
-- **LLM Analizi:** Ollama + qwen2.5:7b ile profesyonel icerik analizi
-- **Tematik Analiz:** Ana konular ve iletisim stratejisi
-- **Siyasi Pozisyon:** Parti/lider destegi tespiti
-- **Elestiri Analizi:** Muhalefete yonelik tutum
-- **Vector Database:** ChromaDB ile semantic search
-
-### Dashboard
-- **Takipci Siralamasi:** Parti bazli takipci karsilastirmasi
-- **Parti Analizi:** CHP vs AKP vs Diger istatistikleri
-- **Engagement Metrikleri:** Like, RT, Reply, View analizi
-- **Ilce Bazli Analiz:** Coklu ilce temsili gorsellestirme
-- **Interaktif Grafikler:** Plotly ile zengin gorseller
-
-### Raporlama
-- **Tek/Toplu Rapor:** Markdown formatinda detayli raporlar
-- **Parti Filtreleme:** CHP, AKP, Diger hizli secim
-- **Excel Export:** Engagement ve takipci verileri
-- **PDF Export:** Rapor ciktisi
+**Meclis İstihbarat Sistemi**, siyasi aktörlerin dijital ayak izlerini takip eden, analiz eden ve stratejik istihbarat raporları üreten kapsamlı bir yapay zeka ürünüdür. Ankara Büyükşehir Belediyesi Meclis üyeleri odağında, X/Twitter verilerini profesyonel bir "Siyaset Bilimi" disipliniyle işler.
 
 ---
 
-## Hizli Baslangic
+## 🚀 Yenilikler: v2.0 "Professional AI Layout"
 
-### 1. Kurulum
+Bu sürümde proje, klasik kod yığınından profesyonel bir **AI Mühendisi Ürün Düzeni**ne (`src/` layout) geçirilmiş ve istihbarat kapasitesi maksimize edilmiştir.
+
+### 🧠 Üst Düzey İstihbarat Analizi
+
+- **Yeşil/Kırmızı/Gri Takım Framework**: Aktörleri kendi partisine sadakat (Yeşil), rakiplerine saldırı (Kırmızı) ve bağımsız gündemleri (Gri) üzerinden 3 aşamalı analiz eder.
+- **Llama 3.2-1B Entegrasyonu**: CPU-only sistemlerde bile saniyeler içinde analiz yapabilen, kişiliği bozulmayan ve hallucination (halüsinasyon) oranı minimize edilmiş optimize model.
+- **Etkileşim Kanıtlı Analiz**: Her analiz, tweet metinleri ve gerçek etkileşim verileri (Beğeni, Görüntülenme) ile desteklenir.
+
+### 🏗️ Profesyonel Mimari (src Layout)
+
+- **Modüler Yapı**: Kod tabanı `core`, `scrapers`, `analysis`, `reporting` ve `ui` olarak katmanlara ayrıldı.
+- **Modern Import Standartları**: Mutlak paket importları (`meclis_istihbarat.*`) ile kurumsal kod kalitesi.
+- **Konteyner Desteği**: Docker ve Docker-Compose ile tek komutla kurulum.
+
+---
+
+## 🔥 Temel Özellikler
+
+### 📊 Akıllı Dashboard
+
+- **Sistem İstatistikleri**: 13.000'den fazla tweet ve 86 meclis üyesinin canlı verisi.
+- **Etkileşim Analizi**: Parti ve üye bazlı like/view/retweet karşılaştırmaları.
+- **Görselleştirme**: Plotly destekli interaktif grafikler ve ilçe bazlı temsil haritaları.
+
+### 🕵️ İstihbarat Raporlama
+
+- **Profesyonel PDF/Excel Cıktısı**: Tek tıkla siyasi iletişim raporları üretimi.
+- **Vector Search (ChromaDB)**: 13.000 tweet içinde anlamsal (semantic) arama ve konu odaklı analiz.
+- **Takipçi Gelişimi**: Üyelerin dijital popülaritesindeki değişimlerin takibi.
+
+---
+
+## 🛠️ Kurulum ve Çalıştırma
+
+### 1. Hazırlık
+
+Proje klasörüne gidin ve ortamı hazırlayın:
 
 ```bash
-git clone https://github.com/barancanercan/MeclisIstihbaratSistemi.git
-cd MeclisIstihbaratSistemi
-python3.10 -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Ollama Kurulumu (LLM Analizi icin)
+### 2. Modelleri Çekme (Ollama)
+
+Profesyonel analiz için optimize edilmiş modelleri indirin:
 
 ```bash
-# Ollama indir: https://ollama.com/download
-ollama pull qwen2.5:7b
-ollama serve
+ollama pull llama3.2:1b
 ```
 
-### 3. Web Arayuzu
+### 3. Uygulamayı Başlatma
+
+Sistemi tek bir entry-point üzerinden yönetebilirsiniz:
 
 ```bash
-streamlit run ui/streamlit_app.py
-```
+# Web Arayüzünü Başlat
+python3 run.py ui
 
-Tarayicida http://localhost:8501 adresine gidin.
-
----
-
-## Ekran Goruntuleri
-
-### Dashboard
-- Takipci siralamasi (parti renkli)
-- Parti bazli toplam takipci pasta grafigi
-- Engagement analizi bar chart
-- Ilce temsil dagilimi
-
-### Raporlar
-- Profil bilgileri ve metrikler
-- En cok etkilesim alan tweetler (tam metin)
-- LLM destekli siyasi analiz
-
----
-
-## Sistem Mimarisi
-
-```
-data/total_data.csv (147 Meclis Uyesi - 86 X hesabi)
-        |
-        v
-[Tweet Scraping]
-    x_scraper.py (Selenium + Undetected Chrome)
-    run_full_scrape.py (Batch scraping)
-        |
-        v
-[SQLite Database] meclis.db
-    - councilors (kullanici bilgileri + parti)
-    - tweets (12,480+ tweet)
-    - profile_history (takipci gecmisi)
-    - report_cache (rapor onbellegi)
-        |
-        v
-[Analysis Layer]
-    - Vector DB (ChromaDB + embeddings)
-    - LLM (Ollama + qwen2.5:7b)
-    - Profesyonel Turkce promptlar
-        |
-        v
-[Reporting]
-    - Metrik hesaplama
-    - Engagement analizi
-    - Parti bazli LLM analizi
-        |
-        v
-[Web UI - Streamlit]
-    - Dashboard (4 tab: Takipci, Parti, Engagement, Ilce)
-    - Raporlar (Tek + Toplu)
-    - En Iyi Tweetler
+# Veri Toplamayı Başlat
+python3 run.py scrape
 ```
 
 ---
 
-## Proje Yapisi
+## 📁 Proje Yapısı
 
 ```
 MeclisIstihbaratSistemi/
-|
-|-- config.py                # Konfigurasyon
-|-- database.py              # SQLite islemleri
-|-- x_scraper.py             # Tweet scraper
-|-- run_full_scrape.py       # Toplu veri toplama
-|
-|-- analysis/
-|   |-- analyzer.py          # LLM analizi (HTTP API)
-|   |-- embeddings.py        # Vector embedding
-|   |-- vector_db.py         # ChromaDB
-|   |-- prompts.py           # Profesyonel prompt sablonlari
-|
-|-- reporting/
-|   |-- report_generator.py  # Rapor olusturma + PDF/Excel export
-|   |-- metrics.py           # Metrik hesaplama
-|
-|-- ui/
-|   |-- streamlit_app.py     # Streamlit UI (ana arayuz)
-|   |-- app.py               # Gradio UI (alternatif)
-|
-|-- scraping/
-|   |-- profile_scraper.py   # Profil bilgileri
-|
-|-- data/
-|   |-- total_data.csv       # Meclis uyeleri listesi (147)
-|   |-- meclis.db            # Veritabani
-|
-|-- docs/
-|   |-- ROADMAP.md           # Gelistirme plani
-|
-|-- requirements.txt
-|-- .env                     # X credentials
+├── src/meclis_istihbarat/   # Ana Paket
+│   ├── core/                # DB, Modeller, Ayarlar
+│   ├── analysis/            # LLM Analizi, Prompts, VectorDB
+│   ├── scrapers/            # Selenium Tweet/Profil Scrapers
+│   ├── reporting/           # PDF/Excel Üretimi
+│   ├── ui/                  # Streamlit Dashboard
+│   └── utils/               # Logging ve Helperlar
+├── main.py                  # UI Giriş Noktası
+├── run.py                   # Unified CLI
+├── Dockerfile               # Deployment
+└── docker-compose.yml       # Stack Deployment
 ```
 
 ---
 
-## Mevcut Durum (v2.1)
+## 📊 Teknik Stack
 
-| Metrik | Deger |
-|--------|-------|
-| Toplam Meclis Uyesi | 147 |
-| X Hesabi Olan | 86 |
-| Toplam Tweet | 12,480+ |
-| Parti Dagilimi | CHP: 46, AKP: 32, Diger: 8 |
-
----
-
-## Teknik Stack
-
-| Katman | Arac | Aciklama |
-|--------|------|----------|
-| Scraping | Selenium + undetected-chromedriver | Bot detection bypass |
-| Database | SQLite | Lightweight, local |
-| Vector DB | ChromaDB | Semantic search |
-| Embedding | sentence-transformers | all-MiniLM-L6-v2 |
-| LLM | Ollama + qwen2.5:7b | Turkce destekli, HTTP API |
-| UI | Streamlit + Plotly | Interaktif dashboard |
-| Export | openpyxl + fpdf2 | Excel ve PDF cikti |
+| Katman        | Araç                               |
+| ------------- | ---------------------------------- |
+| **Frontend**  | Streamlit + Plotly                 |
+| **Backend**   | Python 3.10+                       |
+| **Database**  | SQLite + SQLAlchemy ORM            |
+| **AI/LLM**    | Ollama (Llama 3.2-1B / Qwen 2.5)   |
+| **Vector DB** | ChromaDB (All-MiniLM-L6-v2)        |
+| **Scraping**  | Selenium (Undetected-Chromedriver) |
 
 ---
 
-## Gereksinimler
+## 👩‍💻 Geliştirici
 
-- Python 3.10+
-- Chrome/Chromium browser
-- 8GB+ RAM (16GB onerilen)
-- Ollama (LLM analizi icin)
-- NVIDIA GPU (opsiyonel, hizli inference)
+**Baran Can Ercan**
+[GitHub](https://github.com/barancanercan) | [LinkedIn](https://linkedin.com/in/barancanercan)
 
 ---
 
-## Lisans
-
-MIT License
-
----
-
-## Iletisim
-
-**Gelistirici:** Baran Can Ercan
-**GitHub:** https://github.com/barancanercan/MeclisIstihbaratSistemi
+_Bu sistem v2.0 sürümü ile birlikte profesyonel bir siyasi analiz platformuna dönüştürülmüştür._
