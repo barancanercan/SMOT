@@ -29,8 +29,8 @@ class BatchReportRequest(BaseModel):
 @router.post("/generate")
 @limiter.limit(RateLimits.HEAVY)
 async def generate_report(
-    request_obj: Request,
-    request: GenerateReportRequest,
+    request: Request,
+    body: GenerateReportRequest,
     db: Session = Depends(get_db)
 ):
     """
@@ -42,11 +42,11 @@ async def generate_report(
 
     Rate limit: 5 requests per minute
     """
-    username = request.username
+    username = body.username
 
     # Check cache first
-    if not request.force_refresh:
-        cached = get_report_cache(username, "full" if request.use_llm else "quick")
+    if not body.force_refresh:
+        cached = get_report_cache(username, "full" if body.use_llm else "quick")
         if cached:
             return {
                 "username": username,
@@ -57,11 +57,11 @@ async def generate_report(
 
     # Generate new report
     try:
-        generator = ReportGenerator(use_llm=request.use_llm)
+        generator = ReportGenerator(use_llm=body.use_llm)
         report = generator.generate_report(username)
 
         # Cache the report
-        report_type = "full" if request.use_llm else "quick"
+        report_type = "full" if body.use_llm else "quick"
         save_report_cache(username, report_type, report)
 
         return {
@@ -76,8 +76,8 @@ async def generate_report(
 @router.post("/batch")
 @limiter.limit(RateLimits.BATCH)
 async def generate_batch_report(
-    request_obj: Request,
-    request: BatchReportRequest,
+    request: Request,
+    body: BatchReportRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
@@ -88,31 +88,31 @@ async def generate_batch_report(
 
     Rate limit: 3 requests per minute
     """
-    if not request.usernames:
+    if not body.usernames:
         raise HTTPException(status_code=400, detail="No usernames provided")
 
-    if len(request.usernames) > 50:
+    if len(body.usernames) > 50:
         raise HTTPException(status_code=400, detail="Maximum 50 users per batch")
 
     # Start background task
     # For now, we'll process synchronously but this should be moved to Celery
     try:
-        generator = ReportGenerator(use_llm=request.use_llm)
+        generator = ReportGenerator(use_llm=body.use_llm)
         reports = {}
 
-        for username in request.usernames:
+        for username in body.usernames:
             try:
                 report = generator.generate_report(username)
                 reports[username] = {"status": "success", "report": report}
 
                 # Cache each report
-                report_type = "full" if request.use_llm else "quick"
+                report_type = "full" if body.use_llm else "quick"
                 save_report_cache(username, report_type, report)
             except Exception as e:
                 reports[username] = {"status": "error", "error": str(e)}
 
         return {
-            "total": len(request.usernames),
+            "total": len(body.usernames),
             "success": sum(1 for r in reports.values() if r["status"] == "success"),
             "failed": sum(1 for r in reports.values() if r["status"] == "error"),
             "reports": reports,
@@ -124,7 +124,7 @@ async def generate_batch_report(
 @router.get("/{username}")
 @limiter.limit(RateLimits.STANDARD)
 async def get_cached_report(
-    request_obj: Request,
+    request: Request,
     username: str,
     report_type: str = "full",
     db: Session = Depends(get_db)
@@ -155,7 +155,7 @@ async def get_cached_report(
 @router.delete("/{username}/cache")
 @limiter.limit(RateLimits.WRITE)
 async def clear_user_cache(
-    request_obj: Request,
+    request: Request,
     username: str,
     db: Session = Depends(get_db)
 ):
@@ -176,8 +176,8 @@ class PartyReportRequest(BaseModel):
 @router.post("/party")
 @limiter.limit(RateLimits.HEAVY)
 async def generate_party_report(
-    request_obj: Request,
-    request: PartyReportRequest,
+    request: Request,
+    body: PartyReportRequest,
     db: Session = Depends(get_db)
 ):
     """
@@ -191,11 +191,11 @@ async def generate_party_report(
     try:
         # Get party members
         members = db.query(Councilor).filter(
-            Councilor.party.ilike(f"%{request.party}%")
+            Councilor.party.ilike(f"%{body.party}%")
         ).all()
 
         if not members:
-            raise HTTPException(status_code=404, detail=f"Parti bulunamadi: {request.party}")
+            raise HTTPException(status_code=404, detail=f"Parti bulunamadi: {body.party}")
 
         usernames = [m.username for m in members]
 
@@ -224,7 +224,7 @@ async def generate_party_report(
 
         # Build report
         report_lines = [
-            f"# {request.party} Parti Raporu",
+            f"# {body.party} Parti Raporu",
             "",
             f"**Toplam Uye:** {len(members)}",
             "",
@@ -257,7 +257,7 @@ async def generate_party_report(
         report = "\n".join(report_lines)
 
         return {
-            "party": request.party,
+            "party": body.party,
             "member_count": len(members),
             "content": report,
         }
