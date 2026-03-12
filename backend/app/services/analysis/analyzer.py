@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """
-Analyzer v2.0 - Structured JSON Output
-Migrated from regex parsing to Pydantic-validated JSON responses
+Analyzer v3.0 - Async LLM with Observability
+- Async HTTP calls with httpx
+- LLM metrics collection
+- Multi-shot learning support
+- Confidence scoring
 """
 
 from typing import Dict, List, Optional
 import time
+import asyncio
 import requests
 import json
+import httpx
 from pydantic import ValidationError
 
 from app.services.analysis.prompts import SYSTEM_PROMPT, get_prompt
@@ -18,6 +23,7 @@ from app.services.analysis.schemas import (
     FullAnalysis,
     IntelligenceAnalysis
 )
+from app.services.analysis.metrics import LLMCallTimer, metrics_collector
 from app.utils.logger import get_logger
 
 logger = get_logger("Analyzer")
@@ -26,6 +32,9 @@ logger = get_logger("Analyzer")
 DEFAULT_MODEL = "qwen3:14b"
 FALLBACK_MODEL = "qwen2.5:3b"
 OLLAMA_URL = "http://127.0.0.1:11434"
+
+# Async client configuration
+ASYNC_TIMEOUT = httpx.Timeout(300.0, connect=10.0)  # 5 min read, 10s connect
 
 
 class TweetAnalyzer:
@@ -53,9 +62,28 @@ class TweetAnalyzer:
         except Exception as e:
             logger.error(f"Ollama baglanti kontrolu: {e}")
 
+    def _get_llm_payload(self, prompt: str) -> dict:
+        """Build LLM request payload"""
+        return {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt}
+            ],
+            "format": "json",  # Force JSON output
+            "options": {
+                "temperature": 0.3,  # Low creativity for consistency
+                "num_predict": 4096,  # Long responses
+                "num_ctx": 8192,  # Large context window
+                "top_p": 0.9,
+                "repeat_penalty": 1.1  # Prevent repetition
+            },
+            "stream": False
+        }
+
     def _call_llm(self, prompt: str, max_retries: int = 2) -> str:
         """
-        LLM'e istek gönder (JSON mode)
+        LLM'e senkron istek gönder (JSON mode)
 
         Args:
             prompt: Kullanıcı promptu
@@ -65,22 +93,7 @@ class TweetAnalyzer:
             LLM yanıtı (JSON string)
         """
         url = f"{self.base_url}/api/chat"
-        payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": prompt}
-            ],
-            "format": "json",  # Force JSON output
-            "options": {
-                "temperature": 0.3,  # Biraz yaraticilik
-                "num_predict": 4096,  # Uzun yanitlar icin
-                "num_ctx": 8192,  # Genis context window
-                "top_p": 0.9,
-                "repeat_penalty": 1.1  # Tekrari onle
-            },
-            "stream": False
-        }
+        payload = self._get_llm_payload(prompt)
 
         for attempt in range(max_retries + 1):
             try:
@@ -88,7 +101,6 @@ class TweetAnalyzer:
                 resp.raise_for_status()
                 data = resp.json()
                 content = data.get('message', {}).get('content', '')
-                # Debug: ham yaniti logla (ilk 500 karakter)
                 logger.debug(f"LLM ham yanit: {content[:500]}...")
                 return content
 
@@ -98,6 +110,44 @@ class TweetAnalyzer:
                     time.sleep(2)
                 else:
                     raise Exception(f"LLM hatasi: {e}")
+        return ""
+
+    async def _call_llm_async(self, prompt: str, max_retries: int = 2) -> str:
+        """
+        LLM'e asenkron istek gönder (httpx ile)
+
+        Args:
+            prompt: Kullanıcı promptu
+            max_retries: Hata durumunda tekrar deneme
+
+        Returns:
+            LLM yanıtı (JSON string)
+        """
+        url = f"{self.base_url}/api/chat"
+        payload = self._get_llm_payload(prompt)
+
+        async with httpx.AsyncClient(timeout=ASYNC_TIMEOUT) as client:
+            for attempt in range(max_retries + 1):
+                try:
+                    resp = await client.post(url, json=payload)
+                    resp.raise_for_status()
+                    data = resp.json()
+                    content = data.get('message', {}).get('content', '')
+                    logger.debug(f"LLM async ham yanit: {content[:500]}...")
+                    return content
+
+                except httpx.TimeoutException as e:
+                    if attempt < max_retries:
+                        logger.warning(f"LLM timeout, tekrar deneniyor ({attempt + 1}/{max_retries})...")
+                        await asyncio.sleep(2)
+                    else:
+                        raise Exception(f"LLM timeout hatasi: {e}")
+                except Exception as e:
+                    if attempt < max_retries:
+                        logger.warning(f"LLM hatasi, tekrar deneniyor ({attempt + 1}/{max_retries})...")
+                        await asyncio.sleep(2)
+                    else:
+                        raise Exception(f"LLM hatasi: {e}")
         return ""
 
     def _clean_json_response(self, data: dict) -> dict:
@@ -195,10 +245,11 @@ class TweetAnalyzer:
                             'red_summary': data.get('red_summary', data.get('opposition', 'Veri yok')),
                             'criticism_level': data.get('criticism_level', 'Orta'),
                             'grey_summary': data.get('grey_summary', data.get('independent', 'Veri yok')),
-                            'independent_topics': data.get('independent_topics', data.get('topics', []))
+                            'independent_topics': data.get('independent_topics', data.get('topics', [])),
+                            'confidence_score': data.get('confidence_score', 0.5)  # Lower confidence for fallback
                         }
                         validated = schema_class(**fallback)
-                        logger.info("Manuel alan cikarma basarili")
+                        logger.info("Manuel alan cikarma basarili (confidence=0.5)")
                         return validated
                 except Exception as fallback_error:
                     logger.error(f"Manuel cikarma da basarisiz: {fallback_error}")
@@ -368,7 +419,7 @@ class TweetAnalyzer:
     def analyze_intelligence(self, tweets: List[Dict], username: str, period: Optional[str] = None,
                              party: Optional[str] = None) -> Dict:
         """
-        Üç aşamalı (Yeşil, Kırmızı, Gri) profesyonel istihbarat analizi
+        Üç aşamalı (Yeşil, Kırmızı, Gri) profesyonel istihbarat analizi (senkron)
 
         Args:
             tweets: Tweet listesi
@@ -389,15 +440,37 @@ class TweetAnalyzer:
         )
 
         logger.info(f"@{username} için profesyonel istihbarat analizi yapiliyor...")
-        start = time.time()
-        response = self._call_llm(prompt)
-        elapsed = time.time() - start
+
+        # Use metrics timer
+        with LLMCallTimer(
+            model=self.model,
+            prompt_type="intelligence",
+            username=username,
+            tweet_count=len(tweets)
+        ) as timer:
+            try:
+                response = self._call_llm(prompt)
+            except Exception as e:
+                timer.record_failure(str(e))
+                return {
+                    'username': username,
+                    'party': party,
+                    'tweet_count': len(tweets),
+                    'period': period,
+                    'error': str(e),
+                    'elapsed_seconds': timer.latency_ms / 1000,
+                    'validated': False
+                }
+
+        elapsed = timer.latency_ms / 1000
         logger.info(f"Tamamlandi ({elapsed:.1f}s)")
 
         # Parse and validate
         validated_data = self._parse_json_response(response, IntelligenceAnalysis)
 
         if validated_data:
+            confidence = validated_data.confidence_score
+            timer.record_success(validated=True, confidence_score=confidence)
             return {
                 'username': username,
                 'party': party,
@@ -406,10 +479,94 @@ class TweetAnalyzer:
                 'raw_response': response,
                 'analysis': validated_data,
                 'elapsed_seconds': elapsed,
+                'confidence_score': confidence,
                 'validated': True
             }
         else:
+            timer.record_success(validated=False)
             logger.warning("JSON validation failed for IntelligenceAnalysis")
+            return {
+                'username': username,
+                'party': party,
+                'tweet_count': len(tweets),
+                'period': period,
+                'raw_response': response,
+                'elapsed_seconds': elapsed,
+                'validated': False
+            }
+
+    async def analyze_intelligence_async(self, tweets: List[Dict], username: str,
+                                          period: Optional[str] = None,
+                                          party: Optional[str] = None) -> Dict:
+        """
+        Üç aşamalı profesyonel istihbarat analizi (asenkron)
+
+        Non-blocking LLM call - suitable for API endpoints.
+
+        Args:
+            tweets: Tweet listesi
+            username: Kullanıcı adı
+            period: Analiz dönemi
+            party: Meclis üyesinin partisi
+
+        Returns:
+            IntelligenceAnalysis objesi kapsayan sözlük
+        """
+        prompt = get_prompt(
+            'intelligence',
+            tweets=tweets,
+            username=username,
+            party=party or "Bilinmiyor",
+            tweet_count=len(tweets),
+            period=period or "Tüm zamanlar"
+        )
+
+        logger.info(f"@{username} için async istihbarat analizi yapiliyor...")
+
+        # Use metrics timer
+        with LLMCallTimer(
+            model=self.model,
+            prompt_type="intelligence_async",
+            username=username,
+            tweet_count=len(tweets)
+        ) as timer:
+            try:
+                response = await self._call_llm_async(prompt)
+            except Exception as e:
+                timer.record_failure(str(e))
+                return {
+                    'username': username,
+                    'party': party,
+                    'tweet_count': len(tweets),
+                    'period': period,
+                    'error': str(e),
+                    'elapsed_seconds': timer.latency_ms / 1000,
+                    'validated': False
+                }
+
+        elapsed = timer.latency_ms / 1000
+        logger.info(f"Async analiz tamamlandi ({elapsed:.1f}s)")
+
+        # Parse and validate
+        validated_data = self._parse_json_response(response, IntelligenceAnalysis)
+
+        if validated_data:
+            confidence = validated_data.confidence_score
+            timer.record_success(validated=True, confidence_score=confidence)
+            return {
+                'username': username,
+                'party': party,
+                'tweet_count': len(tweets),
+                'period': period,
+                'raw_response': response,
+                'analysis': validated_data,
+                'elapsed_seconds': elapsed,
+                'confidence_score': confidence,
+                'validated': True
+            }
+        else:
+            timer.record_success(validated=False)
+            logger.warning("JSON validation failed for async IntelligenceAnalysis")
             return {
                 'username': username,
                 'party': party,
@@ -471,6 +628,60 @@ def analyze_user(username: str) -> Dict:
     # Analiz
     analyzer = TweetAnalyzer()
     result = analyzer.analyze_full(tweets, username, period)
+
+    return result
+
+
+async def analyze_user_async(username: str) -> Dict:
+    """
+    Kullanıcı için async tam analiz yap
+
+    Args:
+        username: Twitter kullanıcı adı
+
+    Returns:
+        Analiz sonucu
+    """
+    from app.core.db_config import session_scope
+    from app.core.models import Tweet, Councilor
+
+    # Tweetleri ve parti bilgisini al
+    try:
+        with session_scope() as session:
+            # Parti bilgisi
+            councilor = session.query(Councilor).filter(Councilor.username == username).first()
+            party = councilor.party if councilor else None
+
+            tweets_query = session.query(Tweet.tweet_text, Tweet.tweet_date, Tweet.likes,
+                                          Tweet.replies, Tweet.retweets).filter(
+                Tweet.username == username,
+                ~Tweet.is_retweet
+            ).order_by(Tweet.tweet_date.desc()).all()
+
+            if not tweets_query:
+                return {'error': f'@{username} için tweet bulunamadı'}
+
+            tweets = [
+                {
+                    'text': row[0],
+                    'date': row[1],
+                    'likes': row[2],
+                    'replies': row[3],
+                    'retweets': row[4]
+                }
+                for row in tweets_query
+            ]
+    except Exception as e:
+        logger.error(f"Database error: {e}")
+        return {'error': f'Database error: {e}'}
+
+    # Tarih aralığı
+    dates = [t['date'] for t in tweets if t['date']]
+    period = f"{min(dates)} - {max(dates)}" if dates else "Bilinmiyor"
+
+    # Async analiz
+    analyzer = TweetAnalyzer()
+    result = await analyzer.analyze_intelligence_async(tweets, username, period, party)
 
     return result
 

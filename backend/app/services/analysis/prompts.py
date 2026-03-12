@@ -35,11 +35,11 @@ PROMPT_INTELLIGENCE_ANALYSIS_JSON = """Bir siyasi istihbarat analisti olarak aş
 - Parti: {party}
 - Analiz edilen tweet sayısı: {tweet_count}
 
-## ÖRNEK ANALİZ (Referans için)
+## ÖRNEK ANALİZLER (Multi-Shot Learning)
 
-Örnek hesap: @ornek_chp_uyesi (CHP, 45 tweet)
+### Örnek 1: Yapıcı Muhalefet Profili
+Hesap: @ornek_chp_uyesi (CHP, 45 tweet)
 
-Örnek JSON çıktısı:
 {{
   "executive_summary": "CHP'li belediye başkanı olarak yerel hizmetlere odaklanan, parti çizgisine sadık bir profil. Atatürk ve Cumhuriyet vurgusu güçlü. Doğrudan muhalefet eleştirisi yapmaktan kaçınıyor, yapıcı bir dil kullanıyor.",
   "green_summary": "Parti liderliğine açık destek veriyor, CHP'li diğer belediye başkanlarıyla dayanışma içinde. Cumhuriyet değerlerini ve Atatürk ilkelerini sıkça vurguluyor. Parti etkinliklerine aktif katılım gösteriyor.",
@@ -47,7 +47,36 @@ PROMPT_INTELLIGENCE_ANALYSIS_JSON = """Bir siyasi istihbarat analisti olarak aş
   "red_summary": "Doğrudan isim vererek eleştiri yapmıyor. Ekonomik sıkıntılar ve hizmet aksaklıkları üzerinden dolaylı eleştiriler mevcut. Genel olarak yapıcı muhalefet anlayışı sergiliyor.",
   "criticism_level": "Düşük",
   "grey_summary": "Belediye hizmetleri, altyapı projeleri ve yerel etkinlikler ağırlıklı. Spor kulüpleri ve kültürel faaliyetlere de yer veriyor. Hemşehrilerine yönelik taziye ve kutlama mesajları paylaşıyor.",
-  "independent_topics": ["belediye hizmetleri", "yerel projeler", "spor", "kültür-sanat", "anma günleri"]
+  "independent_topics": ["belediye hizmetleri", "yerel projeler", "spor", "kültür-sanat", "anma günleri"],
+  "confidence_score": 0.85
+}}
+
+### Örnek 2: Sert Muhalefet Profili
+Hesap: @ornek_iyi_uyesi (İYİ Parti, 38 tweet)
+
+{{
+  "executive_summary": "İYİ Parti çizgisinde sert muhalefet yapan, özellikle ekonomi ve yolsuzluk konularında AKP'yi hedef alan bir profil. Milliyetçi vurgular güçlü.",
+  "green_summary": "Meral Akşener'e ve İYİ Parti'ye açık destek. Milliyetçi değerler ve Türk bayrağı temalı paylaşımlar. Parti kongre ve mitinglerine katılım vurgusu.",
+  "loyalty_level": "Yüksek",
+  "red_summary": "AKP ve hükümeti doğrudan hedef alıyor. Ekonomi yönetimi, enflasyon ve döviz kuru eleştirileri ön planda. Yolsuzluk iddiaları sıkça dile getiriliyor.",
+  "criticism_level": "Yüksek",
+  "grey_summary": "Yerel sorunlar ve vatandaş şikayetleri paylaşılıyor. Deprem ve afet konularında duyarlılık gösteriyor.",
+  "independent_topics": ["ekonomi", "deprem", "vatandaş sorunları", "yerel hizmetler"],
+  "confidence_score": 0.82
+}}
+
+### Örnek 3: Iktidar Destekçisi Profili
+Hesap: @ornek_akp_uyesi (AK Parti, 52 tweet)
+
+{{
+  "executive_summary": "AK Parti'ye sadık, hükümet politikalarını savunan ve muhalefeti sert dille eleştiren bir profil. Cumhurbaşkanı'na güçlü bağlılık gösteriyor.",
+  "green_summary": "Cumhurbaşkanı Erdoğan'a ve AK Parti'ye tam destek. Hükümet icraatlarını öven paylaşımlar. Parti teşkilat faaliyetlerine aktif katılım.",
+  "loyalty_level": "Yüksek",
+  "red_summary": "CHP ve muhalefet partilerini sert dille eleştiriyor. 'Terör' ve 'bölücülük' gibi kavramlarla muhalefeti ilişkilendiren söylem. Batı ülkelerini de eleştiri hedefi yapıyor.",
+  "criticism_level": "Yüksek",
+  "grey_summary": "Dini bayramlar, milli günler ve tarihi anmalar öne çıkıyor. Sosyal yardım ve hizmet paylaşımları mevcut.",
+  "independent_topics": ["dini bayramlar", "milli günler", "sosyal yardım", "altyapı projeleri"],
+  "confidence_score": 0.88
 }}
 
 ## ŞİMDİ ANALİZ ET

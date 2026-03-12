@@ -3,7 +3,7 @@ API v1 Router - Combines all route modules
 """
 from fastapi import APIRouter
 
-from app.api.v1 import auth, dashboard, users, analytics, tweets, reports, exports
+from app.api.v1 import auth, dashboard, users, analytics, tweets, reports, exports, metrics
 
 api_router = APIRouter()
 
@@ -17,3 +17,6 @@ api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytic
 api_router.include_router(tweets.router, prefix="/tweets", tags=["Tweets"])
 api_router.include_router(reports.router, prefix="/reports", tags=["Reports"])
 api_router.include_router(exports.router, prefix="/exports", tags=["Exports"])
+
+# Observability
+api_router.include_router(metrics.router, prefix="/metrics", tags=["Metrics"])

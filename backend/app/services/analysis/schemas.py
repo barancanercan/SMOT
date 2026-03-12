@@ -40,18 +40,21 @@ class GreyTeamAnalysis(BaseModel):
 class IntelligenceAnalysis(BaseModel):
     """Comprehensive Intelligence Report Structure - Flattened for Small Models"""
     executive_summary: str = Field(..., description="Overall summary")
-    
+
     # Yeşil Takım
     green_summary: str = Field(..., description="Self-party support analysis")
     loyalty_level: str = Field(..., description="Düşük/Orta/Yüksek")
-    
+
     # Kırmızı Takım
     red_summary: str = Field(..., description="Rival party criticism analysis")
     criticism_level: str = Field(..., description="Düşük/Orta/Yüksek")
-    
+
     # Gri Takım
     grey_summary: str = Field(..., description="Independent/Institutional analysis")
     independent_topics: List[str] = Field(default_factory=list, description="Non-political topics")
+
+    # Confidence Score (0.0 - 1.0)
+    confidence_score: float = Field(default=0.7, ge=0.0, le=1.0, description="Analysis confidence level")
 
 
 # For backward compatibility or simpler tasks

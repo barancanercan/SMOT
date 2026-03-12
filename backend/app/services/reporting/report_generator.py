@@ -301,6 +301,9 @@ class ReportGenerator:
             # Markdown oluşturma
             report = []
             report.append("\n## Profesyonel Istihbarat Analizi")
+            confidence = getattr(analysis, 'confidence_score', 0.7)
+            confidence_label = "Yuksek" if confidence >= 0.8 else "Orta" if confidence >= 0.6 else "Dusuk"
+            report.append(f"\n**Analiz Guveni:** {confidence_label} ({confidence:.0%})")
             report.append(f"\n> {analysis.executive_summary}")
 
             # 1. Yeşil Takım

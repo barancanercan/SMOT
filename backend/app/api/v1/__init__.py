@@ -1,7 +1,7 @@
 """
 API v1 Routes
 """
-from app.api.v1 import dashboard, users, analytics, tweets, reports, exports
+from app.api.v1 import dashboard, users, analytics, tweets, reports, exports, metrics
 from app.api.v1.router import api_router
 
 __all__ = [
@@ -12,4 +12,5 @@ __all__ = [
     "tweets",
     "reports",
     "exports",
+    "metrics",
 ]
