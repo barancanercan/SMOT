@@ -1,5 +1,5 @@
-# Backend Dependencies
-# ====================
+# Backend Dependencies - Complete
+# ================================
 
 # Web Framework
 fastapi>=0.109.0
@@ -39,7 +39,8 @@ tenacity>=8.2.0
 
 # Security & Authentication
 python-jose[cryptography]>=3.3.0
-passlib[bcrypt]>=1.7.4
+passlib>=1.7.4
+bcrypt==4.0.1
 slowapi>=0.1.9
 
 # Logging
@@ -53,3 +54,6 @@ ruff>=0.1.0
 mypy>=1.8.0
 pytest>=7.4.0
 pytest-asyncio>=0.23.0
+
+# Fix for setuptools
+setuptools>=65.0.0
