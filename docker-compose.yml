@@ -1,19 +1,48 @@
 version: "3.8"
 
 services:
-  meclis-istihbarat:
-    build: .
-    volumes:
-      - .:/app
-      - ./logs:/app/logs
-      - ./chroma_db:/app/chroma_db
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
-      - "8501:8501"
-    env_file:
-      - .env
+      - "8000:8000"
     environment:
-      - STREAMLIT_SERVER_PORT=8501
+      - ENVIRONMENT=production
+      - DATABASE_URL=sqlite:///./data/meclis.db
+      - OLLAMA_URL=http://ollama:11434
+      - CORS_ORIGINS=http://localhost:3000
+    volumes:
+      - ./data:/app/data
+      - ./chroma_db:/app/chroma_db
+      - backend_logs:/app/logs
+    depends_on:
+      - ollama
     restart: unless-stopped
 
-  # Optional: Add local Ollama service reflection if needed
-  # or rely on host Ollama via 172.17.0.1
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    restart: unless-stopped
+
+  # Frontend (for local development)
+  # In production, deploy to Vercel
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    depends_on:
+      - backend
+    profiles:
+      - full
+
+volumes:
+  ollama_models:
+  backend_logs:

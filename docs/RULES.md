@@ -1,73 +1,53 @@
-# PROJE KURALLARI VE STANDARTLARI (RULES.md)
+# Proje Kurallari ve Standartlari
 
-Bu dosya, Meclis İstihbarat Sistemi projesinin geliştirilme sürecinde uyulması gereken **KIRMIZI ÇİZGİLERİ** ve **TEKNİK STANDARTLARI** içerir. Proje üzerinde çalışan her geliştirici (ve AI asistanı) bu kurallara uymakla yükümlüdür.
+Bu dosya, Meclis Istihbarat Sistemi projesinin gelistirilme surecinde uyulmasi gereken kurallari icerir.
 
----
+## 1. Kirmizi Cizgiler
 
-## 1. KIRMIZI ÇİZGİLER (HARD CONSTRAINTS)
+### 1.1. Ucretsiz ve Yerel Kalmali
 
-Bu kurallar **ASLA** ihlal edilmemelidir.
+- **Scraping:** Selenium / Undetected Chromedriver kullanilacak. Ucretli API yasak.
+- **LLM:** Yerel Ollama kullanilacak. OpenAI/Claude API opsiyonel ama varsayilan yerel olmali.
 
-### 1.1. Ücretsiz ve Yerel Kalmalı
+### 1.2. Urunlesme Odaklilik
 
-- **Scraping:** Veri toplama işlemi **Selenium / Undetected Chromedriver** ile yapılmaya devam edecektir. Ücretli API (Twitter API, BrightData, vb.) kullanımı **YASAKTIR**.
-- **LLM:** Analizler yerel **Ollama** üzerinden yapılacaktır. OpenAI/Claude gibi ücretli API'lere bağımlılık eklenmemelidir (opsiyonel olarak eklenebilir ama varsayılan yerel olmalıdır).
+- Her ozellik "satilabilir urun" kalitesinde olmali
+- `print` ile debug, `try-except pass` yasak
+- Kullanici her zaman ne oldugunu anlamali (UI geri bildirimleri)
 
-### 1.2. Ürünleşme Odaklılık
+## 2. Kod Standartlari
 
-- Her özellik "satılabilir bir ürün" kalitesinde olmalıdır. "Hobi projesi" mantığındaki `print` ile debug etme, hata gizleme (`try-except pass`) gibi pratikler **YASAKTIR**.
-- Kullanıcı her zaman ne olduğunu anlamalıdır (UI geri bildirimleri).
+### 2.1. Python Stil
 
----
+- **Type Hints:** Tum fonksiyonlar type hint icermeli
+- **Docstrings:** Her modul, sinif ve fonksiyon dokumante edilmeli
+- **Dil:** Kod degiskenleri Ingilizce, yorumlar Turkce
 
-## 2. KOD STANDARTLARI
+### 2.2. Hata Yonetimi
 
-### 2.1. Python ve Stil
+- Sessiz hata yasak: `try-except pass` kesinlikle kullanilmayacak
+- Hatalar loglanmali veya re-raise edilmeli
+- `print()` yerine `logging` modulu kullanilmali
 
-- **Type Hinting:** Tüm fonksiyonlar argüman ve dönüş değerleri için type hint içermelidir.
+## 3. Mimari Kararlar
 
-  ```python
-  # DOĞRU
-  def get_user_tweets(username: str, limit: int = 100) -> List[Dict]:
+### 3.1. Veritabani
 
-  # YANLIŞ
-  def get_user_tweets(username, limit=100):
-  ```
+- Hedef: PostgreSQL (SQLite sadece gelistirme icin)
+- Veritabani islemleri `database.py` icinde izole edilmeli
+- UI katmanindan dogrudan SQL sorgusu yasak
 
-- **Docstrings:** Her modül, sınıf ve fonksiyonun ne yaptığını açıklayan bir Docstring'i olmalıdır.
-- **Dil:** Kod değişkenleri ve fonksiyon isimleri **İngilizce** (`get_tweets`), yorumlar ve arayüz metinleri **Türkçe** veya İngilizce olabilir (Tercihen Türkçe).
+### 3.2. Asenkron Yapi
 
-### 2.2. Hata Yönetimi (Error Handling)
+- Uzun suren islemler ana thread'i bloklamamali
+- Celery/Redis ile arka plan gorevleri planlanmali
 
-- **Sessiz Hata YASAK:** `try: ... except: pass` bloğu kesinlikle kullanılmayacaktır. Hatalar loglanmalı veya anlamlı bir exception fırlatılmalıdır.
-- **Logging:** `print()` yerine Python'un `logging` modülü kullanılmalıdır.
+### 3.3. Scraping Dayanikliligi
 
----
+- Retry logic: Exponential backoff ile tekrar deneme
+- Self-healing: Arayuz degisikliklerinde admin uyarisi
 
-## 3. MİMARİ KARARLAR
+## 4. Guvenlik
 
-### 3.1. Veritabanı
-
-- Proje **PostgreSQL** geçişine hazırlanacaktır. SQLite sadece geliştirme ortamında kabul edilebilir, ancak hedef Production ortamı PostgreSQL'dir.
-- Veritabanı işlemleri `database.py` içinde izole edilmelidir. UI katmanından doğrudan SQL sorgusu atılmamalıdır.
-
-### 3.2. Asenkron Yapı
-
-- Uzun süren işlemler (Scraping, LLM Analizi) asla ana thread'i veya UI thread'ini bloklamamalıdır. Bu işlemler `Celery` veya benzeri bir görev kuyruğu ile arka plana atılmalıdır.
-
-### 3.3. Scraping Dayanıklılığı
-
-- Scraping kodu "kırılgan" olmamalıdır.
-  - **Retry Logic:** Bağlantı hatası veya element bulunamaması durumunda hemen pes etmemeli, "Exponential Backoff" ile tekrar denemelidir.
-  - **Self-Healing:** X.com arayüzü değişirse kodun patladığı yer loglanmalı ve admin uyarılmalıdır.
-
----
-
-## 4. GÜVENLİK
-
-- `.env` dosyası **ASLA** git geçmişine atılmamalıdır.
-- Veritabanı bağlantı bilgileri kod içine gömülmemelidir.
-
----
-
-**Bu kurallara uyulmadığı tespit edildiğinde, ilgili Pull Request veya Commit REDDEDİLECEKTİR.**
+- `.env` dosyasi git gecmisine atilmamali
+- Veritabani baglanti bilgileri kod icine gomulmemeli

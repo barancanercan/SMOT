@@ -1,52 +1,87 @@
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 .Python
 build/
 dist/
+*.egg-info/
+.eggs/
+
+# Virtual Environment
 .venv/
 venv/
 ENV/
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Environment
+.api
+.env.local
+.env.*.local
+
+
+# Logs
+*.log
+logs/
+backend/logs/
+
+# Database
+*.db
 *.db.bak
 *.db.old
-test_*.db
-debug_*.py
-*_debug.py
-test_*.py
-test.py
-*.backup
-*.bak
-*.old
-*_old.py
-temp.txt
-temp_*.py
-/10
-tweets_export.csv
-tweets_all.csv
-tweets_statistics.csv
+!data/.gitkeep
+
+# Cache
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Node
+node_modules/
+.next/
+out/
+frontend/.next/
+frontend/node_modules/
+
+# Scraping
 x_cookies.pkl
 x_cookies.json
 *.pkl
 .credentials
 .secrets
-*.log
-logs/
-Thumbs.db
-htmlcov/
-.coverage
-.pytest_cache/
 
-# Additional ignored files
-llm_trying.py
-.env
-# meclis.db - artık track ediliyor
+# ChromaDB (local vector db)
+chroma_db/
+
+# Exports
 *.csv
 !data/*.csv
+tweets_export.csv
+tweets_all.csv
 
+# Temporary
+temp.txt
+temp_*.py
+*.backup
+*.bak
+*.old
+*_old.py
+debug_*.py
+*_debug.py
+test.py
+
+# Claude
 .claude/
