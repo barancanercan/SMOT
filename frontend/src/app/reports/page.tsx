@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { api, User, ReportResponse, PartyReportResponse } from "@/lib/api";
+import { api, User, ReportResponse, PartyReportResponse, PaginatedResponse } from "@/lib/api";
 import { useToast } from "@/components/ui/toast";
 import { FileText, Download, RefreshCw, Users, AlertCircle } from "lucide-react";
 
@@ -18,14 +18,16 @@ export default function ReportsPage() {
 
   // Fetch users with React Query
   const {
-    data: users = [],
+    data: usersData,
     isLoading: usersLoading,
     error: usersError,
   } = useQuery({
     queryKey: ["users"],
-    queryFn: () => api.get<User[]>("/users"),
+    queryFn: () => api.get<PaginatedResponse<User>>("/users/"),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  const users = usersData?.items || [];
 
   // Extract unique parties from users
   const parties = useMemo(() => {

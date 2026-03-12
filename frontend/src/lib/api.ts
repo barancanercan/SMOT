@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 const API_PREFIX = "/api/v1";
 
 /**
@@ -164,6 +164,15 @@ export interface User {
   name: string;
   party: string;
   district?: string;
+  tweet_count?: number;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  pages: number;
 }
 
 export interface DashboardStats {

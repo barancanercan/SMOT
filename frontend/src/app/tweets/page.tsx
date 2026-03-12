@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api, User, Tweet } from "@/lib/api";
+import { api, User, Tweet, PaginatedResponse } from "@/lib/api";
 import {
   Flame,
   ThumbsUp,
@@ -22,14 +22,16 @@ export default function TweetsPage() {
 
   // Fetch users
   const {
-    data: users = [],
+    data: usersData,
     isLoading: usersLoading,
     error: usersError,
   } = useQuery({
     queryKey: ["users"],
-    queryFn: () => api.get<User[]>("/users"),
+    queryFn: () => api.get<PaginatedResponse<User>>("/users/"),
     staleTime: 5 * 60 * 1000,
   });
+
+  const users = usersData?.items || [];
 
   // Set default user when users load
   useMemo(() => {
