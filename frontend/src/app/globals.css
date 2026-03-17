@@ -3,19 +3,45 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 249, 250, 251;
-  --background-end-rgb: 255, 255, 255;
+  --foreground-rgb: 229, 231, 235;
+  --background-start-rgb: 11, 11, 11;
+  --background-end-rgb: 11, 11, 11;
+  color-scheme: dark;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background: rgb(var(--background-start-rgb));
+}
+
+/* Ensure dark theme for all elements */
+html {
+  background-color: #0B0B0B;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0B0B0B;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(77, 163, 255, 0.3);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(77, 163, 255, 0.5);
+}
+
+/* Selection styling */
+::selection {
+  background: rgba(77, 163, 255, 0.3);
+  color: white;
 }
 
 @layer utilities {

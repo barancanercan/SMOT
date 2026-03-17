@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-Analyzer v3.0 - Async LLM with Observability
+Analyzer v3.1 - Multi-Provider LLM (OpenAI + Ollama)
+- OpenAI GPT-3.5-turbo support (FAST & CHEAP)
+- Ollama fallback support
 - Async HTTP calls with httpx
 - LLM metrics collection
 - Multi-shot learning support
@@ -24,30 +26,45 @@ from app.services.analysis.schemas import (
     IntelligenceAnalysis
 )
 from app.services.analysis.metrics import LLMCallTimer, metrics_collector
+from app.core.constants import normalize_party_name
+from app.core.config import settings
 from app.utils.logger import get_logger
 
 logger = get_logger("Analyzer")
-
-# Default model - qwen3:14b for quality Turkish analysis
-DEFAULT_MODEL = "qwen3:14b"
-FALLBACK_MODEL = "qwen2.5:3b"
-OLLAMA_URL = "http://127.0.0.1:11434"
 
 # Async client configuration
 ASYNC_TIMEOUT = httpx.Timeout(300.0, connect=10.0)  # 5 min read, 10s connect
 
 
 class TweetAnalyzer:
-    """Ollama ile tweet analizi (JSON Structured Output)"""
+    """Multi-provider LLM tweet analizi (OpenAI + Ollama)"""
 
-    def __init__(self, model: Optional[str] = None):
+    def __init__(self, model: Optional[str] = None, provider: Optional[str] = None):
         """
         Args:
-            model: Ollama model adı (default: qwen2.5:3b)
+            model: Model adı (provider'a göre farklı)
+            provider: LLM provider ("openai" veya "ollama", default: settings.llm_provider)
         """
-        self.model = model or DEFAULT_MODEL
-        self.base_url = OLLAMA_URL
-        self._check_connection()
+        self.provider = provider or settings.llm_provider
+
+        if self.provider == "openai":
+            # OpenAI setup
+            self.model = model or settings.openai_model
+            self.api_key = settings.openai_api_key
+            if not self.api_key:
+                logger.warning("OPENAI_API_KEY bulunamadi! Ollama'ya geciliyor...")
+                self.provider = "ollama"
+                self.model = settings.ollama_model
+                self.base_url = settings.ollama_url
+                self._check_connection()
+            else:
+                logger.info(f"OpenAI provider aktif - Model: {self.model}")
+        else:
+            # Ollama setup (fallback)
+            self.model = model or settings.ollama_model
+            self.base_url = settings.ollama_url
+            self._check_connection()
+            logger.info(f"Ollama provider aktif - Model: {self.model}")
 
     def _check_connection(self):
         """Ollama bağlantısını kontrol et"""
@@ -62,6 +79,19 @@ class TweetAnalyzer:
         except Exception as e:
             logger.error(f"Ollama baglanti kontrolu: {e}")
 
+    def _get_openai_payload(self, prompt: str) -> dict:
+        """Build OpenAI request payload"""
+        return {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.2,  # Low for consistency
+            "max_tokens": 2048,
+            "response_format": {"type": "json_object"}  # Force JSON mode
+        }
+
     def _get_llm_payload(self, prompt: str) -> dict:
         """Build LLM request payload"""
         return {
@@ -72,11 +102,11 @@ class TweetAnalyzer:
             ],
             "format": "json",  # Force JSON output
             "options": {
-                "temperature": 0.3,  # Low creativity for consistency
-                "num_predict": 4096,  # Long responses
-                "num_ctx": 8192,  # Large context window
+                "temperature": 0.2,  # Lower for more consistency
+                "num_predict": 2048,  # Reduced from 4096
+                "num_ctx": 4096,  # Reduced from 8192 for faster processing
                 "top_p": 0.9,
-                "repeat_penalty": 1.1  # Prevent repetition
+                "repeat_penalty": 1.15  # Increased to prevent repetition
             },
             "stream": False
         }
@@ -92,29 +122,139 @@ class TweetAnalyzer:
         Returns:
             LLM yanıtı (JSON string)
         """
+        if self.provider == "openai":
+            return self._call_openai(prompt, max_retries)
+        else:
+            return self._call_ollama(prompt, max_retries)
+
+    def _call_openai(self, prompt: str, max_retries: int = 2) -> str:
+        """
+        OpenAI API'ye senkron istek gönder
+
+        Args:
+            prompt: Kullanıcı promptu
+            max_retries: Hata durumunda tekrar deneme
+
+        Returns:
+            LLM yanıtı (JSON string)
+        """
+        url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        payload = self._get_openai_payload(prompt)
+
+        for attempt in range(max_retries + 1):
+            try:
+                resp = requests.post(url, json=payload, headers=headers, timeout=settings.openai_timeout)
+                resp.raise_for_status()
+                data = resp.json()
+                content = data.get('choices', [{}])[0].get('message', {}).get('content', '')
+                logger.debug(f"OpenAI ham yanit: {content[:500]}...")
+                return content
+
+            except Exception as e:
+                if attempt < max_retries:
+                    logger.warning(f"OpenAI hatasi, tekrar deneniyor ({attempt + 1}/{max_retries}): {e}")
+                    time.sleep(2)
+                else:
+                    raise Exception(f"OpenAI API hatasi: {e}")
+        return ""
+
+    def _call_ollama(self, prompt: str, max_retries: int = 2) -> str:
+        """
+        Ollama'ya senkron istek gönder
+
+        Args:
+            prompt: Kullanıcı promptu
+            max_retries: Hata durumunda tekrar deneme
+
+        Returns:
+            LLM yanıtı (JSON string)
+        """
         url = f"{self.base_url}/api/chat"
         payload = self._get_llm_payload(prompt)
 
         for attempt in range(max_retries + 1):
             try:
-                resp = requests.post(url, json=payload, timeout=300)
+                resp = requests.post(url, json=payload, timeout=settings.ollama_timeout)
                 resp.raise_for_status()
                 data = resp.json()
                 content = data.get('message', {}).get('content', '')
-                logger.debug(f"LLM ham yanit: {content[:500]}...")
+                logger.debug(f"Ollama ham yanit: {content[:500]}...")
                 return content
 
             except Exception as e:
                 if attempt < max_retries:
-                    logger.warning(f"LLM hatasi, tekrar deneniyor ({attempt + 1}/{max_retries})...")
+                    logger.warning(f"Ollama hatasi, tekrar deneniyor ({attempt + 1}/{max_retries})...")
                     time.sleep(2)
                 else:
-                    raise Exception(f"LLM hatasi: {e}")
+                    raise Exception(f"Ollama hatasi: {e}")
         return ""
 
     async def _call_llm_async(self, prompt: str, max_retries: int = 2) -> str:
         """
         LLM'e asenkron istek gönder (httpx ile)
+
+        Args:
+            prompt: Kullanıcı promptu
+            max_retries: Hata durumunda tekrar deneme
+
+        Returns:
+            LLM yanıtı (JSON string)
+        """
+        if self.provider == "openai":
+            return await self._call_openai_async(prompt, max_retries)
+        else:
+            return await self._call_ollama_async(prompt, max_retries)
+
+    async def _call_openai_async(self, prompt: str, max_retries: int = 2) -> str:
+        """
+        OpenAI API'ye asenkron istek gönder
+
+        Args:
+            prompt: Kullanıcı promptu
+            max_retries: Hata durumunda tekrar deneme
+
+        Returns:
+            LLM yanıtı (JSON string)
+        """
+        url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        payload = self._get_openai_payload(prompt)
+
+        async_timeout = httpx.Timeout(float(settings.openai_timeout), connect=10.0)
+        async with httpx.AsyncClient(timeout=async_timeout) as client:
+            for attempt in range(max_retries + 1):
+                try:
+                    resp = await client.post(url, json=payload, headers=headers)
+                    resp.raise_for_status()
+                    data = resp.json()
+                    content = data.get('choices', [{}])[0].get('message', {}).get('content', '')
+                    logger.debug(f"OpenAI async ham yanit: {content[:500]}...")
+                    return content
+
+                except httpx.TimeoutException as e:
+                    if attempt < max_retries:
+                        logger.warning(f"OpenAI timeout, tekrar deneniyor ({attempt + 1}/{max_retries})...")
+                        await asyncio.sleep(2)
+                    else:
+                        raise Exception(f"OpenAI timeout hatasi: {e}")
+                except Exception as e:
+                    if attempt < max_retries:
+                        logger.warning(f"OpenAI hatasi, tekrar deneniyor ({attempt + 1}/{max_retries}): {e}")
+                        await asyncio.sleep(2)
+                    else:
+                        raise Exception(f"OpenAI API hatasi: {e}")
+        return ""
+
+    async def _call_ollama_async(self, prompt: str, max_retries: int = 2) -> str:
+        """
+        Ollama'ya asenkron istek gönder
 
         Args:
             prompt: Kullanıcı promptu
@@ -133,21 +273,21 @@ class TweetAnalyzer:
                     resp.raise_for_status()
                     data = resp.json()
                     content = data.get('message', {}).get('content', '')
-                    logger.debug(f"LLM async ham yanit: {content[:500]}...")
+                    logger.debug(f"Ollama async ham yanit: {content[:500]}...")
                     return content
 
                 except httpx.TimeoutException as e:
                     if attempt < max_retries:
-                        logger.warning(f"LLM timeout, tekrar deneniyor ({attempt + 1}/{max_retries})...")
+                        logger.warning(f"Ollama timeout, tekrar deneniyor ({attempt + 1}/{max_retries})...")
                         await asyncio.sleep(2)
                     else:
-                        raise Exception(f"LLM timeout hatasi: {e}")
+                        raise Exception(f"Ollama timeout hatasi: {e}")
                 except Exception as e:
                     if attempt < max_retries:
-                        logger.warning(f"LLM hatasi, tekrar deneniyor ({attempt + 1}/{max_retries})...")
+                        logger.warning(f"Ollama hatasi, tekrar deneniyor ({attempt + 1}/{max_retries})...")
                         await asyncio.sleep(2)
                     else:
-                        raise Exception(f"LLM hatasi: {e}")
+                        raise Exception(f"Ollama hatasi: {e}")
         return ""
 
     def _clean_json_response(self, data: dict) -> dict:
@@ -246,6 +386,8 @@ class TweetAnalyzer:
                             'criticism_level': data.get('criticism_level', 'Orta'),
                             'grey_summary': data.get('grey_summary', data.get('independent', 'Veri yok')),
                             'independent_topics': data.get('independent_topics', data.get('topics', [])),
+                            'retweet_summary': data.get('retweet_summary', ''),
+                            'retweet_sources': data.get('retweet_sources', []),
                             'confidence_score': data.get('confidence_score', 0.5)  # Lower confidence for fallback
                         }
                         validated = schema_class(**fallback)
@@ -417,25 +559,40 @@ class TweetAnalyzer:
             }
 
     def analyze_intelligence(self, tweets: List[Dict], username: str, period: Optional[str] = None,
-                             party: Optional[str] = None) -> Dict:
+                             party: Optional[str] = None, retweets: Optional[List[Dict]] = None) -> Dict:
         """
         Üç aşamalı (Yeşil, Kırmızı, Gri) profesyonel istihbarat analizi (senkron)
 
         Args:
-            tweets: Tweet listesi
+            tweets: Orijinal tweet listesi
             username: Kullanıcı adı
             period: Analiz dönemi
             party: Meclis üyesinin partisi
+            retweets: Retweet listesi (opsiyonel)
 
         Returns:
             IntelligenceAnalysis objesi kapsayan sözlük
         """
+        # CHUNKED ANALYSIS: Eğer tweet sayısı çok fazlaysa, ilk 25 tweet ile analiz yap
+        MAX_TWEETS = 25
+        MAX_RETWEETS = 20
+
+        if len(tweets) > MAX_TWEETS:
+            logger.warning(f"Tweet sayısı ({len(tweets)}) maksimum limitin ({MAX_TWEETS}) üzerinde. İlk {MAX_TWEETS} tweet analiz edilecek.")
+            tweets = tweets[:MAX_TWEETS]
+
+        if retweets and len(retweets) > MAX_RETWEETS:
+            logger.warning(f"Retweet sayısı ({len(retweets)}) maksimum limitin ({MAX_RETWEETS}) üzerinde. İlk {MAX_RETWEETS} retweet analiz edilecek.")
+            retweets = retweets[:MAX_RETWEETS]
+
+        total_count = len(tweets) + (len(retweets) if retweets else 0)
         prompt = get_prompt(
             'intelligence',
             tweets=tweets,
+            retweets=retweets or [],
             username=username,
             party=party or "Bilinmiyor",
-            tweet_count=len(tweets),
+            tweet_count=total_count,
             period=period or "Tüm zamanlar"
         )
 
@@ -497,27 +654,43 @@ class TweetAnalyzer:
 
     async def analyze_intelligence_async(self, tweets: List[Dict], username: str,
                                           period: Optional[str] = None,
-                                          party: Optional[str] = None) -> Dict:
+                                          party: Optional[str] = None,
+                                          retweets: Optional[List[Dict]] = None) -> Dict:
         """
         Üç aşamalı profesyonel istihbarat analizi (asenkron)
 
         Non-blocking LLM call - suitable for API endpoints.
 
         Args:
-            tweets: Tweet listesi
+            tweets: Orijinal tweet listesi
             username: Kullanıcı adı
             period: Analiz dönemi
             party: Meclis üyesinin partisi
+            retweets: Retweet listesi (opsiyonel)
 
         Returns:
             IntelligenceAnalysis objesi kapsayan sözlük
         """
+        # CHUNKED ANALYSIS: Eğer tweet sayısı çok fazlaysa, ilk 25 tweet ile analiz yap
+        MAX_TWEETS = 25
+        MAX_RETWEETS = 20
+
+        if len(tweets) > MAX_TWEETS:
+            logger.warning(f"Tweet sayısı ({len(tweets)}) maksimum limitin ({MAX_TWEETS}) üzerinde. İlk {MAX_TWEETS} tweet analiz edilecek.")
+            tweets = tweets[:MAX_TWEETS]
+
+        if retweets and len(retweets) > MAX_RETWEETS:
+            logger.warning(f"Retweet sayısı ({len(retweets)}) maksimum limitin ({MAX_RETWEETS}) üzerinde. İlk {MAX_RETWEETS} retweet analiz edilecek.")
+            retweets = retweets[:MAX_RETWEETS]
+
+        total_count = len(tweets) + (len(retweets) if retweets else 0)
         prompt = get_prompt(
             'intelligence',
             tweets=tweets,
+            retweets=retweets or [],
             username=username,
             party=party or "Bilinmiyor",
-            tweet_count=len(tweets),
+            tweet_count=total_count,
             period=period or "Tüm zamanlar"
         )
 
@@ -584,57 +757,7 @@ class TweetAnalyzer:
 
 def analyze_user(username: str) -> Dict:
     """
-    Kullanıcı için tam analiz yap (tüm tweetler)
-
-    Args:
-        username: Twitter kullanıcı adı
-
-    Returns:
-        Analiz sonucu
-    """
-    from app.core.db_config import session_scope
-    from app.core.models import Tweet
-
-    # Tweetleri al (ORM)
-    try:
-        with session_scope() as session:
-            tweets_query = session.query(Tweet.tweet_text, Tweet.tweet_date, Tweet.likes,
-                                          Tweet.replies, Tweet.retweets).filter(
-                Tweet.username == username,
-                ~Tweet.is_retweet
-            ).order_by(Tweet.tweet_date.desc()).all()
-
-            if not tweets_query:
-                return {'error': f'@{username} için tweet bulunamadı'}
-
-            tweets = [
-                {
-                    'text': row[0],
-                    'date': row[1],
-                    'likes': row[2],
-                    'replies': row[3],
-                    'retweets': row[4]
-                }
-                for row in tweets_query
-            ]
-    except Exception as e:
-        logger.error(f"Database error: {e}")
-        return {'error': f'Database error: {e}'}
-
-    # Tarih aralığı
-    dates = [t['date'] for t in tweets if t['date']]
-    period = f"{min(dates)} - {max(dates)}" if dates else "Bilinmiyor"
-
-    # Analiz
-    analyzer = TweetAnalyzer()
-    result = analyzer.analyze_full(tweets, username, period)
-
-    return result
-
-
-async def analyze_user_async(username: str) -> Dict:
-    """
-    Kullanıcı için async tam analiz yap
+    Kullanıcı için tam analiz yap (tüm tweetler + retweetler)
 
     Args:
         username: Twitter kullanıcı adı
@@ -645,20 +768,31 @@ async def analyze_user_async(username: str) -> Dict:
     from app.core.db_config import session_scope
     from app.core.models import Tweet, Councilor
 
-    # Tweetleri ve parti bilgisini al
+    # Tweetleri ve retweetleri al (ORM)
     try:
         with session_scope() as session:
-            # Parti bilgisi
+            # Parti bilgisi - normalize et
             councilor = session.query(Councilor).filter(Councilor.username == username).first()
-            party = councilor.party if councilor else None
+            party = normalize_party_name(councilor.party) if councilor else None
 
-            tweets_query = session.query(Tweet.tweet_text, Tweet.tweet_date, Tweet.likes,
-                                          Tweet.replies, Tweet.retweets).filter(
+            # Orijinal tweetler
+            tweets_query = session.query(
+                Tweet.tweet_text, Tweet.tweet_date, Tweet.likes,
+                Tweet.replies, Tweet.retweets, Tweet.views
+            ).filter(
                 Tweet.username == username,
                 ~Tweet.is_retweet
             ).order_by(Tweet.tweet_date.desc()).all()
 
-            if not tweets_query:
+            # Retweetler
+            retweets_query = session.query(
+                Tweet.tweet_text, Tweet.tweet_date, Tweet.retweet_from
+            ).filter(
+                Tweet.username == username,
+                Tweet.is_retweet == True
+            ).order_by(Tweet.tweet_date.desc()).all()
+
+            if not tweets_query and not retweets_query:
                 return {'error': f'@{username} için tweet bulunamadı'}
 
             tweets = [
@@ -667,21 +801,106 @@ async def analyze_user_async(username: str) -> Dict:
                     'date': row[1],
                     'likes': row[2],
                     'replies': row[3],
-                    'retweets': row[4]
+                    'retweets': row[4],
+                    'views': row[5] or 0
                 }
                 for row in tweets_query
+            ]
+
+            retweets = [
+                {
+                    'text': row[0],
+                    'date': row[1],
+                    'retweet_from': row[2] or 'bilinmiyor'
+                }
+                for row in retweets_query
             ]
     except Exception as e:
         logger.error(f"Database error: {e}")
         return {'error': f'Database error: {e}'}
 
     # Tarih aralığı
-    dates = [t['date'] for t in tweets if t['date']]
-    period = f"{min(dates)} - {max(dates)}" if dates else "Bilinmiyor"
+    all_dates = [t['date'] for t in tweets if t['date']] + [t['date'] for t in retweets if t['date']]
+    period = f"{min(all_dates)} - {max(all_dates)}" if all_dates else "Bilinmiyor"
+
+    # Analiz
+    analyzer = TweetAnalyzer()
+    result = analyzer.analyze_intelligence(tweets, username, period, party, retweets)
+
+    return result
+
+
+async def analyze_user_async(username: str) -> Dict:
+    """
+    Kullanıcı için async tam analiz yap (tüm tweetler + retweetler)
+
+    Args:
+        username: Twitter kullanıcı adı
+
+    Returns:
+        Analiz sonucu
+    """
+    from app.core.db_config import session_scope
+    from app.core.models import Tweet, Councilor
+
+    # Tweetleri, retweetleri ve parti bilgisini al
+    try:
+        with session_scope() as session:
+            # Parti bilgisi - normalize et
+            councilor = session.query(Councilor).filter(Councilor.username == username).first()
+            party = normalize_party_name(councilor.party) if councilor else None
+
+            # Orijinal tweetler
+            tweets_query = session.query(
+                Tweet.tweet_text, Tweet.tweet_date, Tweet.likes,
+                Tweet.replies, Tweet.retweets, Tweet.views
+            ).filter(
+                Tweet.username == username,
+                ~Tweet.is_retweet
+            ).order_by(Tweet.tweet_date.desc()).all()
+
+            # Retweetler
+            retweets_query = session.query(
+                Tweet.tweet_text, Tweet.tweet_date, Tweet.retweet_from
+            ).filter(
+                Tweet.username == username,
+                Tweet.is_retweet == True
+            ).order_by(Tweet.tweet_date.desc()).all()
+
+            if not tweets_query and not retweets_query:
+                return {'error': f'@{username} için tweet bulunamadı'}
+
+            tweets = [
+                {
+                    'text': row[0],
+                    'date': row[1],
+                    'likes': row[2],
+                    'replies': row[3],
+                    'retweets': row[4],
+                    'views': row[5] or 0
+                }
+                for row in tweets_query
+            ]
+
+            retweets = [
+                {
+                    'text': row[0],
+                    'date': row[1],
+                    'retweet_from': row[2] or 'bilinmiyor'
+                }
+                for row in retweets_query
+            ]
+    except Exception as e:
+        logger.error(f"Database error: {e}")
+        return {'error': f'Database error: {e}'}
+
+    # Tarih aralığı
+    all_dates = [t['date'] for t in tweets if t['date']] + [t['date'] for t in retweets if t['date']]
+    period = f"{min(all_dates)} - {max(all_dates)}" if all_dates else "Bilinmiyor"
 
     # Async analiz
     analyzer = TweetAnalyzer()
-    result = await analyzer.analyze_intelligence_async(tweets, username, period, party)
+    result = await analyzer.analyze_intelligence_async(tweets, username, period, party, retweets)
 
     return result
 

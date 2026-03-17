@@ -18,11 +18,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="tr">
-      <body className={inter.className}>
+      <body className={`${inter.className} bg-[#0B0B0B] text-white`}>
         <Providers>
           <div className="flex min-h-screen">
             <Sidebar />
-            <main className="flex-1 p-6 bg-gray-50">{children}</main>
+            <main className="flex-1 p-6 bg-[#0B0B0B]">{children}</main>
           </div>
         </Providers>
       </body>

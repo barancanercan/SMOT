@@ -20,7 +20,26 @@ interface EngagementPieChartProps {
   showLegend?: boolean;
 }
 
-const COLORS = ["#2563EB", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
+const COLORS = ["#4DA3FF", "#00D1B2", "#F59E0B", "#EF4444", "#8B5CF6"];
+
+// Custom dark tooltip
+const CustomTooltip = ({ active, payload }: any) => {
+  if (!active || !payload || !payload.length) return null;
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    return num.toLocaleString("tr-TR");
+  };
+
+  const entry = payload[0];
+  return (
+    <div className="bg-[#1A1A1A] border border-white/20 rounded-lg px-4 py-3 shadow-xl">
+      <p className="text-white font-semibold mb-1">{entry.name}</p>
+      <p className="text-gray-300 text-sm font-mono">{formatNumber(entry.value)}</p>
+    </div>
+  );
+};
 
 export function EngagementPieChart({
   data,
@@ -30,10 +49,10 @@ export function EngagementPieChart({
   if (!data || data.length === 0) {
     return (
       <div
-        className="flex items-center justify-center bg-gray-50 rounded-lg"
+        className="flex items-center justify-center bg-[#0B0B0B]/50 border border-white/10 rounded-lg"
         style={{ height }}
       >
-        <p className="text-gray-500">Veri bulunamadi</p>
+        <p className="text-gray-500 font-mono text-sm">Veri bulunamadi</p>
       </div>
     );
   }
@@ -97,29 +116,20 @@ export function EngagementPieChart({
           fill="#8884d8"
           dataKey="value"
           paddingAngle={2}
+          stroke="rgba(255,255,255,0.1)"
+          strokeWidth={1}
         >
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
-        <Tooltip
-          formatter={(value: number, name: string) => [
-            formatNumber(value),
-            name,
-          ]}
-          contentStyle={{
-            backgroundColor: "white",
-            border: "1px solid #E5E7EB",
-            borderRadius: "8px",
-            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-          }}
-        />
+        <Tooltip content={<CustomTooltip />} />
         {showLegend && (
           <Legend
             verticalAlign="bottom"
             height={36}
             formatter={(value) => (
-              <span className="text-sm text-gray-700">{value}</span>
+              <span className="text-sm text-gray-300">{value}</span>
             )}
           />
         )}

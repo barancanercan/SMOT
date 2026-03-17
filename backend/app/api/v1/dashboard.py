@@ -26,6 +26,7 @@ async def get_dashboard_overview(db: Session = Depends(get_db)):
             "total_tweets": stats.get("total_tweets", 0),
             "total_original": stats.get("total_original", 0),
             "total_retweets": stats.get("total_retweets", 0),
+            "total_retweets_count": stats.get("total_retweets_count", 0),  # Sum of retweet engagement
             "total_councilors": stats.get("total_councilors", 0),
             "total_profiles": stats.get("total_profiles", 0),
             "active_users": stats.get("active_users", 0),
@@ -38,6 +39,7 @@ async def get_dashboard_overview(db: Session = Depends(get_db)):
             "total_tweets": 0,
             "total_original": 0,
             "total_retweets": 0,
+            "total_retweets_count": 0,
             "total_councilors": 0,
             "total_profiles": 0,
             "active_users": 0,

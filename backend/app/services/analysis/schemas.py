@@ -39,19 +39,23 @@ class GreyTeamAnalysis(BaseModel):
 
 class IntelligenceAnalysis(BaseModel):
     """Comprehensive Intelligence Report Structure - Flattened for Small Models"""
-    executive_summary: str = Field(..., description="Overall summary")
+    executive_summary: str = Field(..., description="Overall summary (5-7 detailed sentences)")
 
     # Yeşil Takım
-    green_summary: str = Field(..., description="Self-party support analysis")
+    green_summary: str = Field(..., description="Self-party support analysis (3-4 paragraphs with examples)")
     loyalty_level: str = Field(..., description="Düşük/Orta/Yüksek")
 
     # Kırmızı Takım
-    red_summary: str = Field(..., description="Rival party criticism analysis")
+    red_summary: str = Field(..., description="Rival party criticism analysis (3-4 paragraphs with examples)")
     criticism_level: str = Field(..., description="Düşük/Orta/Yüksek")
 
     # Gri Takım
-    grey_summary: str = Field(..., description="Independent/Institutional analysis")
+    grey_summary: str = Field(..., description="Independent/Institutional analysis (3-4 paragraphs)")
     independent_topics: List[str] = Field(default_factory=list, description="Non-political topics")
+
+    # Retweet Analysis
+    retweet_summary: str = Field(default="", description="Analysis of retweeted content and patterns")
+    retweet_sources: List[str] = Field(default_factory=list, description="Frequently retweeted accounts")
 
     # Confidence Score (0.0 - 1.0)
     confidence_score: float = Field(default=0.7, ge=0.0, le=1.0, description="Analysis confidence level")

@@ -9,6 +9,7 @@ from sqlalchemy import func
 
 from app.api.deps import get_db
 from app.core.models import Councilor, Tweet, ProfileHistory
+from app.core.constants import normalize_party_name
 
 router = APIRouter()
 
@@ -44,7 +45,7 @@ async def get_followers_ranking(
             result.append({
                 "username": p.username,
                 "name": c.name if c else p.username,
-                "party": c.party if c else "",
+                "party": normalize_party_name(c.party) if c else "",
                 "district": c.district if c else "",
                 "followers_count": p.followers_count or 0,
                 "following_count": p.following_count or 0,
@@ -60,16 +61,22 @@ async def get_party_statistics(db: Session = Depends(get_db)):
     Get statistics grouped by party.
     """
     try:
-        # Member count by party
-        member_stats = db.query(
-            Councilor.party,
-            func.count(Councilor.id).label("member_count")
-        ).group_by(Councilor.party).all()
+        # Get all councilors
+        councilors = db.query(Councilor).all()
 
-        party_map = {p.party: {"party": p.party or "Bagimsiz", "member_count": p.member_count, "total_followers": 0}
-                     for p in member_stats}
+        # Normalize party names and aggregate
+        party_map = {}
+        for c in councilors:
+            normalized = normalize_party_name(c.party)
+            if normalized not in party_map:
+                party_map[normalized] = {
+                    "party": normalized,
+                    "member_count": 0,
+                    "total_followers": 0
+                }
+            party_map[normalized]["member_count"] += 1
 
-        return list(party_map.values())
+        return sorted(list(party_map.values()), key=lambda x: x["member_count"], reverse=True)
     except Exception as e:
         return []
 
@@ -111,7 +118,7 @@ async def get_engagement_ranking(
             {
                 "username": r.username,
                 "name": councilor_map.get(r.username).name if councilor_map.get(r.username) else r.username,
-                "party": councilor_map.get(r.username).party if councilor_map.get(r.username) else "",
+                "party": normalize_party_name(councilor_map.get(r.username).party) if councilor_map.get(r.username) else "",
                 "tweet_count": r.tweet_count,
                 "total_likes": r.total_likes or 0,
                 "total_retweets": r.total_retweets or 0,

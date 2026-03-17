@@ -8,85 +8,52 @@ Chain-of-thought, few-shot learning, role-based prompting
 # SYSTEM PROMPT - Role Definition
 # ============================================================================
 
-SYSTEM_PROMPT = """Sen Türkiye siyaseti konusunda uzman bir istihbarat analistisin.
+SYSTEM_PROMPT = """Türkiye siyaseti uzmanı istihbarat analistisin. Twitter analizleri yapıyorsun.
 
-GÖREVIN:
-- Politikacıların Twitter paylaşımlarını derinlemesine analiz etmek
-- Parti sadakati, muhalefet eleştirisi ve bağımsız gündemleri tespit etmek
-- Kanıta dayalı, objektif değerlendirmeler yapmak
+GÖREV: Politikacı tweetlerini analiz et - parti sadakati, muhalefet eleştirisi, bağımsız gündemler.
 
-ANALIZ YAKLAŞIMIN:
-1. Her tweeti dikkatlice oku
-2. Siyasi mesajları, ima edilen anlamları ve alt metinleri tespit et
-3. Tekrar eden temaları ve kalıpları belirle
-4. Somut örneklerle destekle
+YÖNTEM:
+1. Tweetleri oku, bağlamı anla
+2. Orijinal tweet ve RT'leri ayır
+3. Siyasi mesajları tespit et
+4. Temaları ve kalıpları belirle
+5. Somut örnekler ver
+6. Sayısal veri kullan (yüzde, adet)
 
-ÇIKTI FORMATI: Sadece JSON. Açıklama veya ek metin yok."""
+ÇIKTI: Sadece JSON."""
 
 
 # ============================================================================
 # INTELLIGENCE ANALYSIS PROMPT - Chain of Thought + Few-Shot
 # ============================================================================
 
-PROMPT_INTELLIGENCE_ANALYSIS_JSON = """Bir siyasi istihbarat analisti olarak aşağıdaki Twitter hesabını analiz et.
+PROMPT_INTELLIGENCE_ANALYSIS_JSON = """Siyasi istihbarat analisti olarak @{username} hesabını analiz et.
 
-## HESAP BİLGİLERİ
-- Kullanıcı: @{username}
-- Parti: {party}
-- Analiz edilen tweet sayısı: {tweet_count}
+HESAP: @{username} | Parti: {party} | Tweet: {tweet_count} | Dönem: {period}
 
-## ÖRNEK ANALİZLER (Multi-Shot Learning)
+GÖREV: Tweetleri okuyup 3 kategoride (Yeşil/Kırmızı/Gri) detaylı analiz yap.
 
-### Örnek 1: Yapıcı Muhalefet Profili
-Hesap: @ornek_chp_uyesi (CHP, 45 tweet)
-
+ÖRNEK ANALİZ:
 {{
-  "executive_summary": "CHP'li belediye başkanı olarak yerel hizmetlere odaklanan, parti çizgisine sadık bir profil. Atatürk ve Cumhuriyet vurgusu güçlü. Doğrudan muhalefet eleştirisi yapmaktan kaçınıyor, yapıcı bir dil kullanıyor.",
-  "green_summary": "Parti liderliğine açık destek veriyor, CHP'li diğer belediye başkanlarıyla dayanışma içinde. Cumhuriyet değerlerini ve Atatürk ilkelerini sıkça vurguluyor. Parti etkinliklerine aktif katılım gösteriyor.",
+  "executive_summary": "CHP meclis üyesi 117 paylaşımla analiz edildi. Parti sadakati yüksek, Cumhuriyet değerleri vurgusu öne çıkıyor. Muhalefet eleştirisi dolaylı ve yapıcı.",
+  "green_summary": "85 tweetin %27'si parti etkinlikleri içeriyor. '29 Ekim coşkuyla kutlandı' (2,340 beğeni) ve 'Genel Başkan ziyareti' gibi paylaşımlar var. CHP belediye başkanlarıyla dayanışma mesajları düzenli.",
   "loyalty_level": "Yüksek",
-  "red_summary": "Doğrudan isim vererek eleştiri yapmıyor. Ekonomik sıkıntılar ve hizmet aksaklıkları üzerinden dolaylı eleştiriler mevcut. Genel olarak yapıcı muhalefet anlayışı sergiliyor.",
+  "red_summary": "Eleştiri ölçülü ve yapıcı. 85 tweetin sadece %9'u eleştirel. 'Market fiyatları yüksek' ve 'Altyapı yetersiz' gibi dolaylı eleştiriler var.",
   "criticism_level": "Düşük",
-  "grey_summary": "Belediye hizmetleri, altyapı projeleri ve yerel etkinlikler ağırlıklı. Spor kulüpleri ve kültürel faaliyetlere de yer veriyor. Hemşehrilerine yönelik taziye ve kutlama mesajları paylaşıyor.",
-  "independent_topics": ["belediye hizmetleri", "yerel projeler", "spor", "kültür-sanat", "anma günleri"],
-  "confidence_score": 0.85
-}}
-
-### Örnek 2: Sert Muhalefet Profili
-Hesap: @ornek_iyi_uyesi (İYİ Parti, 38 tweet)
-
-{{
-  "executive_summary": "İYİ Parti çizgisinde sert muhalefet yapan, özellikle ekonomi ve yolsuzluk konularında AKP'yi hedef alan bir profil. Milliyetçi vurgular güçlü.",
-  "green_summary": "Meral Akşener'e ve İYİ Parti'ye açık destek. Milliyetçi değerler ve Türk bayrağı temalı paylaşımlar. Parti kongre ve mitinglerine katılım vurgusu.",
-  "loyalty_level": "Yüksek",
-  "red_summary": "AKP ve hükümeti doğrudan hedef alıyor. Ekonomi yönetimi, enflasyon ve döviz kuru eleştirileri ön planda. Yolsuzluk iddiaları sıkça dile getiriliyor.",
-  "criticism_level": "Yüksek",
-  "grey_summary": "Yerel sorunlar ve vatandaş şikayetleri paylaşılıyor. Deprem ve afet konularında duyarlılık gösteriyor.",
-  "independent_topics": ["ekonomi", "deprem", "vatandaş sorunları", "yerel hizmetler"],
-  "confidence_score": 0.82
-}}
-
-### Örnek 3: Iktidar Destekçisi Profili
-Hesap: @ornek_akp_uyesi (AK Parti, 52 tweet)
-
-{{
-  "executive_summary": "AK Parti'ye sadık, hükümet politikalarını savunan ve muhalefeti sert dille eleştiren bir profil. Cumhurbaşkanı'na güçlü bağlılık gösteriyor.",
-  "green_summary": "Cumhurbaşkanı Erdoğan'a ve AK Parti'ye tam destek. Hükümet icraatlarını öven paylaşımlar. Parti teşkilat faaliyetlerine aktif katılım.",
-  "loyalty_level": "Yüksek",
-  "red_summary": "CHP ve muhalefet partilerini sert dille eleştiriyor. 'Terör' ve 'bölücülük' gibi kavramlarla muhalefeti ilişkilendiren söylem. Batı ülkelerini de eleştiri hedefi yapıyor.",
-  "criticism_level": "Yüksek",
-  "grey_summary": "Dini bayramlar, milli günler ve tarihi anmalar öne çıkıyor. Sosyal yardım ve hizmet paylaşımları mevcut.",
-  "independent_topics": ["dini bayramlar", "milli günler", "sosyal yardım", "altyapı projeleri"],
+  "grey_summary": "Tweetlerin %41'i belediye hizmetleri. Park açılışları, sosyal yardım, kültürel etkinlikler öne çıkıyor. Spor kulüpleri ve taziye mesajları da mevcut.",
+  "independent_topics": ["belediye hizmetleri", "sosyal yardım", "spor", "kültür-sanat"],
+  "retweet_summary": "32 RT'nin %65'i CHP hesaplarından. CHP Genel Merkezi 8 RT ile en çok paylaşılan. %20 haber kaynakları, %15 sivil toplum.",
+  "retweet_sources": ["@chp", "@chpizmir", "@izmirbbld"],
   "confidence_score": 0.88
 }}
 
-## ŞİMDİ ANALİZ ET
-
-Aşağıdaki tweetleri dikkatlice oku ve @{username} için benzer kalitede bir analiz yap.
-
-### TWEETLER:
+ORİJİNAL TWEETLER:
 {tweets}
 
-### ANALİZ (JSON formatında):"""
+RETWEET İÇERİKLER:
+{retweets}
+
+ÇIKTI (JSON):"""
 
 
 # ============================================================================
@@ -159,15 +126,20 @@ JSON yanıtı:"""
 # HELPER FUNCTIONS
 # ============================================================================
 
-def format_tweets_for_prompt(tweets: list, max_tweets: int = 50) -> str:
+def format_tweets_for_prompt(tweets: list, max_tweets: int = 25, include_metrics: bool = False) -> str:
     """
     Tweet listesini analiz için formatla.
     Her tweet numaralı ve temiz şekilde sunulur.
+
+    Args:
+        tweets: Tweet listesi
+        max_tweets: Maksimum tweet sayısı (default: 25)
+        include_metrics: Metrik bilgilerini ekle (default: False, token tasarrufu)
     """
     if not tweets:
-        return "[Analiz edilecek tweet bulunamadı]"
+        return "[Tweet yok]"
 
-    # En fazla max_tweets tweet al (en yeniler önce)
+    # En fazla max_tweets tweet al
     selected = tweets[:max_tweets]
 
     lines = []
@@ -175,17 +147,55 @@ def format_tweets_for_prompt(tweets: list, max_tweets: int = 50) -> str:
         text = t.get('text', t.get('tweet_text', ''))
         date = t.get('date', t.get('tweet_date', ''))
 
-        # Tarihi kısalt (sadece gün)
+        # Tweet metnini 200 karakterle sınırla
+        if len(text) > 200:
+            text = text[:200] + "..."
+
+        # Tarihi kısalt
         if date and len(date) > 10:
             date = date[:10]
 
-        # Tweet formatı
+        # Basit format (token tasarrufu)
         if date:
             lines.append(f"[{i}] ({date}) {text}")
         else:
             lines.append(f"[{i}] {text}")
 
-    return "\n\n".join(lines)
+    return "\n".join(lines)
+
+
+def format_retweets_for_prompt(retweets: list, max_tweets: int = 20) -> str:
+    """
+    Retweet listesini analiz için formatla.
+    Retweet kaynağını ve içeriği gösterir.
+    """
+    if not retweets:
+        return "[RT yok]"
+
+    # En fazla max_tweets retweet al
+    selected = retweets[:max_tweets]
+
+    lines = []
+    for i, t in enumerate(selected, 1):
+        text = t.get('text', t.get('tweet_text', ''))
+        date = t.get('date', t.get('tweet_date', ''))
+        retweet_from = t.get('retweet_from', 'bilinmiyor')
+
+        # Tweet metnini 200 karakterle sınırla
+        if len(text) > 200:
+            text = text[:200] + "..."
+
+        # Tarihi kısalt
+        if date and len(date) > 10:
+            date = date[:10]
+
+        # Basit format
+        if date:
+            lines.append(f"[{i}] RT @{retweet_from} ({date}): {text}")
+        else:
+            lines.append(f"[{i}] RT @{retweet_from}: {text}")
+
+    return "\n".join(lines)
 
 
 def get_prompt(prompt_type: str, **kwargs) -> str:
@@ -195,6 +205,8 @@ def get_prompt(prompt_type: str, **kwargs) -> str:
     Args:
         prompt_type: 'intelligence', 'full', 'main_topics', 'party_defense', 'opposition'
         **kwargs: Şablonda kullanılacak değişkenler
+            - tweets: Orijinal tweet listesi
+            - retweets: Retweet listesi (intelligence prompt için)
 
     Returns:
         Doldurulmuş prompt string
@@ -214,6 +226,12 @@ def get_prompt(prompt_type: str, **kwargs) -> str:
     # tweets listesi varsa formatla
     if 'tweets' in kwargs and isinstance(kwargs['tweets'], list):
         kwargs['tweets'] = format_tweets_for_prompt(kwargs['tweets'])
+
+    # retweets listesi varsa formatla (intelligence prompt için)
+    if 'retweets' in kwargs and isinstance(kwargs['retweets'], list):
+        kwargs['retweets'] = format_retweets_for_prompt(kwargs['retweets'])
+    elif 'retweets' not in kwargs:
+        kwargs['retweets'] = "[Retweet verisi mevcut değil]"
 
     # Varsayılan değerler
     defaults = {

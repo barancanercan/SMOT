@@ -2,6 +2,7 @@
 Application Configuration - Pydantic Settings
 Single source of truth for all configuration
 """
+from __future__ import annotations
 import os
 from pathlib import Path
 from typing import Optional
@@ -20,7 +21,7 @@ class Settings(BaseSettings):
     """Application settings with environment variable support"""
 
     model_config = SettingsConfigDict(
-        env_file=str(ROOT_DIR / ".env"),
+        env_file=str(BACKEND_DIR / ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore"
@@ -35,7 +36,7 @@ class Settings(BaseSettings):
     api_port: int = Field(default=8000, description="API port")
     api_prefix: str = Field(default="/api/v1", description="API prefix")
     cors_origins: str = Field(
-        default="http://localhost:3000,http://127.0.0.1:3000",
+        default="http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001",
         description="Allowed CORS origins (comma separated) - NO WILDCARDS in production"
     )
 
@@ -66,7 +67,15 @@ class Settings(BaseSettings):
     days_back: int = Field(default=90, description="Number of days to scrape back")
     scrape_timeout: int = Field(default=30, description="Scraping timeout in seconds")
 
-    # Ollama LLM
+    # LLM Configuration
+    llm_provider: str = Field(default="openai", description="LLM provider (openai or ollama)")
+
+    # OpenAI LLM
+    openai_api_key: str = Field(default="", description="OpenAI API key")
+    openai_model: str = Field(default="gpt-3.5-turbo", description="OpenAI model (gpt-3.5-turbo recommended for speed/cost)")
+    openai_timeout: int = Field(default=60, description="OpenAI request timeout in seconds")
+
+    # Ollama LLM (fallback)
     ollama_url: str = Field(default="http://127.0.0.1:11434", description="Ollama API URL")
     ollama_model: str = Field(default="qwen2.5:3b", description="Default Ollama model")
     ollama_fallback_model: str = Field(default="llama3.2:1b", description="Fallback Ollama model")

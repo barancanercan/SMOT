@@ -1,7 +1,9 @@
 """
 Exports API Routes
 """
+import logging
 from io import BytesIO
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -12,7 +14,9 @@ import pandas as pd
 from app.api.deps import get_db
 from app.core.models import Councilor, Tweet, ProfileHistory
 from app.core.database import get_report_cache
+from app.core.constants import normalize_party_name
 
+logger = logging.getLogger("Exports")
 router = APIRouter()
 
 
@@ -48,7 +52,7 @@ async def export_followers_excel(db: Session = Depends(get_db)):
         {
             "Kullanici Adi": r.username,
             "Ad Soyad": r.name,
-            "Parti": r.party,
+            "Parti": normalize_party_name(r.party),
             "Ilce": r.district,
             "Takipci": r.followers_count,
             "Takip": r.following_count,
@@ -95,7 +99,7 @@ async def export_engagement_excel(db: Session = Depends(get_db)):
         {
             "Kullanici Adi": r.username,
             "Ad Soyad": r.name,
-            "Parti": r.party,
+            "Parti": normalize_party_name(r.party),
             "Tweet Sayisi": r.tweet_count,
             "Toplam Like": r.total_likes or 0,
             "Toplam RT": r.total_retweets or 0,
@@ -136,3 +140,51 @@ async def export_report_markdown(username: str, db: Session = Depends(get_db)):
         media_type="text/markdown",
         headers={"Content-Disposition": f"attachment; filename={username}_rapor.md"}
     )
+
+
+@router.get("/report/{username}/pdf")
+async def export_report_pdf(username: str, db: Session = Depends(get_db)):
+    """
+    Export report as professionally formatted PDF.
+    """
+    from app.services.reporting.pdf_generator import generate_intelligence_pdf
+
+    cached = get_report_cache(username, "full")
+
+    if not cached:
+        raise HTTPException(status_code=404, detail=f"No report for {username}")
+
+    # Get user info
+    user = db.query(Councilor).filter(Councilor.username == username).first()
+    user_name = user.name if user else username
+    user_party = normalize_party_name(user.party) if user and user.party else "Bilinmiyor"
+    user_district = user.district if user else "Bilinmiyor"
+
+    content = cached["content"]
+
+    logger.info(f"PDF olusturuluyor: @{username}")
+
+    try:
+        # Generate PDF with new modular generator
+        pdf_bytes = generate_intelligence_pdf(
+            username=username,
+            name=user_name,
+            party=user_party,
+            district=user_district,
+            content=content
+        )
+
+        output = BytesIO(pdf_bytes)
+        output.seek(0)
+
+        logger.info(f"PDF basarili: @{username}")
+
+        return StreamingResponse(
+            output,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=istihbarat_rapor_{username}_{datetime.now().strftime('%Y%m%d')}.pdf"}
+        )
+
+    except Exception as e:
+        logger.error(f"PDF hatasi @{username}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"PDF olusturulamadi: {str(e)}")

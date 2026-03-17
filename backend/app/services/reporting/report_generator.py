@@ -22,6 +22,7 @@ from app.core.database import (
     save_report_cache,
     clear_report_cache
 )
+from app.core.constants import normalize_party_name
 from app.services.scraping.profile_scraper import get_weekly_comparison
 from app.services.reporting.metrics import (
     get_user_engagement_stats,
@@ -235,7 +236,7 @@ class ReportGenerator:
         return "\n".join(lines)
 
     def _generate_llm_analysis_section(self, username: str) -> str:
-        """Soru 1, 6, 7: LLM analizi"""
+        """Soru 1, 6, 7: LLM analizi (orijinal tweetler + retweetler)"""
         if not self.analyzer:
             return "\n## LLM Analizi\n*LLM kullanilabilir degil*\n"
 
@@ -246,23 +247,32 @@ class ReportGenerator:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
-        # Parti bilgisini al
+        # Parti bilgisini al ve normalize et
         cursor.execute("SELECT party FROM councilors WHERE username = ?", (username,))
         party_row = cursor.fetchone()
-        party = party_row[0] if party_row else "Bilinmiyor"
+        party = normalize_party_name(party_row[0]) if party_row else "Bağımsız"
 
-        # Tweetleri al (tum tweetler) - Metriklerle birlikte
+        # Orijinal tweetleri al - Metriklerle birlikte
         cursor.execute("""
             SELECT tweet_text, tweet_date, likes, views
             FROM tweets
             WHERE username = ? AND is_retweet = 0
             ORDER BY tweet_date DESC
         """, (username,))
-        rows = cursor.fetchall()
+        original_rows = cursor.fetchall()
+
+        # Retweetleri al
+        cursor.execute("""
+            SELECT tweet_text, tweet_date, retweet_from
+            FROM tweets
+            WHERE username = ? AND is_retweet = 1
+            ORDER BY tweet_date DESC
+        """, (username,))
+        retweet_rows = cursor.fetchall()
         conn.close()
 
-        if not rows:
-            return "\n## 🕵️ Profesyonel İstihbarat Analizi\n*Analiz için tweet bulunamadı*\n"
+        if not original_rows and not retweet_rows:
+            return "\n## Profesyonel Istihbarat Analizi\n*Analiz icin tweet bulunamadi*\n"
 
         tweets = [
             {
@@ -270,30 +280,41 @@ class ReportGenerator:
                 'tweet_date': row[1],
                 'likes': row[2] or 0,
                 'views': row[3] or 0
-            } for row in rows
+            } for row in original_rows
+        ]
+
+        retweets = [
+            {
+                'tweet_text': row[0],
+                'tweet_date': row[1],
+                'retweet_from': row[2] or 'bilinmiyor'
+            } for row in retweet_rows
         ]
 
         # Tarih araligi
-        dates = [t['tweet_date'] for t in tweets if t['tweet_date']]
-        period = f"{min(dates)[:10]} - {max(dates)[:10]}" if dates else "Bilinmiyor"
+        all_dates = [t['tweet_date'] for t in tweets if t['tweet_date']] + \
+                    [t['tweet_date'] for t in retweets if t['tweet_date']]
+        period = f"{min(all_dates)[:10]} - {max(all_dates)[:10]}" if all_dates else "Bilinmiyor"
 
         # Profesyonel İstihbarat Analizi Yap
         try:
-            print(f"[DEBUG] analyze_intelligence cagiriliyor, {len(tweets)} tweet, parti: {party}...")
-            result = self.analyzer.analyze_intelligence(tweets, username, period=period, party=party)
+            print(f"[DEBUG] analyze_intelligence cagiriliyor, {len(tweets)} tweet + {len(retweets)} RT, parti: {party}...")
+            result = self.analyzer.analyze_intelligence(tweets, username, period=period, party=party, retweets=retweets)
 
             if not result.get('validated') or not result.get('analysis'):
                 # LLM calismiyor veya JSON parse edilemedi
+                error_msg = result.get('error', 'Bilinmeyen hata')
                 return f"""
 ## Istihbarat Analizi
 
-> LLM analizi yapilamadi. Ollama servisinin calistigindan emin olun.
+> LLM analizi yapilamadi. Hata: {error_msg[:200]}
 
 **Parti:** {party}
-**Tweet Sayisi:** {len(tweets)}
+**Orijinal Tweet Sayisi:** {len(tweets)}
+**Retweet Sayisi:** {len(retweets)}
 **Donem:** {period}
 
-*Ollama baslatmak icin: `ollama serve` ve `ollama run qwen2.5:3b`*
+*LLM Provider: {self.analyzer.provider} | Model: {self.analyzer.model}*
 """
 
             analysis = result['analysis']
@@ -304,6 +325,7 @@ class ReportGenerator:
             confidence = getattr(analysis, 'confidence_score', 0.7)
             confidence_label = "Yuksek" if confidence >= 0.8 else "Orta" if confidence >= 0.6 else "Dusuk"
             report.append(f"\n**Analiz Guveni:** {confidence_label} ({confidence:.0%})")
+            report.append(f"\n**Kapsam:** {len(tweets)} orijinal tweet + {len(retweets)} retweet analiz edildi")
             report.append(f"\n> {analysis.executive_summary}")
 
             # 1. Yeşil Takım
@@ -324,6 +346,20 @@ class ReportGenerator:
                 report.append("\n**Bagimsiz Gundemler:**")
                 for topic in analysis.independent_topics:
                     report.append(f"- {topic}")
+
+            # 4. Retweet Analizi
+            retweet_summary = getattr(analysis, 'retweet_summary', '')
+            retweet_sources = getattr(analysis, 'retweet_sources', [])
+
+            if retweet_summary or retweet_sources:
+                report.append("\n### Retweet Analizi")
+                report.append(f"**RT Sayisi:** {len(retweets)} tweet")
+                if retweet_summary:
+                    report.append(f"\n**Analiz:** {retweet_summary}")
+                if retweet_sources:
+                    report.append("\n**Sik RT Edilen Kaynaklar:**")
+                    for source in retweet_sources[:10]:
+                        report.append(f"- @{source}")
 
             return "\n".join(report) + "\n"
 
@@ -585,7 +621,7 @@ def export_engagement_excel(usernames: Optional[List[str]] = None) -> Optional[s
         {
             'Username': row[0],
             'Isim': row[1],
-            'Parti': row[2],
+            'Parti': normalize_party_name(row[2]),
             'Ilce': row[3],
             'Takipci': row[4],
             'Tweet Sayisi': row[5],

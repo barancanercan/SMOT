@@ -12,6 +12,7 @@ from app.api.schemas import PaginatedResponse, UserListItem, UserDetail
 from app.core.models import Councilor, Tweet, ProfileHistory
 from app.core.database import get_latest_profile, get_all_profile_history
 from app.core.rate_limit import limiter, RateLimits
+from app.core.constants import normalize_party_name
 
 router = APIRouter()
 
@@ -73,7 +74,7 @@ async def get_all_users(
                 "id": c.id,
                 "username": c.username,
                 "name": c.name,
-                "party": c.party,
+                "party": normalize_party_name(c.party),
                 "district": c.district,
                 "tweet_count": tweet_counts.get(c.username, 0),
             }
@@ -124,7 +125,7 @@ async def get_users_simple_list(
             {
                 "username": c.username,
                 "name": c.name,
-                "party": c.party,
+                "party": normalize_party_name(c.party),
             }
             for c in councilors
         ]
@@ -168,7 +169,7 @@ async def get_user(
         "id": councilor.id,
         "username": councilor.username,
         "name": councilor.name,
-        "party": councilor.party,
+        "party": normalize_party_name(councilor.party),
         "district": councilor.district,
         "tweet_count": tweet_count,
         "total_likes": stats.total_likes if stats else 0,

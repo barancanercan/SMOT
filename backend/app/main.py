@@ -1,6 +1,8 @@
 """
 Meclis Istihbarat Sistemi - FastAPI Backend
 """
+import logging
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -14,6 +16,14 @@ from app.api.v1.router import api_router
 
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger("API")
 
 
 @asynccontextmanager
@@ -40,42 +50,49 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
-# CORS middleware - restricted origins (SECURITY FIX)
-allowed_origins = settings.cors_origins_list if hasattr(settings, 'cors_origins_list') else [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-
-# Remove wildcard if present in production
-if settings.environment == "production":
-    allowed_origins = [o for o in allowed_origins if o != "*"]
-
+# CORS middleware - allow all for development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
-# Security headers middleware
+# Request logging middleware
 @app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    """Add security headers to all responses"""
-    response = await call_next(request)
+async def log_requests(request: Request, call_next):
+    """Log all requests with timing"""
+    start_time = time.time()
 
-    # Security headers
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    # Log incoming request
+    logger.info(f"➡️  {request.method} {request.url.path}")
 
-    # Cache control for API responses
-    if "/api/" in str(request.url):
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    try:
+        response = await call_next(request)
+        duration = (time.time() - start_time) * 1000
 
-    return response
+        # Log response
+        status_emoji = "✅" if response.status_code < 400 else "❌"
+        logger.info(f"{status_emoji} {request.method} {request.url.path} - {response.status_code} ({duration:.0f}ms)")
+
+        # Security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+        # Cache control for API responses
+        if "/api/" in str(request.url):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+
+        return response
+
+    except Exception as e:
+        duration = (time.time() - start_time) * 1000
+        logger.error(f"💥 {request.method} {request.url.path} - ERROR: {str(e)} ({duration:.0f}ms)")
+        raise
 
 
 # Include API router

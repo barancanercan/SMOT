@@ -23,17 +23,21 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+nul
+**/nul
 
 # Environment
-.api
+.env
 .env.local
 .env.*.local
+backend/.env
 
 
 # Logs
 *.log
 logs/
 backend/logs/
+mcp_server.log
 
 # Database
 *.db

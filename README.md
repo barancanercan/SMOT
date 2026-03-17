@@ -1,37 +1,53 @@
-# Meclis Istihbarat Sistemi
+# Meclis Istihbarat Sistemi v3.1
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-green.svg)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue.svg)](https://typescriptlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **Yapay Zeka Destekli Siyasi Istihbarat Analiz Platformu**
 
-Turkiye Buyuksehir Belediye Meclisi uyelerinin sosyal medya aktivitelerini analiz eden, stratejik istihbarat raporlari ureten SaaS platformu. Tamamen yerel ve ucretsiz calisir - harici API gerektirmez.
+Turkiye Buyuksehir Belediye Meclisi uyelerinin sosyal medya aktivitelerini analiz eden, profesyonel istihbarat raporlari ureten modern SaaS platformu.
 
 ---
 
-## Temel Ozellikler
+## Ozellikler
 
 ### Yapay Zeka Analizi
-- **Yesil/Kirmizi/Gri Takim Framework'u**: Parti sadakati, muhalefet elestirisi ve bagimsiz gundemleri ayiran analiz metodolojisi
-- **Yerel LLM Entegrasyonu**: Ollama ile qwen3:14b modeli (gizlilik odakli, internet baglantisi gerektirmez)
-- **Chain-of-Thought & Few-Shot Learning**: Gelismis prompt muhendisligi ile yuksek kaliteli analizler
+- **Yesil/Kirmizi/Gri Takim Framework'u** - Parti sadakati, muhalefet elestirisi ve bagimsiz gundemleri ayiran analiz
+- **Coklu LLM Destegi** - OpenAI GPT-3.5 (hizli, onerilir) veya Ollama (yerel, ucretsiz)
+- **Chain-of-Thought Prompting** - Gelismis prompt muhendisligi ile kaliteli analizler
+- **Turkce NLP** - Tam Turkce dil destegi
 
-### Veri Toplama & Analiz
-- **X/Twitter Scraping**: Selenium + Undetected Chrome ile engellenmeden veri toplama
-- **Vector Arama**: ChromaDB ile anlamsal tweet arama ve benzerlik analizi
-- **Profil Takibi**: Takipci sayisi, bio degisiklikleri gibi profil metriklerinin tarihsel takibi
+### Veri Toplama
+- **X/Twitter Scraping** - Selenium + Undetected Chrome
+- **Vector Arama** - ChromaDB ile anlamsal arama
+- **Profil Takibi** - Tarihsel metrik analizi
 
 ### Raporlama
-- **Bireysel Raporlar**: Her meclis uyesi icin detayli istihbarat raporu
-- **Parti Raporlari**: Parti bazinda toplu istatistikler ve karsilastirmalar
-- **Export**: Markdown, Excel ve PDF formatlari
+- **PDF Raporlar** - Profesyonel karanlik tema tasarimi
+- **Excel Export** - Takipci ve etkilesim verileri
+- **Markdown** - Ham rapor ciktisi
 
 ### Modern Arayuz
-- **Dashboard**: Canli istatistikler ve ozet gorunum
-- **Analitik**: Takipci siralamalari, parti dagilimi, engagement metrikleri
-- **Tweet Arsivi**: Filtreleme, arama ve top tweetler
+- **Dark Theme** - Tamamen karanlik tema
+- **Responsive** - Mobil uyumlu
+- **Grafikler** - Recharts ile interaktif grafikler
+
+---
+
+## Teknoloji Stack
+
+| Katman | Teknoloji |
+|--------|-----------|
+| **Backend** | FastAPI, SQLAlchemy, Pydantic v2 |
+| **Frontend** | Next.js 14, React 18, TailwindCSS |
+| **Database** | SQLite (dev) / PostgreSQL (prod) |
+| **LLM** | OpenAI API / Ollama |
+| **Vector DB** | ChromaDB |
+| **PDF** | FPDF2 |
+| **Charts** | Recharts |
 
 ---
 
@@ -39,19 +55,15 @@ Turkiye Buyuksehir Belediye Meclisi uyelerinin sosyal medya aktivitelerini anali
 
 ### Gereksinimler
 
-| Yazilim | Versiyon | Aciklama |
-|---------|----------|----------|
-| Python | 3.10+ | Backend |
-| Node.js | 20+ | Frontend |
-| Ollama | Latest | LLM (qwen3:14b onerilir) |
-| Chrome | Latest | Scraping icin |
+- Python 3.10+
+- Node.js 20+
+- Git
 
-### 1. Ollama Kurulumu
+### 1. Projeyi Klonla
 
 ```bash
-# Ollama'yi yukle (https://ollama.ai)
-# Ardindan model indir:
-ollama pull qwen3:14b
+git clone https://github.com/username/meclis-istihbarat.git
+cd meclis-istihbarat
 ```
 
 ### 2. Backend Kurulumu
@@ -61,17 +73,21 @@ cd backend
 
 # Virtual environment
 python -m venv .venv
-.venv\Scripts\activate  # Windows
+.venv\Scripts\activate     # Windows
 # source .venv/bin/activate  # Linux/Mac
 
-# Bagimliliklari yukle
+# Bagimliliklar
 pip install -r requirements.txt
 
-# Veritabanini baslat
+# Environment
+cp .env.example .env
+# .env dosyasini duzenle
+
+# Veritabani
 python -c "from app.core.database import init_database; init_database()"
 
-# API'yi calistir
-uvicorn app.main:app --reload --port 8001
+# Calistir
+uvicorn app.main:app --reload --port 8000
 ```
 
 ### 3. Frontend Kurulumu
@@ -84,11 +100,142 @@ npm run dev
 
 ### 4. Erisim
 
-- **Frontend**: http://localhost:3000
-- **API Docs**: http://localhost:8001/docs
-- **API Health**: http://localhost:8001/api/v1/health
+| Servis | URL |
+|--------|-----|
+| Frontend | http://localhost:3000 |
+| API Docs | http://localhost:8000/docs |
+| Health | http://localhost:8000/api/v1/health |
 
-### Docker ile Calistirma
+---
+
+## Konfigrasyon
+
+### Environment Degiskenleri
+
+`backend/.env` dosyasi:
+
+```env
+# LLM Provider
+LLM_PROVIDER=openai              # openai veya ollama
+
+# OpenAI (Onerilir)
+OPENAI_API_KEY=sk-your-key
+OPENAI_MODEL=gpt-3.5-turbo
+OPENAI_TIMEOUT=60
+
+# Ollama (Alternatif)
+OLLAMA_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen2.5:3b
+
+# Database
+DATABASE_URL=sqlite:///./data/meclis.db
+
+# API
+API_PREFIX=/api/v1
+DEBUG=true
+CORS_ORIGINS=http://localhost:3000
+```
+
+---
+
+## LLM Secenekleri
+
+### OpenAI (Onerilir)
+
+| Ozellik | Deger |
+|---------|-------|
+| Model | gpt-3.5-turbo |
+| Hiz | 3-5 saniye |
+| Maliyet | ~$0.002/analiz |
+| Kalite | Mukemmel |
+
+### Ollama (Yerel)
+
+| Ozellik | Deger |
+|---------|-------|
+| Model | qwen2.5:3b |
+| Hiz | 15-60 saniye |
+| Maliyet | Ucretsiz |
+| Kalite | Iyi |
+
+```bash
+# Ollama kurulumu
+ollama pull qwen2.5:3b
+ollama serve
+```
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Aciklama |
+|--------|----------|----------|
+| GET | `/api/v1/health` | Sistem durumu |
+| GET | `/api/v1/dashboard/overview` | Dashboard verileri |
+| GET | `/api/v1/users` | Kullanici listesi |
+| GET | `/api/v1/users/{username}` | Kullanici detayi |
+| POST | `/api/v1/users` | Kullanici ekle |
+| DELETE | `/api/v1/users/{username}` | Kullanici sil |
+| GET | `/api/v1/tweets/{username}` | Tweetler |
+| GET | `/api/v1/analytics/followers` | Takipci siralamalari |
+| GET | `/api/v1/analytics/parties` | Parti istatistikleri |
+| POST | `/api/v1/reports/generate` | Rapor olustur |
+| GET | `/api/v1/exports/report/{username}/pdf` | PDF indir |
+| GET | `/api/v1/exports/followers/excel` | Excel indir |
+
+---
+
+## Proje Yapisi
+
+```
+meclis-istihbarat/
+├── backend/
+│   ├── app/
+│   │   ├── api/v1/           # REST endpoints
+│   │   ├── core/             # Config, DB, Models
+│   │   ├── services/
+│   │   │   ├── analysis/     # LLM analiz
+│   │   │   ├── reporting/    # PDF generator
+│   │   │   └── scraping/     # X scraper
+│   │   └── utils/            # Logger, retry
+│   ├── scripts/              # Utility scripts
+│   ├── tests/                # Test suite
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── app/              # Next.js pages
+│   │   ├── components/       # React components
+│   │   └── lib/              # API client
+│   └── package.json
+├── data/                     # SQLite database
+├── .github/workflows/        # CI/CD
+├── docker-compose.yml
+├── CLAUDE.md                 # AI assistant guide
+└── README.md
+```
+
+---
+
+## Analiz Framework'u
+
+### Yesil Takim (Parti Sadakati)
+- Parti liderligine destek
+- Parti etkinlikleri
+- Basarilari one cikarma
+
+### Kirmizi Takim (Muhalefet)
+- Rakip parti elestirisi
+- Hukumet politikalari
+- Siyasi polemik
+
+### Gri Takim (Bagimsiz)
+- Yerel hizmetler
+- Kisisel paylasilmlar
+- Apolitik icerik
+
+---
+
+## Docker
 
 ```bash
 docker-compose up --build
@@ -96,256 +243,52 @@ docker-compose up --build
 
 ---
 
-## Proje Mimarisi
-
-```
-meclis-istihbarat/
-├── backend/                    # FastAPI Backend (Python)
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── v1/            # REST API endpoints
-│   │   │   │   ├── dashboard.py
-│   │   │   │   ├── users.py
-│   │   │   │   ├── tweets.py
-│   │   │   │   ├── analytics.py
-│   │   │   │   ├── reports.py
-│   │   │   │   └── exports.py
-│   │   │   └── deps.py        # Dependency injection
-│   │   │
-│   │   ├── core/              # Cekirdek moduller
-│   │   │   ├── config.py      # Pydantic Settings
-│   │   │   ├── database.py    # SQLAlchemy setup
-│   │   │   ├── models.py      # ORM modelleri
-│   │   │   └── db_config.py   # Session management
-│   │   │
-│   │   ├── services/          # Is mantigi
-│   │   │   ├── analysis/      # LLM & vektorel analiz
-│   │   │   │   ├── analyzer.py
-│   │   │   │   ├── prompts.py
-│   │   │   │   ├── schemas.py
-│   │   │   │   └── vector_db.py
-│   │   │   ├── reporting/     # Rapor uretimi
-│   │   │   └── scraping/      # Veri toplama
-│   │   │
-│   │   ├── workers/           # Arka plan gorevleri
-│   │   └── utils/             # Logger, retry, helpers
-│   │
-│   ├── tests/                 # Test suite
-│   ├── requirements.txt
-│   └── Dockerfile
-│
-├── frontend/                   # Next.js 14 Frontend
-│   ├── src/
-│   │   ├── app/               # App Router sayfalari
-│   │   │   ├── page.tsx       # Dashboard
-│   │   │   ├── users/         # Kullanici yonetimi
-│   │   │   ├── tweets/        # Tweet arsivi
-│   │   │   ├── analytics/     # Analitik
-│   │   │   └── reports/       # Raporlar
-│   │   ├── components/        # React componentleri
-│   │   └── lib/               # API client, utils
-│   │
-│   ├── package.json
-│   └── tailwind.config.ts
-│
-├── data/                       # SQLite database
-├── docs/                       # Dokumantasyon
-└── docker-compose.yml
-```
-
----
-
-## API Referansi
-
-### Dashboard
-| Method | Endpoint | Aciklama |
-|--------|----------|----------|
-| GET | `/api/v1/dashboard/overview` | Sistem istatistikleri |
-| GET | `/api/v1/health` | API saglik kontrolu |
-
-### Kullanicilar
-| Method | Endpoint | Aciklama |
-|--------|----------|----------|
-| GET | `/api/v1/users` | Tum meclis uyeleri |
-| GET | `/api/v1/users/{username}` | Kullanici detayi |
-| POST | `/api/v1/users` | Yeni kullanici ekle |
-| DELETE | `/api/v1/users/{username}` | Kullanici sil |
-
-### Tweetler
-| Method | Endpoint | Aciklama |
-|--------|----------|----------|
-| GET | `/api/v1/tweets/{username}` | Kullanici tweetleri |
-| GET | `/api/v1/tweets/{username}/top` | En iyi tweetler |
-| GET | `/api/v1/tweets/{username}/stats` | Tweet istatistikleri |
-
-### Analitik
-| Method | Endpoint | Aciklama |
-|--------|----------|----------|
-| GET | `/api/v1/analytics/followers` | Takipci siralamasi |
-| GET | `/api/v1/analytics/parties` | Parti istatistikleri |
-| GET | `/api/v1/analytics/engagement` | Engagement metrikleri |
-
-### Raporlar
-| Method | Endpoint | Aciklama |
-|--------|----------|----------|
-| POST | `/api/v1/reports/generate` | Kullanici raporu olustur |
-| POST | `/api/v1/reports/party` | Parti raporu olustur |
-| GET | `/api/v1/reports/{username}` | Cached rapor getir |
-
-### Export
-| Method | Endpoint | Aciklama |
-|--------|----------|----------|
-| GET | `/api/v1/exports/followers/excel` | Takipci verileri (Excel) |
-| GET | `/api/v1/exports/tweets/{username}/excel` | Tweetler (Excel) |
-
-**Interaktif API Dokumantasyonu**: http://localhost:8001/docs
-
----
-
-## Konfigurasyonu
-
-### Ortam Degiskenleri
-
-`backend/.env` dosyasi olusturun:
-
-```env
-# Database
-DATABASE_URL=sqlite:///./data/meclis.db
-
-# LLM
-OLLAMA_URL=http://127.0.0.1:11434
-OLLAMA_MODEL=qwen3:14b
-
-# API
-API_PREFIX=/api/v1
-DEBUG=true
-
-# CORS
-CORS_ORIGINS=http://localhost:3000
-
-# Scraping
-SCRAPER_HEADLESS=true
-SCRAPER_RATE_LIMIT=5
-```
-
-### LLM Model Secimi
-
-| Model | Boyut | Hiz | Kalite | Kullanim |
-|-------|-------|-----|--------|----------|
-| qwen3:14b | 14B | Orta | Yuksek | Production (onerilir) |
-| qwen2.5:3b | 3B | Hizli | Orta | Gelistirme/Test |
-| llama3.2:3b | 3B | Hizli | Orta | Alternatif |
-
----
-
-## Analiz Metodolojisi
-
-### Yesil/Kirmizi/Gri Takim Framework'u
-
-Platform, her politikacinin sosyal medya aktivitesini uc temel kategoride analiz eder:
-
-| Kategori | Aciklama | Ornek |
-|----------|----------|-------|
-| **Yesil Takim** | Parti sadakati, liderlik destegi, parti etkinlikleri | "Genel Baskan'imizin yanindayiz" |
-| **Kirmizi Takim** | Muhalefet elestirisi, siyasi rakiplere yonelik paylasillar | "AKP'nin ekonomi politikalari..." |
-| **Gri Takim** | Siyaset disi konular, yerel hizmetler, kisisel paylasillar | "Yeni parkimiz hizmete acildi" |
-
-### Rapor Ciktisi
-
-Her analiz sonucunda:
-- **Executive Summary**: 2-3 cumlelik genel degerlendirme
-- **Sadakat Seviyesi**: Dusuk / Orta / Yuksek
-- **Elestiri Seviyesi**: Dusuk / Orta / Yuksek
-- **Bagimsiz Konular**: Siyaset disi ilgi alanlari listesi
-
----
-
 ## Gelistirme
 
-### Kod Kalitesi
+### Test
 
 ```bash
-# Backend linting
-cd backend && ruff check app/
-
-# Backend tests
+# Backend
 cd backend && pytest tests/ -v
 
-# Frontend linting
+# Frontend
 cd frontend && npm run lint
-
-# Frontend type check
-cd frontend && npm run type-check
 ```
 
-### Veritabani Migrasyonu
+### Cache Temizleme
 
 ```bash
-# Yeni tablo eklemek icin
-python -c "from app.core.database import init_database; init_database()"
-
-# Cache temizleme
+cd backend
 python -c "from app.core.database import clear_report_cache; clear_report_cache()"
 ```
 
 ---
 
-## Teknoloji Yigini
+## Sorun Giderme
 
-| Katman | Teknoloji | Versiyon |
-|--------|-----------|----------|
-| **Backend Framework** | FastAPI | 0.100+ |
-| **ORM** | SQLAlchemy | 2.0 |
-| **Validation** | Pydantic | 2.0 |
-| **Frontend Framework** | Next.js | 14 |
-| **UI Library** | React | 18 |
-| **Styling** | Tailwind CSS | 3.0 |
-| **Database (Dev)** | SQLite | 3 |
-| **Database (Prod)** | PostgreSQL | 15+ |
-| **LLM Runtime** | Ollama | Latest |
-| **Vector Database** | ChromaDB | 0.4+ |
-| **Scraping** | Selenium | 4.0+ |
-| **Browser Automation** | undetected-chromedriver | 3.5+ |
-
----
-
-## Yol Haritasi
-
-- [ ] PostgreSQL production desteği
-- [ ] Celery ile asenkron gorev kuyrugu
-- [ ] WebSocket ile canli bildirimler
-- [ ] Multi-tenant mimari
-- [ ] Gelismis dashbord grafikleri
-- [ ] Karsilastirmali parti analizi
-- [ ] API rate limiting
-- [ ] Kullanici yetkilendirme sistemi
-
----
-
-## Katkida Bulunma
-
-1. Fork yapın
-2. Feature branch olusturun (`git checkout -b feature/amazing-feature`)
-3. Degisikliklerinizi commit edin (`git commit -m 'Add amazing feature'`)
-4. Branch'i push edin (`git push origin feature/amazing-feature`)
-5. Pull Request açın
+| Sorun | Cozum |
+|-------|-------|
+| OpenAI hatasi | API key kontrol |
+| Ollama baglanti | `ollama serve` calistir |
+| CORS hatasi | CORS_ORIGINS kontrol |
+| Eski rapor | Cache temizle |
 
 ---
 
 ## Lisans
 
-MIT License - Detaylar icin [LICENSE](LICENSE) dosyasina bakin.
+MIT License
 
 ---
 
-## Iletisim
+## Katki
 
-**Gelistirici**: Baran Can Ercan
-
-**Proje**: [GitHub Repository](https://github.com/barancanercan/meclis-istihbarat)
+1. Fork
+2. Feature branch (`git checkout -b feature/amazing`)
+3. Commit (`git commit -m 'feat: Add feature'`)
+4. Push (`git push origin feature/amazing`)
+5. Pull Request
 
 ---
 
-<p align="center">
-  <sub>Yapay Zeka ile Turkiye Siyasetini Anlamak</sub>
-</p>
+**Meclis Istihbarat Sistemi** - Yapay Zeka ile Siyasi Analiz

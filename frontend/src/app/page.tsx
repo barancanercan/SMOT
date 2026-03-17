@@ -12,12 +12,15 @@ import {
   Repeat2,
   TrendingUp,
   Activity,
+  Shield,
+  Zap,
 } from "lucide-react";
 import { PartyBarChart } from "@/components/charts/party-bar-chart";
 import { EngagementPieChart } from "@/components/charts/engagement-pie-chart";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { SkeletonMetricCard, SkeletonCard } from "@/components/ui/skeleton";
 import { PartyBadge } from "@/components/ui/badge";
+import Image from "next/image";
 
 export default function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -45,14 +48,53 @@ export default function DashboardPage() {
     : [];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500">Sistem genel durumu ve ozet istatistikler</p>
+    <div className="min-h-screen bg-[#0B0B0B] p-6 space-y-6">
+      {/* Gradient Header with Logo */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1A1A1A] via-[#1A1A1A] to-[#0B0B0B] border border-white/10 p-8">
+        {/* Animated Grid Background */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `linear-gradient(#4DA3FF 1px, transparent 1px), linear-gradient(90deg, #4DA3FF 1px, transparent 1px)`,
+            backgroundSize: '50px 50px'
+          }} />
+        </div>
+
+        {/* Glow Effects */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#4DA3FF]/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#00D1B2]/10 rounded-full blur-3xl" />
+
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="relative w-20 h-20 flex items-center justify-center">
+              <div className="absolute inset-0 bg-[#4DA3FF]/20 rounded-xl blur-xl" />
+              <Image
+                src="/transparan_logo.png"
+                alt="MIS Logo"
+                width={80}
+                height={80}
+                className="relative z-10"
+              />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                <Shield className="h-8 w-8 text-[#4DA3FF]" />
+                Intelligence Dashboard
+              </h1>
+              <p className="text-gray-400 mt-1">
+                Real-time parliamentary intelligence monitoring system
+              </p>
+            </div>
+          </div>
+
+          {/* System Status Indicator */}
+          <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#00D1B2]/10 border border-[#00D1B2]/30">
+            <div className="w-2 h-2 rounded-full bg-[#00D1B2] animate-pulse" />
+            <span className="text-[#00D1B2] text-sm font-medium">SYSTEM ACTIVE</span>
+          </div>
+        </div>
       </div>
 
-      {/* Main Metrics */}
+      {/* Main Metrics - Cyber Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statsLoading ? (
           <>
@@ -63,33 +105,88 @@ export default function DashboardPage() {
           </>
         ) : (
           <>
-            <MetricCard
-              title="Toplam Tweet"
-              value={stats?.total_tweets?.toLocaleString("tr-TR") || "0"}
-              icon={<BarChart3 className="h-5 w-5" />}
-              description={`${stats?.total_original?.toLocaleString("tr-TR") || 0} orijinal`}
-            />
-            <MetricCard
-              title="Meclis Uyesi"
-              value={stats?.total_councilors?.toLocaleString("tr-TR") || "0"}
-              icon={<Users className="h-5 w-5" />}
-              description={`${stats?.active_users || 0} aktif`}
-            />
-            <MetricCard
-              title="Toplam Like"
-              value={stats?.total_likes?.toLocaleString("tr-TR") || "0"}
-              icon={<Heart className="h-5 w-5" />}
-            />
-            <MetricCard
-              title="Toplam Gorus"
-              value={stats?.total_views?.toLocaleString("tr-TR") || "0"}
-              icon={<Eye className="h-5 w-5" />}
-            />
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#4DA3FF]/0 via-[#4DA3FF]/10 to-[#4DA3FF]/0 rounded-xl blur-xl group-hover:via-[#4DA3FF]/20 transition-all" />
+              <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:border-[#4DA3FF]/50 transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 rounded-lg bg-[#4DA3FF]/10">
+                    <BarChart3 className="h-5 w-5 text-[#4DA3FF]" />
+                  </div>
+                  <Zap className="h-4 w-4 text-gray-600" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-400">Toplam Tweet</p>
+                  <p className="text-3xl font-bold text-white">
+                    {stats?.total_tweets?.toLocaleString("tr-TR") || "0"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {stats?.total_original?.toLocaleString("tr-TR") || 0} orijinal
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#00D1B2]/0 via-[#00D1B2]/10 to-[#00D1B2]/0 rounded-xl blur-xl group-hover:via-[#00D1B2]/20 transition-all" />
+              <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:border-[#00D1B2]/50 transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 rounded-lg bg-[#00D1B2]/10">
+                    <Users className="h-5 w-5 text-[#00D1B2]" />
+                  </div>
+                  <Zap className="h-4 w-4 text-gray-600" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-400">Meclis Uyesi</p>
+                  <p className="text-3xl font-bold text-white">
+                    {stats?.total_councilors?.toLocaleString("tr-TR") || "0"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {stats?.active_users || 0} aktif
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-500/0 via-pink-500/10 to-pink-500/0 rounded-xl blur-xl group-hover:via-pink-500/20 transition-all" />
+              <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:border-pink-500/50 transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 rounded-lg bg-pink-500/10">
+                    <Heart className="h-5 w-5 text-pink-500" />
+                  </div>
+                  <Zap className="h-4 w-4 text-gray-600" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-400">Toplam Like</p>
+                  <p className="text-3xl font-bold text-white">
+                    {stats?.total_likes?.toLocaleString("tr-TR") || "0"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-purple-500/0 rounded-xl blur-xl group-hover:via-purple-500/20 transition-all" />
+              <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:border-purple-500/50 transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 rounded-lg bg-purple-500/10">
+                    <Eye className="h-5 w-5 text-purple-500" />
+                  </div>
+                  <Zap className="h-4 w-4 text-gray-600" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-400">Toplam Gorus</p>
+                  <p className="text-3xl font-bold text-white">
+                    {stats?.total_views?.toLocaleString("tr-TR") || "0"}
+                  </p>
+                </div>
+              </div>
+            </div>
           </>
         )}
       </div>
 
-      {/* Secondary Metrics */}
+      {/* Secondary Metrics - Engagement Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {statsLoading ? (
           <>
@@ -99,52 +196,87 @@ export default function DashboardPage() {
           </>
         ) : (
           <>
-            <MetricCard
-              title="Toplam Yorum"
-              value={stats?.total_replies?.toLocaleString("tr-TR") || "0"}
-              icon={<MessageCircle className="h-5 w-5" />}
-              className="bg-gradient-to-br from-blue-50 to-white"
-            />
-            <MetricCard
-              title="Toplam Retweet"
-              value={(stats as any)?.total_retweets_count?.toLocaleString("tr-TR") || "0"}
-              icon={<Repeat2 className="h-5 w-5" />}
-              className="bg-gradient-to-br from-green-50 to-white"
-            />
-            <MetricCard
-              title="Ort. Engagement"
-              value={
-                stats?.total_tweets && stats.total_tweets > 0
-                  ? Math.round(
-                      ((stats.total_likes || 0) +
-                        (stats.total_replies || 0) +
-                        ((stats as any).total_retweets_count || 0)) /
-                        stats.total_tweets
-                    ).toLocaleString("tr-TR")
-                  : "0"
-              }
-              icon={<TrendingUp className="h-5 w-5" />}
-              description="tweet basina"
-              className="bg-gradient-to-br from-purple-50 to-white"
-            />
+            <div className="relative bg-gradient-to-br from-[#1A1A1A] to-[#0B0B0B] border border-white/10 rounded-xl p-6 hover:border-blue-500/50 transition-all overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-blue-500/10 ring-1 ring-blue-500/20">
+                  <MessageCircle className="h-6 w-6 text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-400">Toplam Yorum</p>
+                  <p className="text-2xl font-bold text-white">
+                    {stats?.total_replies?.toLocaleString("tr-TR") || "0"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative bg-gradient-to-br from-[#1A1A1A] to-[#0B0B0B] border border-white/10 rounded-xl p-6 hover:border-green-500/50 transition-all overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-green-500/10 ring-1 ring-green-500/20">
+                  <Repeat2 className="h-6 w-6 text-green-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-400">Toplam Retweet</p>
+                  <p className="text-2xl font-bold text-white">
+                    {(stats as any)?.total_retweets_count?.toLocaleString("tr-TR") || "0"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative bg-gradient-to-br from-[#1A1A1A] to-[#0B0B0B] border border-white/10 rounded-xl p-6 hover:border-purple-500/50 transition-all overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-purple-500/10 ring-1 ring-purple-500/20">
+                  <TrendingUp className="h-6 w-6 text-purple-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-400">Ort. Engagement</p>
+                  <p className="text-2xl font-bold text-white">
+                    {stats?.total_tweets && stats.total_tweets > 0
+                      ? Math.round(
+                          ((stats.total_likes || 0) +
+                            (stats.total_replies || 0) +
+                            ((stats as any).total_retweets_count || 0)) /
+                            stats.total_tweets
+                        ).toLocaleString("tr-TR")
+                      : "0"}
+                  </p>
+                  <p className="text-xs text-gray-500">tweet basina</p>
+                </div>
+              </div>
+            </div>
           </>
         )}
       </div>
 
-      {/* Charts Row */}
+      {/* Charts Row - Intelligence Panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Party Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-600" />
-              Parti Dagilimi
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#4DA3FF]/50 to-transparent" />
+
+          <div className="p-6 border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-[#4DA3FF]/10">
+                <Users className="h-5 w-5 text-[#4DA3FF]" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Parti Dagilimi</h3>
+                <p className="text-sm text-gray-500">Member distribution analysis</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6">
             {partiesLoading ? (
               <div className="h-[300px] flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                <div className="relative">
+                  <div className="w-12 h-12 border-4 border-[#4DA3FF]/20 border-t-[#4DA3FF] rounded-full animate-spin" />
+                  <div className="absolute inset-0 w-12 h-12 border-4 border-transparent border-t-[#00D1B2] rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1s' }} />
+                </div>
               </div>
             ) : (
               <PartyBarChart
@@ -153,81 +285,126 @@ export default function DashboardPage() {
                 height={300}
               />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Engagement Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-blue-600" />
-              Etkilesim Dagilimi
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00D1B2]/50 to-transparent" />
+
+          <div className="p-6 border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-[#00D1B2]/10">
+                <Activity className="h-5 w-5 text-[#00D1B2]" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Etkilesim Dagilimi</h3>
+                <p className="text-sm text-gray-500">Engagement metrics breakdown</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6">
             {statsLoading ? (
               <div className="h-[300px] flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                <div className="relative">
+                  <div className="w-12 h-12 border-4 border-[#4DA3FF]/20 border-t-[#4DA3FF] rounded-full animate-spin" />
+                  <div className="absolute inset-0 w-12 h-12 border-4 border-transparent border-t-[#00D1B2] rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1s' }} />
+                </div>
               </div>
             ) : (
               <EngagementPieChart data={engagementData} height={300} />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
-      {/* Top Performers */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-blue-600" />
-            En Aktif Uyeler
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      {/* Top Performers - Intelligence Leaderboard */}
+      <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#4DA3FF]/50 to-transparent" />
+
+        <div className="p-6 border-b border-white/10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-[#4DA3FF]/20 to-[#00D1B2]/20">
+                <TrendingUp className="h-5 w-5 text-[#4DA3FF]" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">En Aktif Uyeler</h3>
+                <p className="text-sm text-gray-500">Top performers by engagement</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Image
+                src="/minik_logo.png"
+                alt="MIS"
+                width={24}
+                height={24}
+                className="opacity-50"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6">
           {topUsersLoading ? (
             <div className="space-y-4">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />
+                <div key={i} className="flex items-center gap-4 p-4 rounded-lg bg-[#0B0B0B]/50">
+                  <div className="w-10 h-10 bg-gray-800 rounded-full animate-pulse" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-1/3 animate-pulse" />
-                    <div className="h-3 bg-gray-200 rounded w-1/4 animate-pulse" />
+                    <div className="h-4 bg-gray-800 rounded w-1/3 animate-pulse" />
+                    <div className="h-3 bg-gray-800 rounded w-1/4 animate-pulse" />
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {topUsers?.map((user: any, index: number) => (
                 <div
                   key={user.username}
-                  className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="group relative flex items-center gap-4 p-4 rounded-lg bg-[#0B0B0B]/50 border border-white/5 hover:border-[#4DA3FF]/50 hover:bg-[#0B0B0B]/80 transition-all"
                 >
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold text-sm">
-                    {index + 1}
+                  {/* Rank Badge */}
+                  <div className="relative flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-[#4DA3FF]/20 to-[#00D1B2]/20 border border-[#4DA3FF]/30 font-bold text-[#4DA3FF] group-hover:from-[#4DA3FF]/30 group-hover:to-[#00D1B2]/30 transition-all">
+                    {index === 0 && <div className="absolute -inset-1 bg-[#4DA3FF]/20 rounded-full blur-md" />}
+                    <span className="relative text-lg">{index + 1}</span>
                   </div>
+
+                  {/* User Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-gray-900 truncate">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-semibold text-white truncate group-hover:text-[#4DA3FF] transition-colors">
                         {user.name}
                       </p>
                       <PartyBadge party={user.party || "BAGIMSIZ"} />
                     </div>
                     <p className="text-sm text-gray-500">@{user.username}</p>
                   </div>
+
+                  {/* Engagement Score */}
                   <div className="text-right">
-                    <p className="font-semibold text-blue-600">
+                    <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#4DA3FF] to-[#00D1B2]">
                       {user.total_engagement?.toLocaleString("tr-TR")}
                     </p>
-                    <p className="text-xs text-gray-500">etkilesim</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wider">engagement</p>
                   </div>
+
+                  {/* Hover Glow Effect */}
+                  <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-[#4DA3FF]/0 via-[#4DA3FF]/5 to-[#00D1B2]/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                 </div>
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      {/* Footer Signal */}
+      <div className="flex items-center justify-center gap-2 text-gray-600 text-sm">
+        <div className="w-2 h-2 rounded-full bg-[#00D1B2] animate-pulse" />
+        <span>Intelligence system operational</span>
+      </div>
     </div>
   );
 }

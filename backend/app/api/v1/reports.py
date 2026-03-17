@@ -1,6 +1,7 @@
 """
 Reports API Routes
 """
+import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
@@ -8,10 +9,12 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.core.database import get_report_cache, save_report_cache, clear_report_cache
+from app.core.database import get_report_cache, save_report_cache, clear_report_cache, clear_expired_cache
 from app.core.rate_limit import limiter, RateLimits
+from app.core.constants import normalize_party_name
 from app.services.reporting.report_generator import ReportGenerator
 
+logger = logging.getLogger("Reports")
 router = APIRouter()
 
 
@@ -57,6 +60,7 @@ async def generate_report(
 
     # Generate new report
     try:
+        logger.info(f"📊 Rapor oluşturuluyor: @{username} (LLM: {body.use_llm})")
         generator = ReportGenerator(use_llm=body.use_llm)
         report = generator.generate_report(username)
 
@@ -64,12 +68,14 @@ async def generate_report(
         report_type = "full" if body.use_llm else "quick"
         save_report_cache(username, report_type, report)
 
+        logger.info(f"✅ Rapor başarılı: @{username}")
         return {
             "username": username,
             "content": report,
             "cached": False,
         }
     except Exception as e:
+        logger.error(f"❌ Rapor hatası @{username}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}")
 
 
@@ -152,6 +158,25 @@ async def get_cached_report(
     }
 
 
+@router.delete("/cache")
+@limiter.limit(RateLimits.WRITE)
+async def clear_all_cache(
+    request: Request,
+    report_type: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Clear all cached reports.
+
+    Options:
+    - report_type: Optional filter by report type ("full" or "quick")
+
+    Rate limit: 20 requests per minute
+    """
+    deleted = clear_report_cache(report_type=report_type)
+    return {"deleted": deleted, "report_type": report_type or "all"}
+
+
 @router.delete("/{username}/cache")
 @limiter.limit(RateLimits.WRITE)
 async def clear_user_cache(
@@ -166,6 +191,21 @@ async def clear_user_cache(
     """
     deleted = clear_report_cache(username=username)
     return {"deleted": deleted}
+
+
+@router.post("/cache/cleanup")
+@limiter.limit(RateLimits.WRITE)
+async def cleanup_expired_cache(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Clean up expired cache entries.
+
+    Rate limit: 20 requests per minute
+    """
+    deleted = clear_expired_cache()
+    return {"deleted": deleted, "message": "Expired cache entries cleaned up"}
 
 
 class PartyReportRequest(BaseModel):
@@ -189,10 +229,15 @@ async def generate_party_report(
     from sqlalchemy import func
 
     try:
-        # Get party members
-        members = db.query(Councilor).filter(
-            Councilor.party.ilike(f"%{body.party}%")
-        ).all()
+        # Normalize the requested party name
+        normalized_party = normalize_party_name(body.party)
+
+        # Get party members - check both normalized and original names
+        # to catch all variations in the database
+        members = db.query(Councilor).all()
+
+        # Filter members by normalized party name
+        members = [m for m in members if normalize_party_name(m.party) == normalized_party]
 
         if not members:
             raise HTTPException(status_code=404, detail=f"Parti bulunamadi: {body.party}")
@@ -222,9 +267,9 @@ async def generate_party_report(
             func.sum(Tweet.likes).desc()
         ).limit(5).all()
 
-        # Build report
+        # Build report with normalized party name
         report_lines = [
-            f"# {body.party} Parti Raporu",
+            f"# {normalized_party} Parti Raporu",
             "",
             f"**Toplam Uye:** {len(members)}",
             "",
@@ -257,7 +302,7 @@ async def generate_party_report(
         report = "\n".join(report_lines)
 
         return {
-            "party": body.party,
+            "party": normalized_party,
             "member_count": len(members),
             "content": report,
         }

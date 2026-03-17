@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const API_PREFIX = "/api/v1";
 
 /**
@@ -149,6 +149,39 @@ class ApiClient {
   isAuthenticated(): boolean {
     if (typeof window === "undefined") return false;
     return !!localStorage.getItem("auth_token");
+  }
+
+  /**
+   * Download file (PDF, Excel, etc.)
+   */
+  async downloadFile(endpoint: string, filename: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: "GET",
+      headers: {
+        ...this.getAuthHeaders(),
+      },
+    });
+
+    if (!response.ok) {
+      let errorMessage = `HTTP Error ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.detail || errorData.message || errorMessage;
+      } catch {
+        // JSON parse failed
+      }
+      throw new ApiError(response.status, errorMessage);
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 }
 

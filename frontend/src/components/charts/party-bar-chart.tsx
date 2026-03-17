@@ -30,10 +30,13 @@ interface PartyBarChartProps {
 const PARTY_COLORS: Record<string, string> = {
   CHP: "#E53935",
   AKP: "#FF9800",
+  "AK Parti": "#FF9800",
   MHP: "#C62828",
   IYI: "#1E88E5",
+  "IYI Parti": "#1E88E5",
   HDP: "#7B1FA2",
   DEM: "#7B1FA2",
+  "DEM Parti": "#7B1FA2",
   SAADET: "#43A047",
   BBP: "#D32F2F",
   DEVA: "#00ACC1",
@@ -44,7 +47,31 @@ const PARTY_COLORS: Record<string, string> = {
 };
 
 const getPartyColor = (party: string): string => {
-  return PARTY_COLORS[party.toUpperCase()] || PARTY_COLORS.BAGIMSIZ;
+  // Try exact match first, then uppercase
+  return PARTY_COLORS[party] || PARTY_COLORS[party.toUpperCase()] || PARTY_COLORS.BAGIMSIZ;
+};
+
+// Custom dark tooltip component
+const CustomTooltip = ({ active, payload, label, dataKeyLabel }: any) => {
+  if (!active || !payload || !payload.length) return null;
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    return num.toLocaleString("tr-TR");
+  };
+
+  return (
+    <div className="bg-[#1A1A1A] border border-white/20 rounded-lg px-4 py-3 shadow-xl">
+      <p className="text-white font-semibold mb-1">{label}</p>
+      {payload.map((entry: any, index: number) => (
+        <p key={index} className="text-gray-300 text-sm">
+          <span style={{ color: entry.fill }}>{entry.name}:</span>{" "}
+          <span className="font-mono">{formatNumber(entry.value)}</span>
+        </p>
+      ))}
+    </div>
+  );
 };
 
 export function PartyBarChart({
@@ -56,10 +83,10 @@ export function PartyBarChart({
   if (!data || data.length === 0) {
     return (
       <div
-        className="flex items-center justify-center bg-gray-50 rounded-lg"
+        className="flex items-center justify-center bg-[#0B0B0B]/50 border border-white/10 rounded-lg"
         style={{ height }}
       >
-        <p className="text-gray-500">Veri bulunamadi</p>
+        <p className="text-gray-500 font-mono text-sm">Veri bulunamadi</p>
       </div>
     );
   }
@@ -83,32 +110,32 @@ export function PartyBarChart({
         margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
         layout="vertical"
       >
-        <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" horizontal />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" horizontal />
         <XAxis
           type="number"
-          tick={{ fontSize: 12, fill: "#6B7280" }}
+          tick={{ fontSize: 12, fill: "#9CA3AF" }}
           tickFormatter={formatNumber}
           tickLine={false}
-          axisLine={{ stroke: "#E5E7EB" }}
+          axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
         />
         <YAxis
           type="category"
           dataKey="party"
-          tick={{ fontSize: 12, fill: "#374151" }}
+          tick={{ fontSize: 12, fill: "#E5E7EB" }}
           tickLine={false}
-          axisLine={{ stroke: "#E5E7EB" }}
+          axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
           width={80}
         />
         <Tooltip
-          formatter={(value: number) => [formatNumber(value), dataKeyLabel[dataKey]]}
-          contentStyle={{
-            backgroundColor: "white",
-            border: "1px solid #E5E7EB",
-            borderRadius: "8px",
-            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-          }}
+          content={<CustomTooltip dataKeyLabel={dataKeyLabel} />}
+          cursor={{ fill: "rgba(255,255,255,0.05)" }}
         />
-        {showComparison && <Legend />}
+        {showComparison && (
+          <Legend
+            wrapperStyle={{ color: "#E5E7EB" }}
+            formatter={(value) => <span className="text-gray-300">{value}</span>}
+          />
+        )}
         <Bar
           dataKey={dataKey}
           name={dataKeyLabel[dataKey]}

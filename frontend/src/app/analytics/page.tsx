@@ -39,25 +39,25 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <BarChart3 className="h-6 w-6 text-blue-600" />
+        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <BarChart3 className="h-6 w-6 text-[#4DA3FF]" />
           Grafikler
         </h1>
-        <p className="text-gray-500">Analitik veriler ve gorsellestirmeler</p>
+        <p className="text-white/60">Analitik veriler ve gorsellestirmeler</p>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-white/10">
         <nav className="flex space-x-1" aria-label="Tabs">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-2 px-4 py-3 border-b-2 font-medium text-sm transition-colors",
+                "flex items-center gap-2 px-4 py-3 border-b-2 font-medium text-sm transition-all duration-200",
                 activeTab === tab.id
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "border-[#4DA3FF] text-[#4DA3FF]"
+                  : "border-transparent text-white/60 hover:text-white/80 hover:border-white/20"
               )}
             >
               {tab.icon}
@@ -68,7 +68,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-lg border border-white/10 p-6">
         {activeTab === "followers" && <FollowersTab />}
         {activeTab === "parties" && <PartiesTab />}
         {activeTab === "engagement" && <EngagementTab />}
@@ -90,41 +90,43 @@ function FollowersTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Top 20 - Takipci Sayisina Gore</h3>
+        <h3 className="text-lg font-semibold text-white">Top 20 - Takipci Sayisina Gore</h3>
         <Badge variant="info">{data?.length || 0} kullanici</Badge>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-12">#</TableHead>
-            <TableHead>Isim</TableHead>
-            <TableHead>Parti</TableHead>
-            <TableHead className="text-right">Takipci</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data?.map((user: any, index: number) => (
-            <TableRow key={user.username}>
-              <TableCell className="font-medium text-gray-500">
-                {index + 1}
-              </TableCell>
-              <TableCell>
-                <div>
-                  <div className="font-medium text-gray-900">{user.name}</div>
-                  <div className="text-sm text-gray-500">@{user.username}</div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <PartyBadge party={user.party || "BAGIMSIZ"} />
-              </TableCell>
-              <TableCell className="text-right font-semibold text-blue-600">
-                {user.followers_count?.toLocaleString("tr-TR")}
-              </TableCell>
+      <div className="overflow-hidden rounded-lg border border-white/10">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-white/10 hover:bg-transparent">
+              <TableHead className="w-12 text-white/60">#</TableHead>
+              <TableHead className="text-white/60">Isim</TableHead>
+              <TableHead className="text-white/60">Parti</TableHead>
+              <TableHead className="text-right text-white/60">Takipci</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {data?.map((user: any, index: number) => (
+              <TableRow key={user.username} className="border-white/5 hover:bg-white/5">
+                <TableCell className="font-medium text-white/40">
+                  {index + 1}
+                </TableCell>
+                <TableCell>
+                  <div>
+                    <div className="font-medium text-white">{user.name}</div>
+                    <div className="text-sm text-white/60">@{user.username}</div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <PartyBadge party={user.party || "BAGIMSIZ"} />
+                </TableCell>
+                <TableCell className="text-right font-semibold text-[#4DA3FF]">
+                  {user.followers_count?.toLocaleString("tr-TR")}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
@@ -154,12 +156,12 @@ function PartiesTab() {
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold">Parti Istatistikleri</h3>
+      <h3 className="text-lg font-semibold text-white">Parti Istatistikleri</h3>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Bar Chart */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="font-medium text-gray-700 mb-4">Uye Sayisi</h4>
+        <div className="bg-[#0B0B0B]/60 backdrop-blur-xl rounded-lg p-4 border border-white/10">
+          <h4 className="font-medium text-white/80 mb-4">Uye Sayisi</h4>
           <PartyBarChart
             data={data || []}
             dataKey="member_count"
@@ -168,8 +170,8 @@ function PartiesTab() {
         </div>
 
         {/* Pie Chart */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="font-medium text-gray-700 mb-4">Dagilim</h4>
+        <div className="bg-[#0B0B0B]/60 backdrop-blur-xl rounded-lg p-4 border border-white/10">
+          <h4 className="font-medium text-white/80 mb-4">Dagilim</h4>
           <EngagementPieChart data={pieData} height={300} />
         </div>
       </div>
@@ -179,18 +181,18 @@ function PartiesTab() {
         {data?.map((party: any) => (
           <div
             key={party.party}
-            className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors"
+            className="bg-[#0B0B0B]/60 backdrop-blur-xl rounded-lg p-4 border border-white/10 hover:border-[#4DA3FF]/30 transition-all duration-200"
           >
             <PartyBadge party={party.party || "BAGIMSIZ"} className="mb-2" />
-            <p className="text-2xl font-bold text-gray-900 mt-2">
+            <p className="text-2xl font-bold text-white mt-2">
               {party.member_count}
             </p>
-            <p className="text-sm text-gray-500">uye</p>
-            <div className="mt-2 pt-2 border-t border-gray-200">
-              <p className="text-xs text-gray-600">
+            <p className="text-sm text-white/60">uye</p>
+            <div className="mt-2 pt-2 border-t border-white/10">
+              <p className="text-xs text-white/60">
                 {party.total_followers?.toLocaleString("tr-TR")} takipci
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-white/60">
                 {party.total_tweets?.toLocaleString("tr-TR")} tweet
               </p>
             </div>
@@ -229,43 +231,43 @@ function EngagementTab() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Top 15 - Etkilesim</h3>
+        <h3 className="text-lg font-semibold text-white">Top 15 - Etkilesim</h3>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Table */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 overflow-hidden rounded-lg border border-white/10">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Isim</TableHead>
-                <TableHead className="text-right">Tweet</TableHead>
-                <TableHead className="text-right">Like</TableHead>
-                <TableHead className="text-right">RT</TableHead>
-                <TableHead className="text-right">Toplam</TableHead>
+              <TableRow className="border-white/10 hover:bg-transparent">
+                <TableHead className="text-white/60">Isim</TableHead>
+                <TableHead className="text-right text-white/60">Tweet</TableHead>
+                <TableHead className="text-right text-white/60">Like</TableHead>
+                <TableHead className="text-right text-white/60">RT</TableHead>
+                <TableHead className="text-right text-white/60">Toplam</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data?.map((user: any) => (
-                <TableRow key={user.username}>
+                <TableRow key={user.username} className="border-white/5 hover:bg-white/5">
                   <TableCell>
                     <div>
-                      <div className="font-medium text-gray-900">{user.name}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="font-medium text-white">{user.name}</div>
+                      <div className="text-xs mt-1">
                         <PartyBadge party={user.party || "BAGIMSIZ"} />
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right text-gray-600">
+                  <TableCell className="text-right text-white/60">
                     {user.tweet_count}
                   </TableCell>
-                  <TableCell className="text-right text-gray-600">
+                  <TableCell className="text-right text-white/60">
                     {user.total_likes?.toLocaleString("tr-TR")}
                   </TableCell>
-                  <TableCell className="text-right text-gray-600">
+                  <TableCell className="text-right text-white/60">
                     {user.total_retweets?.toLocaleString("tr-TR")}
                   </TableCell>
-                  <TableCell className="text-right font-semibold text-blue-600">
+                  <TableCell className="text-right font-semibold text-[#4DA3FF]">
                     {user.total_engagement?.toLocaleString("tr-TR")}
                   </TableCell>
                 </TableRow>
@@ -275,8 +277,8 @@ function EngagementTab() {
         </div>
 
         {/* Pie Chart */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="font-medium text-gray-700 mb-4">Etkilesim Dagilimi</h4>
+        <div className="bg-[#0B0B0B]/60 backdrop-blur-xl rounded-lg p-4 border border-white/10">
+          <h4 className="font-medium text-white/80 mb-4">Etkilesim Dagilimi</h4>
           <EngagementPieChart data={pieData} height={250} />
         </div>
       </div>
@@ -310,7 +312,7 @@ function DistrictsTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Ilce Dagilimi</h3>
+        <h3 className="text-lg font-semibold text-white">Ilce Dagilimi</h3>
         <Badge variant="secondary">{data?.length || 0} ilce</Badge>
       </div>
 
@@ -319,14 +321,14 @@ function DistrictsTab() {
           <div
             key={district.district}
             className={cn(
-              "rounded-lg p-4 transition-colors",
+              "rounded-lg p-4 transition-all duration-200 border",
               index < 3
-                ? "bg-blue-50 border border-blue-200"
-                : "bg-gray-50 hover:bg-gray-100"
+                ? "bg-[#4DA3FF]/10 border-[#4DA3FF]/30 hover:border-[#4DA3FF]/50"
+                : "bg-[#0B0B0B]/60 backdrop-blur-xl border-white/10 hover:border-white/20"
             )}
           >
             <div className="flex items-center justify-between mb-2">
-              <h4 className="font-medium text-gray-900 truncate" title={district.district}>
+              <h4 className="font-medium text-white truncate" title={district.district}>
                 {district.district}
               </h4>
               {index < 3 && (
@@ -335,10 +337,13 @@ function DistrictsTab() {
                 </Badge>
               )}
             </div>
-            <p className="text-2xl font-bold text-blue-600">
+            <p className={cn(
+              "text-2xl font-bold",
+              index < 3 ? "text-[#4DA3FF]" : "text-white"
+            )}>
               {district.member_count}
             </p>
-            <p className="text-sm text-gray-500">uye</p>
+            <p className="text-sm text-white/60">uye</p>
           </div>
         ))}
       </div>
@@ -349,9 +354,11 @@ function DistrictsTab() {
 function ErrorState({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center justify-center h-64 text-center">
-      <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
-      <p className="text-gray-700 font-medium">{message}</p>
-      <p className="text-sm text-gray-500 mt-1">
+      <div className="bg-red-500/10 p-4 rounded-full mb-4">
+        <AlertCircle className="h-12 w-12 text-red-500" />
+      </div>
+      <p className="text-white font-medium">{message}</p>
+      <p className="text-sm text-white/60 mt-1">
         API baglantisini kontrol edin ve sayfayi yenileyin
       </p>
     </div>
