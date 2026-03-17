@@ -103,14 +103,14 @@ export default function TweetsPage() {
                   <Flame className="relative h-7 w-7 text-orange-500" />
                 </div>
                 <h1 className="text-2xl font-bold text-white tracking-tight">
-                  TOP TWEETS
+                  TOP TWEETLER
                 </h1>
                 <div className="px-3 py-1 bg-[#00D1B2]/10 border border-[#00D1B2]/30 rounded-full">
-                  <span className="text-xs font-mono text-[#00D1B2]">SIGNAL ANALYSIS</span>
+                  <span className="text-xs font-mono text-[#00D1B2]">SINYAL ANALIZI</span>
                 </div>
               </div>
               <p className="text-gray-400 text-sm font-mono">
-                En çok etkileşim alan tweetler / yüksek engagement sinyalleri
+                En cok etkilesim alan tweetler // yuksek etkilesim sinyalleri
               </p>
             </div>
 
@@ -165,7 +165,7 @@ export default function TweetsPage() {
             <div className="absolute inset-0 blur-xl bg-[#4DA3FF]/20 rounded-full animate-pulse" />
             <div className="relative animate-spin rounded-full h-12 w-12 border-2 border-transparent border-t-[#4DA3FF] border-r-[#00D1B2]" />
           </div>
-          <p className="mt-4 text-gray-500 font-mono text-sm">ANALYZING SIGNALS...</p>
+          <p className="mt-4 text-gray-500 font-mono text-sm">SINYALLER ANALIZ EDILIYOR...</p>
         </div>
       ) : tweets.length === 0 ? (
         <div className="text-center py-12">
@@ -173,7 +173,7 @@ export default function TweetsPage() {
             <div className="absolute inset-0 blur-2xl bg-gray-500/10 rounded-full" />
             <Flame className="relative h-12 w-12 mx-auto text-gray-600" />
           </div>
-          <p className="text-gray-500 font-mono">NO SIGNALS DETECTED</p>
+          <p className="text-gray-500 font-mono">SINYAL BULUNAMADI</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -278,7 +278,7 @@ export default function TweetsPage() {
                       <span className="font-mono text-white font-bold text-sm">
                         {formatNumber(tweet.engagement)}
                       </span>
-                      <span className="text-xs text-gray-500 font-mono">ENG</span>
+                      <span className="text-xs text-gray-500 font-mono">ETK</span>
                     </div>
                   </div>
                 </div>

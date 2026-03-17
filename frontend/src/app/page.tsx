@@ -69,19 +69,25 @@ export default function DashboardPage() {
               <div className="absolute inset-0 bg-[#4DA3FF]/20 rounded-xl blur-xl" />
               <Image
                 src="/transparan_logo.png"
-                alt="MIS Logo"
+                alt="M.I.S Logo"
                 width={80}
                 height={80}
                 className="relative z-10"
               />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+              <div className="flex items-center gap-3 mb-1">
                 <Shield className="h-8 w-8 text-[#4DA3FF]" />
-                Intelligence Dashboard
-              </h1>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-blue-100 to-[#4DA3FF] bg-clip-text text-transparent">
+                    M.I.S
+                  </h1>
+                </div>
+                <div className="h-8 w-px bg-gradient-to-b from-transparent via-[#4DA3FF]/50 to-transparent mx-2" />
+                <span className="text-xl font-semibold text-white/90">Istihbarat Paneli</span>
+              </div>
               <p className="text-gray-400 mt-1">
-                Real-time parliamentary intelligence monitoring system
+                Gercek zamanli meclis istihbarat izleme sistemi
               </p>
             </div>
           </div>
@@ -89,7 +95,7 @@ export default function DashboardPage() {
           {/* System Status Indicator */}
           <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#00D1B2]/10 border border-[#00D1B2]/30">
             <div className="w-2 h-2 rounded-full bg-[#00D1B2] animate-pulse" />
-            <span className="text-[#00D1B2] text-sm font-medium">SYSTEM ACTIVE</span>
+            <span className="text-[#00D1B2] text-sm font-medium">SISTEM AKTIF</span>
           </div>
         </div>
       </div>
@@ -233,7 +239,7 @@ export default function DashboardPage() {
                   <TrendingUp className="h-6 w-6 text-purple-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-gray-400">Ort. Engagement</p>
+                  <p className="text-sm text-gray-400">Ort. Etkilesim</p>
                   <p className="text-2xl font-bold text-white">
                     {stats?.total_tweets && stats.total_tweets > 0
                       ? Math.round(
@@ -265,7 +271,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-white">Parti Dagilimi</h3>
-                <p className="text-sm text-gray-500">Member distribution analysis</p>
+                <p className="text-sm text-gray-500">Uye dagilimi analizi</p>
               </div>
             </div>
           </div>
@@ -299,7 +305,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-white">Etkilesim Dagilimi</h3>
-                <p className="text-sm text-gray-500">Engagement metrics breakdown</p>
+                <p className="text-sm text-gray-500">Etkilesim metrikleri dagilimi</p>
               </div>
             </div>
           </div>
@@ -331,7 +337,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-white">En Aktif Uyeler</h3>
-                <p className="text-sm text-gray-500">Top performers by engagement</p>
+                <p className="text-sm text-gray-500">Etkilesime gore en aktifler</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -388,7 +394,7 @@ export default function DashboardPage() {
                     <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#4DA3FF] to-[#00D1B2]">
                       {user.total_engagement?.toLocaleString("tr-TR")}
                     </p>
-                    <p className="text-xs text-gray-500 uppercase tracking-wider">engagement</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wider">etkilesim</p>
                   </div>
 
                   {/* Hover Glow Effect */}
@@ -403,7 +409,7 @@ export default function DashboardPage() {
       {/* Footer Signal */}
       <div className="flex items-center justify-center gap-2 text-gray-600 text-sm">
         <div className="w-2 h-2 rounded-full bg-[#00D1B2] animate-pulse" />
-        <span>Intelligence system operational</span>
+        <span>Istihbarat sistemi aktif</span>
       </div>
     </div>
   );

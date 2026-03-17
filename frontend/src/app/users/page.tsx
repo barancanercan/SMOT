@@ -160,7 +160,7 @@ export default function UsersPage() {
                   <Users className="h-6 w-6 text-emerald-400" />
                 </div>
                 <span className="text-xs font-mono text-emerald-400 tracking-wider uppercase">
-                  User Management
+                  Kullanici Yonetimi
                 </span>
               </div>
               <h1 className="text-3xl font-bold text-white mb-2">

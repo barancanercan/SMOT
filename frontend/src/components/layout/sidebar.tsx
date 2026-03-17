@@ -15,12 +15,12 @@ import {
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/", label: "Genel Bakis", icon: LayoutDashboard },
   { href: "/analytics", label: "Grafikler", icon: BarChart3 },
   { href: "/reports", label: "Raporlar", icon: FileText },
   { href: "/comparison", label: "Karsilastirma", icon: GitCompare },
   { href: "/users", label: "Kullanicilar", icon: Users },
-  { href: "/tweets", label: "Top Tweets", icon: Flame },
+  { href: "/tweets", label: "Top Tweetler", icon: Flame },
   { href: "/system", label: "Sistem", icon: Settings },
 ];
 
@@ -30,19 +30,26 @@ export function Sidebar() {
   return (
     <aside className="w-64 bg-[#0A0A0A] border-r border-white/10 min-h-screen">
       <div className="p-6 border-b border-white/10">
-        <div className="flex items-center gap-3 mb-2">
-          <Image
-            src="/transparan_logo.png"
-            alt="Meclis Istihbarat Logo"
-            width={40}
-            height={40}
-            className="object-contain"
-          />
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="absolute inset-0 bg-[#4DA3FF]/20 rounded-xl blur-lg" />
+            <Image
+              src="/transparan_logo.png"
+              alt="M.I.S Logo"
+              width={44}
+              height={44}
+              className="object-contain relative z-10"
+            />
+          </div>
           <div>
-            <h1 className="text-xl font-bold text-white">
-              Meclis Istihbarat
-            </h1>
-            <p className="text-sm text-gray-500">Analiz Platformu</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-black bg-gradient-to-r from-white via-blue-200 to-[#4DA3FF] bg-clip-text text-transparent tracking-tight">
+                M.I.S
+              </h1>
+              <div className="h-4 w-px bg-gradient-to-b from-transparent via-[#4DA3FF]/50 to-transparent" />
+              <span className="text-[10px] font-medium text-[#4DA3FF] uppercase tracking-widest">v3.2</span>
+            </div>
+            <p className="text-xs text-gray-500 mt-0.5">Meclis Istihbarat Sistemi</p>
           </div>
         </div>
       </div>
