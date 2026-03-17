@@ -295,11 +295,12 @@ export default function ComparisonPage() {
 
                 <button
                   onClick={handleCompareWithLLM}
-                  disabled={isComparing || selectedUsers.length < 2}
+                  disabled={isComparing || selectedUsers.length !== 2}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl hover:from-blue-500 hover:to-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
+                  title={selectedUsers.length !== 2 ? "AI karsilastirma icin tam olarak 2 kullanici secin" : ""}
                 >
                   <Sparkles className={`h-5 w-5 ${isComparing ? "animate-spin" : ""}`} />
-                  {isComparing ? "Analiz Ediliyor..." : "AI Analizi ile Karsilastir"}
+                  {isComparing ? "Analiz Ediliyor..." : selectedUsers.length === 2 ? "AI Karsilastirma (2 Kullanici)" : "2 Kullanici Sec"}
                 </button>
 
                 {selectedUsers.length > 0 && (

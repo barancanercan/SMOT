@@ -123,6 +123,48 @@ JSON yanıtı:"""
 
 
 # ============================================================================
+# COMPARISON PROMPT - For comparing 2 users
+# ============================================================================
+
+PROMPT_COMPARISON_JSON = """Siyasi istihbarat analisti olarak 2 meclis üyesini karşılaştır.
+
+KULLANICI 1: @{username1} | Parti: {party1}
+KULLANICI 2: @{username2} | Parti: {party2}
+
+GÖREV: İki politikacının sosyal medya aktivitelerini karşılaştır ve farklılıkları/benzerlikleri belirle.
+
+@{username1} TWEETLERİ:
+{tweets1}
+
+@{username2} TWEETLERİ:
+{tweets2}
+
+ÇIKTI (JSON):
+{{
+  "comparison_summary": "Genel karşılaştırma özeti (2-3 cümle)",
+  "user1_profile": {{
+    "username": "@{username1}",
+    "dominant_theme": "En baskın tema",
+    "political_stance": "Siyasi duruş özeti",
+    "activity_level": "Yüksek/Orta/Düşük"
+  }},
+  "user2_profile": {{
+    "username": "@{username2}",
+    "dominant_theme": "En baskın tema",
+    "political_stance": "Siyasi duruş özeti",
+    "activity_level": "Yüksek/Orta/Düşük"
+  }},
+  "similarities": ["Ortak özellik 1", "Ortak özellik 2"],
+  "differences": ["Fark 1", "Fark 2", "Fark 3"],
+  "common_topics": ["Ortak konu 1", "Ortak konu 2"],
+  "recommendation": "Karşılaştırma bazlı öneri/yorum",
+  "confidence_score": 0.85
+}}
+
+JSON:"""
+
+
+# ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
 
@@ -203,10 +245,11 @@ def get_prompt(prompt_type: str, **kwargs) -> str:
     Prompt şablonunu doldur ve döndür.
 
     Args:
-        prompt_type: 'intelligence', 'full', 'main_topics', 'party_defense', 'opposition'
+        prompt_type: 'intelligence', 'full', 'main_topics', 'party_defense', 'opposition', 'comparison'
         **kwargs: Şablonda kullanılacak değişkenler
             - tweets: Orijinal tweet listesi
             - retweets: Retweet listesi (intelligence prompt için)
+            - tweets1, tweets2: Karşılaştırma için tweet listeleri
 
     Returns:
         Doldurulmuş prompt string
@@ -216,7 +259,8 @@ def get_prompt(prompt_type: str, **kwargs) -> str:
         'full': PROMPT_FULL_ANALYSIS_JSON,
         'main_topics': PROMPT_MAIN_TOPICS_JSON,
         'party_defense': PROMPT_PARTY_DEFENSE_JSON,
-        'opposition': PROMPT_OPPOSITION_CRITICISM_JSON
+        'opposition': PROMPT_OPPOSITION_CRITICISM_JSON,
+        'comparison': PROMPT_COMPARISON_JSON
     }
 
     template = prompts.get(prompt_type)
@@ -226,6 +270,12 @@ def get_prompt(prompt_type: str, **kwargs) -> str:
     # tweets listesi varsa formatla
     if 'tweets' in kwargs and isinstance(kwargs['tweets'], list):
         kwargs['tweets'] = format_tweets_for_prompt(kwargs['tweets'])
+
+    # Karşılaştırma için tweets1 ve tweets2
+    if 'tweets1' in kwargs and isinstance(kwargs['tweets1'], list):
+        kwargs['tweets1'] = format_tweets_for_prompt(kwargs['tweets1'])
+    if 'tweets2' in kwargs and isinstance(kwargs['tweets2'], list):
+        kwargs['tweets2'] = format_tweets_for_prompt(kwargs['tweets2'])
 
     # retweets listesi varsa formatla (intelligence prompt için)
     if 'retweets' in kwargs and isinstance(kwargs['retweets'], list):
@@ -238,7 +288,11 @@ def get_prompt(prompt_type: str, **kwargs) -> str:
         'party': 'Bilinmiyor',
         'username': 'kullanici',
         'tweet_count': 0,
-        'period': 'Tüm zamanlar'
+        'period': 'Tüm zamanlar',
+        'username1': 'kullanici1',
+        'username2': 'kullanici2',
+        'party1': 'Bilinmiyor',
+        'party2': 'Bilinmiyor'
     }
 
     for key, value in defaults.items():

@@ -10,7 +10,7 @@ export function Table({ children, className }: TableProps) {
   return (
     <div className="overflow-x-auto">
       <table
-        className={cn("min-w-full divide-y divide-gray-200", className)}
+        className={cn("min-w-full divide-y divide-white/10", className)}
       >
         {children}
       </table>
@@ -24,7 +24,7 @@ interface TableHeaderProps {
 }
 
 export function TableHeader({ children, className }: TableHeaderProps) {
-  return <thead className={cn("bg-gray-50", className)}>{children}</thead>;
+  return <thead className={cn("bg-[#0B0B0B]/50", className)}>{children}</thead>;
 }
 
 interface TableBodyProps {
@@ -34,7 +34,7 @@ interface TableBodyProps {
 
 export function TableBody({ children, className }: TableBodyProps) {
   return (
-    <tbody className={cn("bg-white divide-y divide-gray-200", className)}>
+    <tbody className={cn("bg-[#1A1A1A]/50 divide-y divide-white/5", className)}>
       {children}
     </tbody>
   );
@@ -50,7 +50,7 @@ export function TableRow({ children, className, onClick }: TableRowProps) {
   return (
     <tr
       className={cn(
-        onClick && "cursor-pointer hover:bg-gray-50 transition-colors",
+        onClick && "cursor-pointer hover:bg-white/5 transition-colors",
         className
       )}
       onClick={onClick}
@@ -69,7 +69,7 @@ export function TableHead({ children, className }: TableHeadProps) {
   return (
     <th
       className={cn(
-        "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
+        "px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider",
         className
       )}
     >
@@ -85,7 +85,7 @@ interface TableCellProps {
 
 export function TableCell({ children, className }: TableCellProps) {
   return (
-    <td className={cn("px-4 py-3 text-sm text-gray-900", className)}>
+    <td className={cn("px-4 py-3 text-sm text-gray-300", className)}>
       {children}
     </td>
   );

@@ -279,76 +279,151 @@ async def compare_users_llm(
     db: Session = Depends(get_db)
 ):
     """
-    Compare multiple users with LLM analysis summary.
+    Compare exactly 2 users with specialized LLM comparison analysis.
 
     Args:
-    - usernames: List of usernames (2-10 users)
+    - usernames: List of exactly 2 usernames
 
-    Returns metrics plus AI-generated comparison analysis.
+    Returns metrics plus AI-generated detailed comparison analysis.
     """
+    if len(body.usernames) != 2:
+        raise HTTPException(
+            status_code=400,
+            detail="LLM karsilastirma icin tam olarak 2 kullanici secmelisiniz"
+        )
+
     # Get base metrics first
     base_result = await compare_users(request, body, db)
 
-    if not base_result.get("users"):
+    if not base_result.get("users") or len(base_result["users"]) != 2:
         return base_result
 
     try:
         from app.services.analysis.analyzer import TweetAnalyzer
+        from app.services.analysis.prompts import get_prompt
 
-        # Collect tweets from all users for LLM
-        all_tweets = []
-        for username in body.usernames:
-            user_tweets = db.query(Tweet).filter(
-                Tweet.username == username,
-                Tweet.is_retweet == False
-            ).order_by(Tweet.tweet_date.desc()).limit(10).all()
+        username1, username2 = body.usernames[0], body.usernames[1]
 
-            councilor = db.query(Councilor).filter(Councilor.username == username).first()
-            party = normalize_party_name(councilor.party) if councilor else ""
+        # Get councilor info
+        councilor1 = db.query(Councilor).filter(Councilor.username == username1).first()
+        councilor2 = db.query(Councilor).filter(Councilor.username == username2).first()
 
-            for t in user_tweets:
-                all_tweets.append({
-                    'text': t.tweet_text,
-                    'date': str(t.tweet_date) if t.tweet_date else '',
-                    'likes': t.likes or 0,
-                    'retweets': t.retweets or 0,
-                    'username': username,
-                    'party': party
-                })
+        party1 = normalize_party_name(councilor1.party) if councilor1 else "Bilinmiyor"
+        party2 = normalize_party_name(councilor2.party) if councilor2 else "Bilinmiyor"
 
-        # Run LLM analysis
+        # Collect tweets for each user separately
+        tweets1 = []
+        tweets2 = []
+
+        user1_tweets = db.query(Tweet).filter(
+            Tweet.username == username1,
+            Tweet.is_retweet == False
+        ).order_by(Tweet.tweet_date.desc()).limit(15).all()
+
+        for t in user1_tweets:
+            tweets1.append({
+                'text': t.tweet_text,
+                'date': str(t.tweet_date) if t.tweet_date else '',
+                'likes': t.likes or 0,
+                'retweets': t.retweets or 0,
+            })
+
+        user2_tweets = db.query(Tweet).filter(
+            Tweet.username == username2,
+            Tweet.is_retweet == False
+        ).order_by(Tweet.tweet_date.desc()).limit(15).all()
+
+        for t in user2_tweets:
+            tweets2.append({
+                'text': t.tweet_text,
+                'date': str(t.tweet_date) if t.tweet_date else '',
+                'likes': t.likes or 0,
+                'retweets': t.retweets or 0,
+            })
+
+        # Run specialized comparison LLM analysis
         analysis_text = ""
-        if all_tweets:
+        if tweets1 and tweets2:
             analyzer = TweetAnalyzer()
-            analysis_result = analyzer.analyze_intelligence(
-                all_tweets,
-                username="comparison_analysis",
-                party="Karsilastirma"
+
+            # Build comparison prompt
+            comparison_prompt = get_prompt(
+                'comparison',
+                username1=username1,
+                username2=username2,
+                party1=party1,
+                party2=party2,
+                tweets1=tweets1,
+                tweets2=tweets2
             )
 
-            if analysis_result.get('validated') and analysis_result.get('analysis'):
-                analysis = analysis_result['analysis']
+            # Call LLM directly
+            try:
+                response = analyzer._call_llm(comparison_prompt)
+                import json
+
+                # Parse JSON response
+                data = json.loads(response)
+
+                # Clean JSON-LD if present
+                if '@context' in data or '@type' in data:
+                    data = analyzer._clean_json_response(data)
+
+                # Build analysis text from response
                 analysis_lines = [
-                    f"## Karsilastirmali Analiz",
+                    f"## @{username1} vs @{username2} Karsilastirma",
                     "",
-                    f"**Genel Degerlendirme:** {analysis.executive_summary}",
+                    f"**Genel Degerlendirme:** {data.get('comparison_summary', 'Analiz yapilamadi')}",
                     "",
-                    f"**Parti Sadakati:** {analysis.green_summary}",
+                    f"### @{username1} Profili",
+                    f"- **Baskin Tema:** {data.get('user1_profile', {}).get('dominant_theme', '-')}",
+                    f"- **Siyasi Durus:** {data.get('user1_profile', {}).get('political_stance', '-')}",
+                    f"- **Aktivite Seviyesi:** {data.get('user1_profile', {}).get('activity_level', '-')}",
                     "",
-                    f"**Muhalefet Yaklasimlari:** {analysis.red_summary}",
+                    f"### @{username2} Profili",
+                    f"- **Baskin Tema:** {data.get('user2_profile', {}).get('dominant_theme', '-')}",
+                    f"- **Siyasi Durus:** {data.get('user2_profile', {}).get('political_stance', '-')}",
+                    f"- **Aktivite Seviyesi:** {data.get('user2_profile', {}).get('activity_level', '-')}",
                     "",
-                    f"**Ortak Konular:** {analysis.grey_summary}",
+                    "### Benzerlikler",
                 ]
-                if analysis.independent_topics:
+
+                for sim in data.get('similarities', []):
+                    analysis_lines.append(f"- {sim}")
+
+                analysis_lines.append("")
+                analysis_lines.append("### Farkliliklar")
+
+                for diff in data.get('differences', []):
+                    analysis_lines.append(f"- {diff}")
+
+                if data.get('common_topics'):
                     analysis_lines.append("")
-                    analysis_lines.append(f"**Onemli Temalar:** {', '.join(analysis.independent_topics[:5])}")
+                    analysis_lines.append(f"**Ortak Konular:** {', '.join(data.get('common_topics', []))}")
+
+                if data.get('recommendation'):
+                    analysis_lines.append("")
+                    analysis_lines.append(f"**Degerlendirme:** {data.get('recommendation')}")
+
+                confidence = data.get('confidence_score', 0.8)
+                analysis_lines.append("")
+                analysis_lines.append(f"**Guven Skoru:** {float(confidence):.0%}")
+
                 analysis_text = "\n".join(analysis_lines)
+
+            except json.JSONDecodeError:
+                analysis_text = "LLM yaniti parse edilemedi."
+            except Exception as e:
+                logger.warning(f"LLM karsilastirma parse hatasi: {str(e)}")
+                analysis_text = f"Analiz hatasi: {str(e)}"
 
         return {
             "users": base_result["users"],
             "analysis": analysis_text,
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.warning(f"LLM karsilastirma analizi basarisiz: {str(e)}")
         return {
