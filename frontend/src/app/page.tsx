@@ -119,7 +119,7 @@ export default function LandingPage() {
 
             {/* Subtitle */}
             <p className={`text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed transition-all duration-1000 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-              Turkiye Buyuksehir Belediye Meclisi uyelerinin sosyal medya aktivitelerini
+              Turkiye'nin Belediye Meclis uyelerinin sosyal medya aktivitelerini
               analiz eden, yapay zeka destekli profesyonel istihbarat raporlari ureten
               <span className="text-white font-medium"> modern SaaS platformu</span>.
             </p>
@@ -147,15 +147,15 @@ export default function LandingPage() {
             <div className={`grid grid-cols-3 gap-8 mt-20 max-w-3xl mx-auto transition-all duration-1000 delay-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               <div className="text-center p-6 rounded-2xl bg-white/[0.02] border border-white/5">
                 <p className="text-4xl font-bold bg-gradient-to-r from-[#4DA3FF] to-[#00D1B2] bg-clip-text text-transparent">
-                  500+
+                  Gercek Zamanli
                 </p>
-                <p className="text-sm text-gray-500 mt-1">Meclis Uyesi</p>
+                <p className="text-sm text-gray-500 mt-1">Veri Takibi</p>
               </div>
               <div className="text-center p-6 rounded-2xl bg-white/[0.02] border border-white/5">
                 <p className="text-4xl font-bold bg-gradient-to-r from-[#4DA3FF] to-[#00D1B2] bg-clip-text text-transparent">
-                  50K+
+                  Derin Analiz
                 </p>
-                <p className="text-sm text-gray-500 mt-1">Analiz Edilen Tweet</p>
+                <p className="text-sm text-gray-500 mt-1">Tweet Inceleme</p>
               </div>
               <div className="text-center p-6 rounded-2xl bg-white/[0.02] border border-white/5">
                 <p className="text-4xl font-bold bg-gradient-to-r from-[#4DA3FF] to-[#00D1B2] bg-clip-text text-transparent">
@@ -296,7 +296,7 @@ export default function LandingPage() {
                 </span>
               </h2>
               <p className="text-gray-400 mb-6 leading-relaxed">
-                Meclis Istihbarat Sistemi (M.I.S), Turkiye'deki buyuksehir belediye meclisi
+                Meclis Istihbarat Sistemi (M.I.S), Turkiye'deki belediye meclisi
                 uyelerinin sosyal medya aktivitelerini takip eden ve analiz eden kapsamli
                 bir istihbarat platformudur.
               </p>
@@ -465,7 +465,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="relative z-10 border-t border-white/5 py-12">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
             <div className="flex items-center gap-3">
               <Image
                 src="/transparan_logo.png"
@@ -473,9 +473,9 @@ export default function LandingPage() {
                 width={32}
                 height={32}
               />
-              <div>
+              <div className="flex items-center gap-2">
                 <span className="font-bold text-white">M.I.S</span>
-                <span className="text-gray-500 text-sm ml-2">v3.2</span>
+                <span className="text-[10px] text-[#4DA3FF] font-medium px-1.5 py-0.5 bg-[#4DA3FF]/10 rounded">v3.2</span>
               </div>
             </div>
             <p className="text-gray-500 text-sm">
@@ -485,6 +485,16 @@ export default function LandingPage() {
               <div className="w-2 h-2 rounded-full bg-[#00D1B2] animate-pulse" />
               <span>Sistem Aktif</span>
             </div>
+          </div>
+
+          {/* Creator Credit */}
+          <div className="pt-6 border-t border-white/5 text-center">
+            <p className="text-gray-600 text-sm">
+              Tasarim ve Gelistirme
+            </p>
+            <p className="text-white font-semibold mt-1 bg-gradient-to-r from-[#4DA3FF] to-[#00D1B2] bg-clip-text text-transparent">
+              Baran Can Ercan
+            </p>
           </div>
         </div>
       </footer>
