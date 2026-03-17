@@ -344,78 +344,109 @@ async def compare_users_llm(
         # Run specialized comparison LLM analysis
         analysis_text = ""
         if tweets1 and tweets2:
-            analyzer = TweetAnalyzer()
-
-            # Build comparison prompt
-            comparison_prompt = get_prompt(
-                'comparison',
-                username1=username1,
-                username2=username2,
-                party1=party1,
-                party2=party2,
-                tweets1=tweets1,
-                tweets2=tweets2
-            )
-
-            # Call LLM directly
             try:
+                analyzer = TweetAnalyzer()
+                logger.info(f"LLM karsilastirma basliyor: @{username1} vs @{username2}")
+
+                # Build comparison prompt
+                comparison_prompt = get_prompt(
+                    'comparison',
+                    username1=username1,
+                    username2=username2,
+                    party1=party1,
+                    party2=party2,
+                    tweets1=tweets1,
+                    tweets2=tweets2
+                )
+
+                # Call LLM directly
                 response = analyzer._call_llm(comparison_prompt)
-                import json
+                logger.info(f"LLM yanit uzunlugu: {len(response)} karakter")
 
-                # Parse JSON response
-                data = json.loads(response)
+                if not response or len(response) < 10:
+                    logger.warning("LLM bos veya cok kisa yanit dondu")
+                    analysis_text = "LLM analizi bos yanit dondu. Lutfen tekrar deneyin."
+                else:
+                    import json
 
-                # Clean JSON-LD if present
-                if '@context' in data or '@type' in data:
-                    data = analyzer._clean_json_response(data)
+                    # Try to extract JSON from response
+                    json_str = response.strip()
 
-                # Build analysis text from response
-                analysis_lines = [
-                    f"## @{username1} vs @{username2} Karsilastirma",
-                    "",
-                    f"**Genel Degerlendirme:** {data.get('comparison_summary', 'Analiz yapilamadi')}",
-                    "",
-                    f"### @{username1} Profili",
-                    f"- **Baskin Tema:** {data.get('user1_profile', {}).get('dominant_theme', '-')}",
-                    f"- **Siyasi Durus:** {data.get('user1_profile', {}).get('political_stance', '-')}",
-                    f"- **Aktivite Seviyesi:** {data.get('user1_profile', {}).get('activity_level', '-')}",
-                    "",
-                    f"### @{username2} Profili",
-                    f"- **Baskin Tema:** {data.get('user2_profile', {}).get('dominant_theme', '-')}",
-                    f"- **Siyasi Durus:** {data.get('user2_profile', {}).get('political_stance', '-')}",
-                    f"- **Aktivite Seviyesi:** {data.get('user2_profile', {}).get('activity_level', '-')}",
-                    "",
-                    "### Benzerlikler",
-                ]
+                    # If response starts with markdown code block, extract JSON
+                    if json_str.startswith("```"):
+                        json_start = json_str.find("{")
+                        json_end = json_str.rfind("}") + 1
+                        if json_start != -1 and json_end > json_start:
+                            json_str = json_str[json_start:json_end]
 
-                for sim in data.get('similarities', []):
-                    analysis_lines.append(f"- {sim}")
+                    # Parse JSON response
+                    data = json.loads(json_str)
+                    logger.info(f"LLM JSON anahtarlari: {list(data.keys())}")
 
-                analysis_lines.append("")
-                analysis_lines.append("### Farkliliklar")
+                    # Clean JSON-LD if present
+                    if '@context' in data or '@type' in data:
+                        data = analyzer._clean_json_response(data)
 
-                for diff in data.get('differences', []):
-                    analysis_lines.append(f"- {diff}")
+                    # Build analysis text from response
+                    analysis_lines = [
+                        f"## @{username1} vs @{username2} Karsilastirma",
+                        "",
+                        f"**Genel Degerlendirme:** {data.get('comparison_summary', 'Analiz yapilamadi')}",
+                        "",
+                        f"### @{username1} Profili ({party1})",
+                        f"- **Baskin Tema:** {data.get('user1_profile', {}).get('dominant_theme', '-')}",
+                        f"- **Siyasi Durus:** {data.get('user1_profile', {}).get('political_stance', '-')}",
+                        f"- **Aktivite Seviyesi:** {data.get('user1_profile', {}).get('activity_level', '-')}",
+                        "",
+                        f"### @{username2} Profili ({party2})",
+                        f"- **Baskin Tema:** {data.get('user2_profile', {}).get('dominant_theme', '-')}",
+                        f"- **Siyasi Durus:** {data.get('user2_profile', {}).get('political_stance', '-')}",
+                        f"- **Aktivite Seviyesi:** {data.get('user2_profile', {}).get('activity_level', '-')}",
+                        "",
+                        "### Benzerlikler",
+                    ]
 
-                if data.get('common_topics'):
+                    similarities = data.get('similarities', [])
+                    if similarities:
+                        for sim in similarities:
+                            analysis_lines.append(f"- {sim}")
+                    else:
+                        analysis_lines.append("- Benzerlik bulunamadi")
+
                     analysis_lines.append("")
-                    analysis_lines.append(f"**Ortak Konular:** {', '.join(data.get('common_topics', []))}")
+                    analysis_lines.append("### Farkliliklar")
 
-                if data.get('recommendation'):
+                    differences = data.get('differences', [])
+                    if differences:
+                        for diff in differences:
+                            analysis_lines.append(f"- {diff}")
+                    else:
+                        analysis_lines.append("- Farklilik bulunamadi")
+
+                    if data.get('common_topics'):
+                        analysis_lines.append("")
+                        analysis_lines.append(f"**Ortak Konular:** {', '.join(data.get('common_topics', []))}")
+
+                    if data.get('recommendation'):
+                        analysis_lines.append("")
+                        analysis_lines.append(f"**Degerlendirme:** {data.get('recommendation')}")
+
+                    confidence = data.get('confidence_score', 0.8)
                     analysis_lines.append("")
-                    analysis_lines.append(f"**Degerlendirme:** {data.get('recommendation')}")
+                    analysis_lines.append(f"**Guven Skoru:** {float(confidence):.0%}")
 
-                confidence = data.get('confidence_score', 0.8)
-                analysis_lines.append("")
-                analysis_lines.append(f"**Guven Skoru:** {float(confidence):.0%}")
+                    analysis_text = "\n".join(analysis_lines)
+                    logger.info(f"LLM karsilastirma analizi tamamlandi ({len(analysis_text)} karakter)")
 
-                analysis_text = "\n".join(analysis_lines)
-
-            except json.JSONDecodeError:
-                analysis_text = "LLM yaniti parse edilemedi."
+            except json.JSONDecodeError as e:
+                logger.error(f"LLM JSON parse hatasi: {str(e)}")
+                logger.debug(f"Raw response: {response[:500] if response else 'empty'}")
+                analysis_text = f"LLM yaniti parse edilemedi. Ham yanit alinmis ancak JSON formatinda degil."
             except Exception as e:
-                logger.warning(f"LLM karsilastirma parse hatasi: {str(e)}")
-                analysis_text = f"Analiz hatasi: {str(e)}"
+                logger.error(f"LLM karsilastirma hatasi: {str(e)}", exc_info=True)
+                analysis_text = f"LLM analiz hatasi: {str(e)}"
+        else:
+            analysis_text = "Karsilastirma icin yeterli tweet bulunamadi."
 
         return {
             "users": base_result["users"],
@@ -425,8 +456,8 @@ async def compare_users_llm(
     except HTTPException:
         raise
     except Exception as e:
-        logger.warning(f"LLM karsilastirma analizi basarisiz: {str(e)}")
+        logger.error(f"LLM karsilastirma analizi basarisiz: {str(e)}", exc_info=True)
         return {
-            "users": base_result["users"],
-            "analysis": "LLM analizi yapilamadi.",
+            "users": base_result.get("users", []),
+            "analysis": f"LLM analizi yapilamadi: {str(e)}",
         }

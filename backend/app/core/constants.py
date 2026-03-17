@@ -78,6 +78,11 @@ PARTY_ALIASES: Dict[str, str] = {
     "BBP": "BBP",
     "Büyük Birlik Partisi": "BBP",
     "Buyuk Birlik Partisi": "BBP",
+    "BÜYÜK BİRLİK PARTİSİ": "BBP",
+    "BUYUK BIRLIK PARTISI": "BBP",
+    "Büyük Birlik": "BBP",
+    "BÜYÜK BİRLİK": "BBP",
+    "BUYUK BIRLIK": "BBP",
     "bbp": "BBP",
 
     # Memleket Partisi
@@ -85,6 +90,18 @@ PARTY_ALIASES: Dict[str, str] = {
     "Memleket": "Memleket Partisi",
     "MP": "Memleket Partisi",
 }
+
+
+def _normalize_turkish(text: str) -> str:
+    """Normalize Turkish characters for comparison."""
+    replacements = {
+        'İ': 'I', 'ı': 'i', 'Ğ': 'G', 'ğ': 'g',
+        'Ü': 'U', 'ü': 'u', 'Ş': 'S', 'ş': 's',
+        'Ö': 'O', 'ö': 'o', 'Ç': 'C', 'ç': 'c',
+    }
+    for tr_char, en_char in replacements.items():
+        text = text.replace(tr_char, en_char)
+    return text
 
 
 def normalize_party_name(party: str | None) -> str:
@@ -121,6 +138,13 @@ def normalize_party_name(party: str | None) -> str:
     # Try case-insensitive match
     for alias, canonical in PARTY_ALIASES.items():
         if alias.lower() == party_stripped.lower():
+            return canonical
+
+    # Try Turkish-normalized match
+    normalized_input = _normalize_turkish(party_stripped.upper())
+    for alias, canonical in PARTY_ALIASES.items():
+        normalized_alias = _normalize_turkish(alias.upper())
+        if normalized_alias == normalized_input:
             return canonical
 
     # No match found - return original stripped value

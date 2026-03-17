@@ -451,7 +451,7 @@ async def generate_party_report(
             name = member.name if member else t.username
             report_lines.append(f"{i}. **{name}** - {t.likes:,} like")
 
-        # Individual member details
+        # Individual member details with LLM analysis
         report_lines.append("")
         report_lines.append("---")
         report_lines.append("")
@@ -459,7 +459,16 @@ async def generate_party_report(
         report_lines.append("")
 
         all_tweets_for_llm = []
-        member_analyses = {}
+        member_tweet_map = {}  # Store tweets for individual LLM analysis
+
+        # Initialize analyzer once if LLM is enabled
+        analyzer = None
+        if body.use_llm:
+            from app.services.analysis.analyzer import TweetAnalyzer
+            try:
+                analyzer = TweetAnalyzer()
+            except Exception as e:
+                logger.warning(f"TweetAnalyzer baslatma hatasi: {str(e)}")
 
         for member in members:
             # Get member stats
@@ -484,7 +493,7 @@ async def generate_party_report(
             member_tweets = db.query(Tweet).filter(
                 Tweet.username == member.username,
                 Tweet.is_retweet == False
-            ).order_by(Tweet.tweet_date.desc()).limit(5).all()
+            ).order_by(Tweet.tweet_date.desc()).limit(15).all()
 
             if member_tweets:
                 report_lines.append("")
@@ -493,26 +502,52 @@ async def generate_party_report(
                     tweet_preview = t.tweet_text[:100] + "..." if len(t.tweet_text) > 100 else t.tweet_text
                     report_lines.append(f"  - \"{tweet_preview}\" ({t.likes} like)")
 
-                # Collect for LLM analysis
+                # Format tweets for LLM
+                tweet_list = []
                 for t in member_tweets:
-                    all_tweets_for_llm.append({
+                    tweet_data = {
                         'text': t.tweet_text,
                         'date': str(t.tweet_date) if t.tweet_date else '',
                         'likes': t.likes or 0,
                         'retweets': t.retweets or 0,
+                    }
+                    tweet_list.append(tweet_data)
+                    all_tweets_for_llm.append({
+                        **tweet_data,
                         'username': member.username,
                         'member_name': member.name
                     })
 
+                member_tweet_map[member.username] = {
+                    'member': member,
+                    'tweets': tweet_list
+                }
+
+                # Individual LLM analysis for this member
+                if body.use_llm and analyzer and len(tweet_list) >= 3:
+                    try:
+                        member_analysis = analyzer.analyze_intelligence(
+                            tweet_list,
+                            username=member.username,
+                            party=normalized_party  # Use normalized party name
+                        )
+
+                        if member_analysis.get('validated') and member_analysis.get('analysis'):
+                            analysis = member_analysis['analysis']
+                            report_lines.append("")
+                            report_lines.append("**AI Analizi:**")
+                            report_lines.append(f"  - {analysis.executive_summary}")
+                            report_lines.append(f"  - Sadakat: {analysis.loyalty_level} | Elestiri: {analysis.criticism_level}")
+                            if analysis.independent_topics:
+                                report_lines.append(f"  - Konular: {', '.join(analysis.independent_topics[:3])}")
+                    except Exception as e:
+                        logger.warning(f"Bireysel LLM analizi basarisiz @{member.username}: {str(e)}")
+
             report_lines.append("")
 
-        # LLM Analysis if requested
-        if body.use_llm and all_tweets_for_llm:
-            from app.services.analysis.analyzer import TweetAnalyzer
-
+        # Collective Party-wide LLM Analysis
+        if body.use_llm and analyzer and all_tweets_for_llm:
             try:
-                analyzer = TweetAnalyzer()
-
                 # Party-wide analysis
                 analysis_result = analyzer.analyze_intelligence(
                     all_tweets_for_llm[:50],  # Limit to 50 tweets
@@ -524,7 +559,7 @@ async def generate_party_report(
                     analysis = analysis_result['analysis']
                     report_lines.append("---")
                     report_lines.append("")
-                    report_lines.append("## AI Parti Analizi")
+                    report_lines.append("## AI Parti Genel Analizi")
                     report_lines.append("")
                     report_lines.append(f"**Yonetici Ozeti:** {analysis.executive_summary}")
                     report_lines.append("")
@@ -544,7 +579,7 @@ async def generate_party_report(
             except Exception as e:
                 logger.warning(f"LLM parti analizi basarisiz: {str(e)}")
                 report_lines.append("")
-                report_lines.append("*AI analizi yapilamadi*")
+                report_lines.append("*AI parti analizi yapilamadi*")
 
         report = "\n".join(report_lines)
 
