@@ -283,24 +283,24 @@ export default function ReportsPage() {
                   <Brain className="h-6 w-6 text-blue-400" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-blue-400 tracking-wider uppercase">Intelligence System</span>
+                  <span className="text-xs font-mono text-blue-400 tracking-wider uppercase">Istihbarat Sistemi</span>
                   <div className="h-1 w-1 rounded-full bg-blue-400 animate-pulse" />
                 </div>
               </div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent mb-2">
                 Istihbarat Raporlari
               </h1>
-              <p className="text-gray-500 text-sm font-mono">Meclis uyelerinin sosyal medya analizi // AI Powered</p>
+              <p className="text-gray-500 text-sm font-mono">Meclis uyelerinin sosyal medya analizi // Yapay Zeka Destekli</p>
             </div>
 
             <div className="hidden sm:flex flex-col gap-3">
               <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 backdrop-blur-sm">
                 <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-lg shadow-emerald-400/50" />
-                <span className="text-sm font-medium text-emerald-400 font-mono">AI Active</span>
+                <span className="text-sm font-medium text-emerald-400 font-mono">AI Aktif</span>
               </div>
               <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/30 backdrop-blur-sm">
                 <Lock className="h-3 w-3 text-blue-400" />
-                <span className="text-xs font-medium text-blue-400 font-mono">Secure</span>
+                <span className="text-xs font-medium text-blue-400 font-mono">Guvenli</span>
               </div>
             </div>
           </div>
@@ -360,7 +360,7 @@ export default function ReportsPage() {
               <>
                 <div className="flex-1 min-w-[280px]">
                   <label className="block text-sm font-medium text-gray-400 mb-2 font-mono uppercase tracking-wider">
-                    Target Selection
+                    Hedef Secimi
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -383,7 +383,7 @@ export default function ReportsPage() {
                     className="w-full px-4 py-2 bg-[#0B0B0B] border border-white/10 rounded-xl text-white font-mono text-sm focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:border-white/20"
                   >
                     {usersLoading ? (
-                      <option>Loading...</option>
+                      <option>Yukleniyor...</option>
                     ) : (
                       filteredUsers.map((user) => (
                         <option key={user.username} value={user.username} className="bg-[#0B0B0B] py-1">
@@ -414,7 +414,7 @@ export default function ReportsPage() {
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-yellow-400" />
                       <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors font-mono">
-                        Deep Analysis
+                        Derin Analiz
                       </span>
                       {useLLM && (
                         <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30 font-mono">
@@ -439,7 +439,7 @@ export default function ReportsPage() {
                       <Zap className={`h-4 w-4 ${isGenerating ? "animate-pulse" : "group-hover:scale-110 transition-transform"}`} />
                     )}
                     {isGenerating ? (
-                      <span className="font-mono">Processing...</span>
+                      <span className="font-mono">Isleniyor...</span>
                     ) : useLLM ? (
                       <span>Analiz Baslat</span>
                     ) : (
@@ -452,7 +452,7 @@ export default function ReportsPage() {
               <>
                 <div className="flex-1 min-w-[280px]">
                   <label className="block text-sm font-medium text-gray-400 mb-2 font-mono uppercase tracking-wider">
-                    Party Selection
+                    Parti Secimi
                   </label>
                   <select
                     value={selectedParty}
@@ -461,7 +461,7 @@ export default function ReportsPage() {
                     className="w-full px-4 py-3 bg-[#0B0B0B] border border-white/10 rounded-xl text-white font-mono text-sm focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:border-white/20"
                   >
                     {usersLoading ? (
-                      <option>Loading...</option>
+                      <option>Yukleniyor...</option>
                     ) : (
                       parties.map((party) => (
                         <option key={party} value={party} className="bg-[#0B0B0B]">
@@ -498,7 +498,7 @@ export default function ReportsPage() {
                     className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl hover:from-purple-500 hover:to-purple-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40"
                   >
                     <Users className={`h-4 w-4 ${isGenerating ? "animate-pulse" : "group-hover:scale-110 transition-transform"}`} />
-                    {isGenerating ? <span className="font-mono">Processing...</span> : <span>Parti Analizi</span>}
+                    {isGenerating ? <span className="font-mono">Isleniyor...</span> : <span>Parti Analizi</span>}
                   </button>
                 </div>
               </>
@@ -565,7 +565,7 @@ export default function ReportsPage() {
                   >
                     <Users className={`h-4 w-4 ${isGenerating ? "animate-pulse" : "group-hover:scale-110 transition-transform"}`} />
                     {isGenerating ? (
-                      <span className="font-mono">Processing...</span>
+                      <span className="font-mono">Isleniyor...</span>
                     ) : (
                       <span>Birlesik Rapor ({selectedUsers.length})</span>
                     )}
@@ -637,11 +637,11 @@ export default function ReportsPage() {
             <div className="flex items-center justify-center gap-6 mt-8">
               <div className="flex items-center gap-2">
                 <Activity className="h-4 w-4 text-emerald-400 animate-pulse" />
-                <span className="text-xs text-gray-500 font-mono">Neural Network</span>
+                <span className="text-xs text-gray-500 font-mono">Sinir Agi</span>
               </div>
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-blue-400 animate-pulse" />
-                <span className="text-xs text-gray-500 font-mono">Data Analysis</span>
+                <span className="text-xs text-gray-500 font-mono">Veri Analizi</span>
               </div>
             </div>
           </div>
@@ -669,7 +669,7 @@ export default function ReportsPage() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-500/30">
                   <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-lg shadow-emerald-400/50" />
-                  <span className="text-emerald-400 text-xs font-medium font-mono">COMPLETE</span>
+                  <span className="text-emerald-400 text-xs font-medium font-mono">TAMAMLANDI</span>
                 </div>
 
                 <button
@@ -702,21 +702,21 @@ export default function ReportsPage() {
               </div>
 
               <h3 className="text-xl font-semibold text-white mb-2">Analiz Baslatmayi Bekliyor</h3>
-              <p className="text-gray-500 font-mono text-sm">Select target and initiate AI analysis</p>
+              <p className="text-gray-500 font-mono text-sm">Hedef secin ve AI analizini baslatin</p>
 
               {/* Feature indicators */}
               <div className="mt-8 flex items-center justify-center gap-6 text-xs text-gray-600">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-blue-400" />
-                  <span className="font-mono">Deep LLM</span>
+                  <span className="font-mono">Derin AI</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Zap className="h-4 w-4 text-emerald-400" />
-                  <span className="font-mono">Fast Mode</span>
+                  <span className="font-mono">Hizli Mod</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Download className="h-4 w-4 text-purple-400" />
-                  <span className="font-mono">Export MD</span>
+                  <span className="font-mono">Indir MD</span>
                 </div>
               </div>
             </div>

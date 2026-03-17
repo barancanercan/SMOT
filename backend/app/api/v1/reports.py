@@ -327,8 +327,8 @@ async def generate_multi_user_report(
                         'party': normalized_party
                     })
 
-                # Individual LLM analysis for this user
-                if body.use_llm and analyzer and len(tweet_list) >= 3:
+                # Individual LLM analysis for this user (minimum 1 tweet)
+                if body.use_llm and analyzer and len(tweet_list) >= 1:
                     try:
                         user_analysis = analyzer.analyze_intelligence(
                             tweet_list,
@@ -562,7 +562,7 @@ async def generate_party_report(
                 }
 
                 # Individual LLM analysis for this member
-                if body.use_llm and analyzer and len(tweet_list) >= 3:
+                if body.use_llm and analyzer and len(tweet_list) >= 1:
                     try:
                         member_analysis = analyzer.analyze_intelligence(
                             tweet_list,

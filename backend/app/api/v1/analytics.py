@@ -427,7 +427,7 @@ async def compare_users_llm(
                     ]
 
                     for ud in user_data:
-                        if len(ud['tweets']) >= 3:
+                        if len(ud['tweets']) >= 1:
                             try:
                                 result = analyzer.analyze_intelligence(
                                     ud['tweets'],

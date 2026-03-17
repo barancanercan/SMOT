@@ -1,4 +1,4 @@
-# Meclis Istihbarat Sistemi v3.1
+# Meclis Istihbarat Sistemi v3.2
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-green.svg)](https://fastapi.tiangolo.com)
@@ -12,28 +12,41 @@ Turkiye Buyuksehir Belediye Meclisi uyelerinin sosyal medya aktivitelerini anali
 
 ---
 
+## v3.2 Yenilikler
+
+- **Kullanici Yonetimi** - Tekli ve toplu kullanici ekleme/silme
+- **Coklu Kullanici Raporu** - Birden fazla kullanici icin birlesik rapor + bireysel AI analizi
+- **Karsilastirma Modulu** - 2-10 kullaniciyi karsilastirma, grafikler, AI analizi
+- **Gelismis Parti Raporu** - Her uye icin bireysel LLM analizi
+- **Arama ve Navigasyon** - Harf tuslayarak kullanici arama
+- **Tam Turkce Arayuz** - Tum UI ogeleri Turkceleştirildi
+
+---
+
 ## Ozellikler
 
 ### Yapay Zeka Analizi
 - **Yesil/Kirmizi/Gri Takim Framework'u** - Parti sadakati, muhalefet elestirisi ve bagimsiz gundemleri ayiran analiz
 - **Coklu LLM Destegi** - OpenAI GPT-3.5 (hizli, onerilir) veya Ollama (yerel, ucretsiz)
-- **Chain-of-Thought Prompting** - Gelismis prompt muhendisligi ile kaliteli analizler
+- **Bireysel + Birlesik Analiz** - Her kullanici icin ayri ve toplu AI analizi
 - **Turkce NLP** - Tam Turkce dil destegi
 
-### Veri Toplama
-- **X/Twitter Scraping** - Selenium + Undetected Chrome
-- **Vector Arama** - ChromaDB ile anlamsal arama
-- **Profil Takibi** - Tarihsel metrik analizi
-
 ### Raporlama
-- **PDF Raporlar** - Profesyonel karanlik tema tasarimi
-- **Excel Export** - Takipci ve etkilesim verileri
-- **Markdown** - Ham rapor ciktisi
+- **Kullanici Raporu** - Detayli bireysel analiz
+- **Parti Raporu** - Tum parti uyeleri + LLM analizi
+- **Coklu Rapor** - Secilen kullanicilar icin birlesik rapor
+- **Karsilastirma** - Yan yana metrik karsilastirma + AI
+
+### Kullanici Yonetimi
+- **Tekli Ekleme** - Form ile kullanici ekle
+- **Toplu Ekleme** - CSV formatinda coklu kullanici
+- **Silme** - Cascade delete (tweet, profil, cache)
 
 ### Modern Arayuz
-- **Dark Theme** - Tamamen karanlik tema
+- **Karanlik Tema** - Tamamen dark mode
 - **Responsive** - Mobil uyumlu
-- **Grafikler** - Recharts ile interaktif grafikler
+- **Grafikler** - Bar chart, radar chart
+- **Arama** - Harf tuslayarak hizli erisim
 
 ---
 
@@ -45,8 +58,6 @@ Turkiye Buyuksehir Belediye Meclisi uyelerinin sosyal medya aktivitelerini anali
 | **Frontend** | Next.js 14, React 18, TailwindCSS |
 | **Database** | SQLite (dev) / PostgreSQL (prod) |
 | **LLM** | OpenAI API / Ollama |
-| **Vector DB** | ChromaDB |
-| **PDF** | FPDF2 |
 | **Charts** | Recharts |
 
 ---
@@ -138,34 +149,6 @@ CORS_ORIGINS=http://localhost:3000
 
 ---
 
-## LLM Secenekleri
-
-### OpenAI (Onerilir)
-
-| Ozellik | Deger |
-|---------|-------|
-| Model | gpt-3.5-turbo |
-| Hiz | 3-5 saniye |
-| Maliyet | ~$0.002/analiz |
-| Kalite | Mukemmel |
-
-### Ollama (Yerel)
-
-| Ozellik | Deger |
-|---------|-------|
-| Model | qwen2.5:3b |
-| Hiz | 15-60 saniye |
-| Maliyet | Ucretsiz |
-| Kalite | Iyi |
-
-```bash
-# Ollama kurulumu
-ollama pull qwen2.5:3b
-ollama serve
-```
-
----
-
 ## API Endpoints
 
 | Method | Endpoint | Aciklama |
@@ -175,44 +158,31 @@ ollama serve
 | GET | `/api/v1/users` | Kullanici listesi |
 | GET | `/api/v1/users/{username}` | Kullanici detayi |
 | POST | `/api/v1/users` | Kullanici ekle |
+| POST | `/api/v1/users/bulk` | Toplu kullanici ekle |
 | DELETE | `/api/v1/users/{username}` | Kullanici sil |
 | GET | `/api/v1/tweets/{username}` | Tweetler |
 | GET | `/api/v1/analytics/followers` | Takipci siralamalari |
 | GET | `/api/v1/analytics/parties` | Parti istatistikleri |
-| POST | `/api/v1/reports/generate` | Rapor olustur |
-| GET | `/api/v1/exports/report/{username}/pdf` | PDF indir |
+| POST | `/api/v1/analytics/compare` | Kullanici karsilastir |
+| POST | `/api/v1/analytics/compare/llm` | AI ile karsilastir |
+| POST | `/api/v1/reports/generate` | Kullanici raporu |
+| POST | `/api/v1/reports/party` | Parti raporu |
+| POST | `/api/v1/reports/multi` | Coklu kullanici raporu |
 | GET | `/api/v1/exports/followers/excel` | Excel indir |
 
 ---
 
-## Proje Yapisi
+## Sayfalar
 
-```
-meclis-istihbarat/
-├── backend/
-│   ├── app/
-│   │   ├── api/v1/           # REST endpoints
-│   │   ├── core/             # Config, DB, Models
-│   │   ├── services/
-│   │   │   ├── analysis/     # LLM analiz
-│   │   │   ├── reporting/    # PDF generator
-│   │   │   └── scraping/     # X scraper
-│   │   └── utils/            # Logger, retry
-│   ├── scripts/              # Utility scripts
-│   ├── tests/                # Test suite
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── app/              # Next.js pages
-│   │   ├── components/       # React components
-│   │   └── lib/              # API client
-│   └── package.json
-├── data/                     # SQLite database
-├── .github/workflows/        # CI/CD
-├── docker-compose.yml
-├── CLAUDE.md                 # AI assistant guide
-└── README.md
-```
+| Sayfa | Yol | Aciklama |
+|-------|-----|----------|
+| Dashboard | `/` | Genel bakis |
+| Analitik | `/analytics` | Takipci, parti grafikleri |
+| Raporlar | `/reports` | Kullanici/parti/coklu rapor |
+| Karsilastirma | `/comparison` | Kullanici karsilastirma |
+| Kullanicilar | `/users` | Kullanici yonetimi |
+| Tweetler | `/tweets` | Tweet arama |
+| Sistem | `/system` | Sistem durumu |
 
 ---
 
@@ -278,16 +248,6 @@ python -c "from app.core.database import clear_report_cache; clear_report_cache(
 ## Lisans
 
 MIT License
-
----
-
-## Katki
-
-1. Fork
-2. Feature branch (`git checkout -b feature/amazing`)
-3. Commit (`git commit -m 'feat: Add feature'`)
-4. Push (`git push origin feature/amazing`)
-5. Pull Request
 
 ---
 

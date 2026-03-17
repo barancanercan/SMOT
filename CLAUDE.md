@@ -4,7 +4,7 @@ Technical guidance for Claude Code when working with this repository.
 
 ## Project Overview
 
-**Meclis Istihbarat Sistemi** (Parliament Intelligence System) v3.1
+**Meclis Istihbarat Sistemi** (Parliament Intelligence System) v3.2
 
 AI-powered political intelligence platform for analyzing Turkish council members' social media.
 
@@ -42,25 +42,24 @@ backend/
 ├── app/
 │   ├── api/v1/              # REST endpoints
 │   │   ├── dashboard.py     # Stats, health
-│   │   ├── users.py         # Councilor CRUD
+│   │   ├── users.py         # Councilor CRUD (add/bulk/delete)
 │   │   ├── tweets.py        # Tweet queries
-│   │   ├── analytics.py     # Followers, parties
-│   │   ├── reports.py       # LLM reports
-│   │   └── exports.py       # Excel/PDF
+│   │   ├── analytics.py     # Followers, parties, comparison
+│   │   ├── reports.py       # LLM reports (user/party/multi)
+│   │   └── exports.py       # Excel export
 │   ├── core/
 │   │   ├── config.py        # Settings
-│   │   ├── constants.py     # Party normalization
+│   │   ├── constants.py     # Party normalization (Turkish chars)
 │   │   ├── database.py      # SQLAlchemy, cache
 │   │   ├── models.py        # ORM models
 │   │   └── security.py      # Auth
 │   ├── services/
 │   │   ├── analysis/        # LLM
 │   │   │   ├── analyzer.py  # TweetAnalyzer
-│   │   │   ├── prompts.py   # Templates
+│   │   │   ├── prompts.py   # Templates (comparison prompt)
 │   │   │   └── schemas.py   # Pydantic
 │   │   ├── reporting/
-│   │   │   ├── report_generator.py
-│   │   │   └── pdf_generator.py
+│   │   │   └── report_generator.py
 │   │   └── scraping/        # X scrapers
 │   └── utils/               # Logger, retry
 ├── scripts/                 # Utility scripts
@@ -70,10 +69,12 @@ frontend/
 ├── src/
 │   ├── app/                 # Pages
 │   │   ├── page.tsx         # Dashboard
-│   │   ├── analytics/
-│   │   ├── reports/
-│   │   ├── tweets/
-│   │   └── system/
+│   │   ├── analytics/       # Followers, parties
+│   │   ├── reports/         # User/party/multi reports
+│   │   ├── comparison/      # User comparison (NEW)
+│   │   ├── users/           # User management (NEW)
+│   │   ├── tweets/          # Tweet search
+│   │   └── system/          # System status
 │   ├── components/
 │   │   ├── charts/          # Recharts
 │   │   ├── layout/          # Sidebar
@@ -89,7 +90,7 @@ frontend/
 
 - **Dependency Injection**: `get_db()` in `api/deps.py`
 - **Session Management**: `session_scope()` context manager
-- **Party Normalization**: `normalize_party_name()` in `constants.py`
+- **Party Normalization**: `normalize_party_name()` with Turkish char support
 - **LLM Cleanup**: `_clean_json_response()` removes JSON-LD artifacts
 
 ### Analysis Framework
@@ -106,6 +107,7 @@ Grey Team:  Non-political, local services
 - **Server Components**: Default, "use client" when needed
 - **Dark Theme**: All components use dark colors
 - **Recharts**: Custom dark tooltips
+- **Turkish UI**: All text in Turkish
 
 ## Configuration
 
@@ -140,12 +142,16 @@ CORS_ORIGINS=http://localhost:3000
 | GET | `/api/v1/users` | List users |
 | GET | `/api/v1/users/{username}` | User detail |
 | POST | `/api/v1/users` | Add user |
-| DELETE | `/api/v1/users/{username}` | Remove user |
+| POST | `/api/v1/users/bulk` | Bulk add users |
+| DELETE | `/api/v1/users/{username}` | Remove user (cascade) |
 | GET | `/api/v1/tweets/{username}` | User tweets |
 | GET | `/api/v1/analytics/followers` | Follower ranking |
 | GET | `/api/v1/analytics/parties` | Party stats |
-| POST | `/api/v1/reports/generate` | Generate report |
-| GET | `/api/v1/exports/report/{username}/pdf` | PDF export |
+| POST | `/api/v1/analytics/compare` | Compare 2-10 users |
+| POST | `/api/v1/analytics/compare/llm` | Compare with AI |
+| POST | `/api/v1/reports/generate` | User report |
+| POST | `/api/v1/reports/party` | Party report (with LLM) |
+| POST | `/api/v1/reports/multi` | Multi-user report |
 | GET | `/api/v1/exports/followers/excel` | Excel export |
 
 **Swagger**: http://localhost:8000/docs
@@ -190,9 +196,10 @@ ReportCache: username, report_type, content, expires_at
 1. **LLM**: OpenAI preferred, Ollama fallback
 2. **No silent errors**: Log or re-raise
 3. **Type hints**: Required on all functions
-4. **Turkish UI**: User text in Turkish
+4. **Turkish UI**: All user-facing text in Turkish
 5. **English code**: Variables in English
 6. **Dark theme**: All UI components
+7. **Minimum 1 tweet**: For individual LLM analysis
 
 ## Common Tasks
 
@@ -219,7 +226,7 @@ ReportCache: username, report_type, content, expires_at
 | Ollama failed | Run `ollama serve` |
 | CORS error | Check CORS_ORIGINS |
 | Old report | Clear report cache |
-| PDF error | Check pdf_generator.py |
+| User not analyzed | Check if has >= 1 tweet |
 
 ### Cache Management
 
@@ -240,9 +247,12 @@ find backend -type d -name '__pycache__' -exec rm -rf {} +
 |---------|------|
 | LLM Analyzer | `backend/app/services/analysis/analyzer.py` |
 | Prompts | `backend/app/services/analysis/prompts.py` |
-| PDF Generator | `backend/app/services/reporting/pdf_generator.py` |
+| Party Normalization | `backend/app/core/constants.py` |
 | Report Generator | `backend/app/services/reporting/report_generator.py` |
 | API Client | `frontend/src/lib/api.ts` |
 | Dashboard | `frontend/src/app/page.tsx` |
 | Reports Page | `frontend/src/app/reports/page.tsx` |
+| Comparison Page | `frontend/src/app/comparison/page.tsx` |
+| Users Page | `frontend/src/app/users/page.tsx` |
+| System Page | `frontend/src/app/system/page.tsx` |
 | Charts | `frontend/src/components/charts/` |

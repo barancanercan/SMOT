@@ -254,14 +254,14 @@ export default function ComparisonPage() {
                   <GitCompare className="h-6 w-6 text-purple-400" />
                 </div>
                 <span className="text-xs font-mono text-purple-400 tracking-wider uppercase">
-                  Comparison Module
+                  Karsilastirma Modulu
                 </span>
               </div>
               <h1 className="text-3xl font-bold text-white mb-2">
                 Kullanici Karsilastirma
               </h1>
-              <p className="text-gray-500 text-sm font-mono">
-                Birden fazla kullaniciyi yan yana karsilastirin
+              <p className="text-gray-500 text-sm">
+                Birden fazla kullaniciyi yan yana karsilastirin ve AI analizi yapin
               </p>
             </div>
           </div>
@@ -565,7 +565,7 @@ export default function ComparisonPage() {
                       </div>
                       <div className="flex items-center gap-2 bg-blue-500/20 px-3 py-1 rounded-full border border-blue-500/30">
                         <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
-                        <span className="text-blue-400 text-xs font-mono">AI Generated</span>
+                        <span className="text-blue-400 text-xs font-mono">Yapay Zeka</span>
                       </div>
                     </div>
                     <div className="p-6">

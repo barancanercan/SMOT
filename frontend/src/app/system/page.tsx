@@ -9,7 +9,10 @@ import {
   RefreshCw,
   CheckCircle,
   XCircle,
-  HardDrive,
+  Brain,
+  Cpu,
+  Activity,
+  Shield,
 } from "lucide-react";
 
 interface SystemStatus {
@@ -19,9 +22,10 @@ interface SystemStatus {
     tweets: number;
     profiles: number;
   };
-  ollama: {
-    connected: boolean;
+  llm: {
+    provider: string;
     model: string;
+    connected: boolean;
   };
   version: string;
 }
@@ -56,15 +60,16 @@ export default function SystemPage() {
           tweets: stats.total_tweets || 0,
           profiles: stats.total_profiles || 0,
         },
-        ollama: {
-          connected: false, // Will check separately
-          model: "qwen2.5:3b",
+        llm: {
+          provider: healthData.llm_provider || "openai",
+          model: healthData.llm_model || "gpt-3.5-turbo",
+          connected: true,
         },
-        version: healthData.version || "3.0.0",
+        version: healthData.version || "3.2.0",
       });
       setError(null);
     } catch (err) {
-      console.error("Failed to fetch status:", err);
+      console.error("Durum alinamadi:", err);
       setError("Sistem durumu alinamadi");
       setStatus({
         database: {
@@ -73,57 +78,22 @@ export default function SystemPage() {
           tweets: 0,
           profiles: 0,
         },
-        ollama: {
+        llm: {
+          provider: "bilinmiyor",
+          model: "bilinmiyor",
           connected: false,
-          model: "unknown",
         },
-        version: "unknown",
+        version: "bilinmiyor",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const checkOllama = async () => {
-    try {
-      const response = await fetch("http://127.0.0.1:11434/api/tags");
-      if (response.ok) {
-        const data = await response.json();
-        const models = data.models || [];
-        setStatus((prev) =>
-          prev
-            ? {
-                ...prev,
-                ollama: {
-                  connected: true,
-                  model: models.length > 0 ? models[0].name : "no models",
-                },
-              }
-            : prev
-        );
-      }
-    } catch {
-      setStatus((prev) =>
-        prev
-          ? {
-              ...prev,
-              ollama: { connected: false, model: "unreachable" },
-            }
-          : prev
-      );
-    }
-  };
-
-  useEffect(() => {
-    if (status) {
-      checkOllama();
-    }
-  }, [status?.database.connected]);
-
   const StatusBadge = ({ ok }: { ok: boolean }) => (
     <span
       className={`flex items-center gap-1 text-sm ${
-        ok ? "text-green-600" : "text-red-600"
+        ok ? "text-emerald-400" : "text-red-400"
       }`}
     >
       {ok ? (
@@ -132,7 +102,7 @@ export default function SystemPage() {
         </>
       ) : (
         <>
-          <XCircle className="h-4 w-4" /> Kapalı
+          <XCircle className="h-4 w-4" /> Kapali
         </>
       )}
     </span>
@@ -140,22 +110,14 @@ export default function SystemPage() {
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] text-white">
-      {/* Animated background grid */}
+      {/* Arka plan */}
       <div className="fixed inset-0 bg-[url('/grid.svg')] opacity-5 pointer-events-none" />
-
-      {/* Gradient overlay */}
       <div className="fixed inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-emerald-500/5 pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 py-8 space-y-6">
-        {/* Header - Command Center Style */}
+        {/* Baslik */}
         <div className="relative p-8 rounded-2xl bg-gradient-to-br from-[#1A1A1A] via-[#151515] to-[#0F0F0F] border border-white/10 overflow-hidden shadow-2xl">
-          {/* Neural network pattern overlay */}
           <div className="absolute inset-0 opacity-10 bg-[url('/neural-network.svg')]" />
-
-          {/* Animated scan line */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute h-px w-full bg-gradient-to-r from-transparent via-blue-400/50 to-transparent animate-scan" />
-          </div>
 
           <div className="relative flex items-center justify-between">
             <div>
@@ -164,14 +126,14 @@ export default function SystemPage() {
                   <Settings className="h-6 w-6 text-blue-400" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-blue-400 tracking-wider uppercase">System Control</span>
+                  <span className="text-xs font-mono text-blue-400 tracking-wider uppercase">Sistem Kontrol</span>
                   <div className="h-1 w-1 rounded-full bg-blue-400 animate-pulse" />
                 </div>
               </div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent mb-2">
-                Sistem
+                Sistem Durumu
               </h1>
-              <p className="text-gray-500 text-sm font-mono">System status and configuration // Real-time monitoring</p>
+              <p className="text-gray-500 text-sm font-mono">Sistem durumu ve yapilandirma // Canli izleme</p>
             </div>
 
             <button
@@ -186,19 +148,18 @@ export default function SystemPage() {
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start gap-3 backdrop-blur-sm animate-pulse">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start gap-3 backdrop-blur-sm">
             <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-red-400 font-medium font-mono">ERROR_DETECTED</p>
-              <p className="text-red-300/80 text-sm mt-1 font-mono">{error}</p>
+              <p className="text-red-400 font-medium font-mono">HATA</p>
+              <p className="text-red-300/80 text-sm mt-1">{error}</p>
             </div>
           </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* API Status - Cyber Terminal Style */}
+          {/* API Durumu */}
           <div className="group relative bg-[#1A1A1A]/80 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-2xl hover:border-blue-500/30 transition-all duration-300 overflow-hidden">
-            {/* Glow effect on hover */}
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-blue-500/0 group-hover:from-blue-500/5 group-hover:to-transparent transition-all duration-300" />
 
             <div className="relative">
@@ -211,20 +172,20 @@ export default function SystemPage() {
                 </div>
                 <StatusBadge ok={status?.database.connected || false} />
               </div>
-              <div className="text-sm text-gray-400 space-y-1 font-mono">
-                <p className="flex items-center gap-2">
-                  <span className="text-gray-600">URL:</span>
-                  <span className="text-gray-300">localhost:8000</span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <span className="text-gray-600">Version:</span>
-                  <span className="text-blue-400">{status?.version || "..."}</span>
-                </p>
+              <div className="text-sm text-gray-400 space-y-2">
+                <div className="flex justify-between items-center p-2 rounded-lg bg-[#0B0B0B]/50 border border-white/5">
+                  <span className="text-gray-500">Adres:</span>
+                  <span className="font-mono text-gray-300">localhost:8000</span>
+                </div>
+                <div className="flex justify-between items-center p-2 rounded-lg bg-[#0B0B0B]/50 border border-white/5">
+                  <span className="text-gray-500">Surum:</span>
+                  <span className="font-mono text-blue-400">{status?.version || "..."}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Database Status - Data Vault Style */}
+          {/* Veritabani Durumu */}
           <div className="group relative bg-[#1A1A1A]/80 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-2xl hover:border-emerald-500/30 transition-all duration-300 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-emerald-500/0 group-hover:from-emerald-500/5 group-hover:to-transparent transition-all duration-300" />
 
@@ -238,24 +199,24 @@ export default function SystemPage() {
                 </div>
                 <StatusBadge ok={status?.database.connected || false} />
               </div>
-              <div className="space-y-2 text-sm font-mono">
+              <div className="space-y-2 text-sm">
                 <div className="flex justify-between items-center p-2 rounded-lg bg-[#0B0B0B]/50 border border-white/5">
                   <span className="text-gray-500">Kullanicilar:</span>
-                  <span className="font-medium text-emerald-400">{status?.database.councilors || 0}</span>
+                  <span className="font-mono font-medium text-emerald-400">{status?.database.councilors.toLocaleString('tr-TR') || 0}</span>
                 </div>
                 <div className="flex justify-between items-center p-2 rounded-lg bg-[#0B0B0B]/50 border border-white/5">
                   <span className="text-gray-500">Tweetler:</span>
-                  <span className="font-medium text-emerald-400">{status?.database.tweets || 0}</span>
+                  <span className="font-mono font-medium text-emerald-400">{status?.database.tweets.toLocaleString('tr-TR') || 0}</span>
                 </div>
                 <div className="flex justify-between items-center p-2 rounded-lg bg-[#0B0B0B]/50 border border-white/5">
                   <span className="text-gray-500">Profiller:</span>
-                  <span className="font-medium text-emerald-400">{status?.database.profiles || 0}</span>
+                  <span className="font-mono font-medium text-emerald-400">{status?.database.profiles.toLocaleString('tr-TR') || 0}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Ollama Status - AI Core Style */}
+          {/* LLM Durumu */}
           <div className="group relative bg-[#1A1A1A]/80 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-2xl hover:border-purple-500/30 transition-all duration-300 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 to-purple-500/0 group-hover:from-purple-500/5 group-hover:to-transparent transition-all duration-300" />
 
@@ -263,72 +224,86 @@ export default function SystemPage() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/10 rounded-xl flex items-center justify-center border border-purple-500/30 shadow-lg shadow-purple-500/10 group-hover:shadow-purple-500/30 transition-all">
-                    <HardDrive className="h-6 w-6 text-purple-400" />
+                    <Brain className="h-6 w-6 text-purple-400" />
                   </div>
-                  <h3 className="font-semibold text-white">Ollama LLM</h3>
+                  <h3 className="font-semibold text-white">Yapay Zeka</h3>
                 </div>
-                <StatusBadge ok={status?.ollama.connected || false} />
+                <StatusBadge ok={status?.llm.connected || false} />
               </div>
-              <div className="text-sm text-gray-400 space-y-1 font-mono">
-                <p className="flex items-center gap-2">
-                  <span className="text-gray-600">URL:</span>
-                  <span className="text-gray-300">127.0.0.1:11434</span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <span className="text-gray-600">Model:</span>
-                  <span className="text-purple-400">{status?.ollama.model || "..."}</span>
-                </p>
+              <div className="text-sm text-gray-400 space-y-2">
+                <div className="flex justify-between items-center p-2 rounded-lg bg-[#0B0B0B]/50 border border-white/5">
+                  <span className="text-gray-500">Saglayici:</span>
+                  <span className="font-mono text-purple-400 capitalize">{status?.llm.provider || "..."}</span>
+                </div>
+                <div className="flex justify-between items-center p-2 rounded-lg bg-[#0B0B0B]/50 border border-white/5">
+                  <span className="text-gray-500">Model:</span>
+                  <span className="font-mono text-purple-400">{status?.llm.model || "..."}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Info Section - Intelligence Data Grid */}
+        {/* Sistem Bilgileri */}
         <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-2xl">
           <h3 className="font-semibold text-white mb-6 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-            <span className="font-mono text-sm uppercase tracking-wider">Sistem Bilgileri</span>
+            <Activity className="h-5 w-5 text-blue-400" />
+            <span>Sistem Bilgileri</span>
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div className="p-4 rounded-xl bg-[#0B0B0B]/50 border border-white/5">
-              <span className="text-gray-500 font-mono text-xs uppercase tracking-wider">Platform:</span>
-              <p className="font-medium text-white mt-1 font-mono">FastAPI + Next.js</p>
+              <span className="text-gray-500 text-xs uppercase tracking-wider">Platform</span>
+              <p className="font-medium text-white mt-1">FastAPI + Next.js 14</p>
             </div>
             <div className="p-4 rounded-xl bg-[#0B0B0B]/50 border border-white/5">
-              <span className="text-gray-500 font-mono text-xs uppercase tracking-wider">Database:</span>
-              <p className="font-medium text-white mt-1 font-mono">SQLite / PostgreSQL</p>
+              <span className="text-gray-500 text-xs uppercase tracking-wider">Veritabani</span>
+              <p className="font-medium text-white mt-1">SQLite / PostgreSQL</p>
             </div>
             <div className="p-4 rounded-xl bg-[#0B0B0B]/50 border border-white/5">
-              <span className="text-gray-500 font-mono text-xs uppercase tracking-wider">LLM:</span>
-              <p className="font-medium text-white mt-1 font-mono">Ollama (Local)</p>
+              <span className="text-gray-500 text-xs uppercase tracking-wider">Yapay Zeka</span>
+              <p className="font-medium text-white mt-1">OpenAI / Ollama</p>
             </div>
             <div className="p-4 rounded-xl bg-[#0B0B0B]/50 border border-white/5">
-              <span className="text-gray-500 font-mono text-xs uppercase tracking-wider">Scraping:</span>
-              <p className="font-medium text-white mt-1 font-mono">Selenium + Chrome</p>
+              <span className="text-gray-500 text-xs uppercase tracking-wider">Veri Toplama</span>
+              <p className="font-medium text-white mt-1">Selenium + Chrome</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Ozellikler */}
+        <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-2xl">
+          <h3 className="font-semibold text-white mb-6 flex items-center gap-2">
+            <Shield className="h-5 w-5 text-emerald-400" />
+            <span>Sistem Ozellikleri</span>
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-[#0B0B0B]/50 border border-white/5">
+              <CheckCircle className="h-5 w-5 text-emerald-400" />
+              <span className="text-gray-300">Kullanici yonetimi (ekleme/silme)</span>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-[#0B0B0B]/50 border border-white/5">
+              <CheckCircle className="h-5 w-5 text-emerald-400" />
+              <span className="text-gray-300">Coklu kullanici raporu</span>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-[#0B0B0B]/50 border border-white/5">
+              <CheckCircle className="h-5 w-5 text-emerald-400" />
+              <span className="text-gray-300">Parti raporu (LLM destekli)</span>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-[#0B0B0B]/50 border border-white/5">
+              <CheckCircle className="h-5 w-5 text-emerald-400" />
+              <span className="text-gray-300">Kullanici karsilastirma modulu</span>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-[#0B0B0B]/50 border border-white/5">
+              <CheckCircle className="h-5 w-5 text-emerald-400" />
+              <span className="text-gray-300">Takipci ve etkilesim analizleri</span>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-[#0B0B0B]/50 border border-white/5">
+              <CheckCircle className="h-5 w-5 text-emerald-400" />
+              <span className="text-gray-300">Excel/Markdown rapor indirme</span>
             </div>
           </div>
         </div>
       </div>
-
-      <style jsx global>{`
-        @keyframes scan {
-          0% {
-            transform: translateY(-100%);
-            opacity: 0;
-          }
-          50% {
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(200vh);
-            opacity: 0;
-          }
-        }
-
-        .animate-scan {
-          animation: scan 8s linear infinite;
-        }
-      `}</style>
     </div>
   );
 }
