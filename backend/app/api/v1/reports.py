@@ -226,11 +226,11 @@ async def generate_multi_user_report(
     db: Session = Depends(get_db)
 ):
     """
-    Generate a combined report for multiple users.
+    Generate a combined report for multiple users with individual LLM analysis.
 
     Args:
     - usernames: List of usernames (2-10 users)
-    - use_llm: Enable LLM analysis
+    - use_llm: Enable LLM analysis for each user + collective
 
     Rate limit: 5 requests per minute
     """
@@ -268,13 +268,23 @@ async def generate_multi_user_report(
             "",
         ]
 
-        # Individual user sections
+        # Initialize LLM analyzer if needed
+        analyzer = None
+        if body.use_llm:
+            from app.services.analysis.analyzer import TweetAnalyzer
+            try:
+                analyzer = TweetAnalyzer()
+            except Exception as e:
+                logger.warning(f"TweetAnalyzer baslatma hatasi: {str(e)}")
+
+        # Individual user sections with LLM analysis
         all_tweets_for_llm = []
         for username in body.usernames:
             if username not in councilor_map:
                 continue
 
             c = councilor_map[username]
+            normalized_party = normalize_party_name(c.party)
 
             # Get user stats
             stats = db.query(
@@ -289,38 +299,66 @@ async def generate_multi_user_report(
 
             report_lines.append(f"## @{username} - {c.name}")
             report_lines.append("")
-            report_lines.append(f"- **Parti:** {normalize_party_name(c.party)}")
+            report_lines.append(f"- **Parti:** {normalized_party}")
             report_lines.append(f"- **Ilce:** {c.district or 'Bilinmiyor'}")
             report_lines.append(f"- **Tweet Sayisi:** {stats.tweet_count:,}")
             report_lines.append(f"- **Toplam Like:** {stats.total_likes:,}")
             report_lines.append(f"- **Toplam RT:** {stats.total_retweets:,}")
-            report_lines.append("")
 
-            # Collect tweets for LLM if enabled
-            if body.use_llm:
-                user_tweets = db.query(Tweet).filter(
-                    Tweet.username == username,
-                    Tweet.is_retweet == False
-                ).order_by(Tweet.tweet_date.desc()).limit(10).all()
+            # Get tweets for analysis
+            user_tweets = db.query(Tweet).filter(
+                Tweet.username == username,
+                Tweet.is_retweet == False
+            ).order_by(Tweet.tweet_date.desc()).limit(15).all()
 
+            if user_tweets:
+                tweet_list = []
                 for t in user_tweets:
-                    all_tweets_for_llm.append({
+                    tweet_data = {
                         'text': t.tweet_text,
                         'date': str(t.tweet_date) if t.tweet_date else '',
                         'likes': t.likes or 0,
                         'retweets': t.retweets or 0,
+                    }
+                    tweet_list.append(tweet_data)
+                    all_tweets_for_llm.append({
+                        **tweet_data,
                         'username': username,
-                        'party': normalize_party_name(c.party)
+                        'party': normalized_party
                     })
 
-        # LLM Combined Analysis
-        if body.use_llm and all_tweets_for_llm:
-            from app.services.analysis.analyzer import TweetAnalyzer
+                # Individual LLM analysis for this user
+                if body.use_llm and analyzer and len(tweet_list) >= 3:
+                    try:
+                        user_analysis = analyzer.analyze_intelligence(
+                            tweet_list,
+                            username=username,
+                            party=normalized_party
+                        )
 
+                        if user_analysis.get('validated') and user_analysis.get('analysis'):
+                            analysis = user_analysis['analysis']
+                            report_lines.append("")
+                            report_lines.append("**AI Analizi:**")
+                            report_lines.append(f"> {analysis.executive_summary}")
+                            report_lines.append(f">")
+                            report_lines.append(f"> - Sadakat Seviyesi: {analysis.loyalty_level}")
+                            report_lines.append(f"> - Elestiri Seviyesi: {analysis.criticism_level}")
+                            if analysis.independent_topics:
+                                report_lines.append(f"> - Onemli Konular: {', '.join(analysis.independent_topics[:3])}")
+                            report_lines.append(f"> - Guven: {analysis.confidence_score:.0%}")
+                    except Exception as e:
+                        logger.warning(f"Bireysel LLM analizi basarisiz @{username}: {str(e)}")
+                        report_lines.append("")
+                        report_lines.append("*Bireysel AI analizi yapilamadi*")
+
+            report_lines.append("")
+
+        # Collective LLM Analysis at the end
+        if body.use_llm and analyzer and all_tweets_for_llm:
             try:
-                analyzer = TweetAnalyzer()
                 analysis_result = analyzer.analyze_intelligence(
-                    all_tweets_for_llm,
+                    all_tweets_for_llm[:50],
                     username="multi_user_analysis",
                     party="Coklu"
                 )
@@ -345,9 +383,9 @@ async def generate_multi_user_report(
                     report_lines.append(f"**Analiz Guveni:** {analysis.confidence_score:.1%}")
 
             except Exception as e:
-                logger.warning(f"Coklu kullanici LLM analizi basarisiz: {str(e)}")
+                logger.warning(f"Coklu kullanici birlesik LLM analizi basarisiz: {str(e)}")
                 report_lines.append("")
-                report_lines.append("*AI analizi yapilamadi*")
+                report_lines.append("*Birlesik AI analizi yapilamadi*")
 
         report = "\n".join(report_lines)
 

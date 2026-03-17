@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   api,
@@ -23,6 +23,7 @@ import {
   Eye,
   BarChart3,
   Brain,
+  Search,
 } from "lucide-react";
 import {
   BarChart,
@@ -85,6 +86,8 @@ export default function ComparisonPage() {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [comparisonData, setComparisonData] = useState<ComparisonResponse | null>(null);
   const [analysisText, setAnalysisText] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
   // Fetch users list
@@ -99,6 +102,34 @@ export default function ComparisonPage() {
   });
 
   const users = usersData?.items || [];
+
+  // Filter users by search
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery) return users;
+    const query = searchQuery.toLowerCase();
+    return users.filter(
+      (u) =>
+        u.username.toLowerCase().includes(query) ||
+        u.name.toLowerCase().includes(query) ||
+        u.party?.toLowerCase().includes(query)
+    );
+  }, [users, searchQuery]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
+        return;
+      }
+      if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+        setSearchQuery(e.key.toLowerCase());
+        searchInputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Compare mutation
   const compareMutation = useMutation({
@@ -151,6 +182,10 @@ export default function ComparisonPage() {
   const handleCompareWithLLM = () => {
     if (selectedUsers.length < 2) {
       toast.error("En az 2 kullanici secmelisiniz");
+      return;
+    }
+    if (selectedUsers.length > 10) {
+      toast.error("Maksimum 10 kullanici secilebilir");
       return;
     }
     compareLLMMutation.mutate(selectedUsers);
@@ -241,14 +276,43 @@ export default function ComparisonPage() {
                 Kullanici Sec ({selectedUsers.length}/10)
               </h3>
 
-              <div className="max-h-80 overflow-y-auto space-y-1 mb-4">
+              {/* Search input */}
+              <div className="relative mb-3">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-500" />
+                </div>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Ara... (harf tuslayin)"
+                  className="w-full pl-10 pr-4 py-2 bg-[#0B0B0B] border border-white/10 rounded-lg text-white font-mono text-sm focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all placeholder:text-gray-600"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-white"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              {searchQuery && (
+                <p className="text-xs text-gray-500 mb-2 font-mono">
+                  {filteredUsers.length} sonuc bulundu
+                </p>
+              )}
+
+              <div className="max-h-64 overflow-y-auto space-y-1 mb-4">
                 {usersLoading ? (
                   <div className="py-8 text-center">
                     <div className="w-8 h-8 mx-auto mb-2 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
                     <p className="text-gray-500 text-sm">Yukleniyor...</p>
                   </div>
                 ) : (
-                  users.map((user) => (
+                  filteredUsers.map((user) => (
                     <label
                       key={user.username}
                       className={`flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all ${
@@ -295,12 +359,12 @@ export default function ComparisonPage() {
 
                 <button
                   onClick={handleCompareWithLLM}
-                  disabled={isComparing || selectedUsers.length !== 2}
+                  disabled={isComparing || selectedUsers.length < 2}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl hover:from-blue-500 hover:to-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
-                  title={selectedUsers.length !== 2 ? "AI karsilastirma icin tam olarak 2 kullanici secin" : ""}
+                  title={selectedUsers.length < 2 ? "AI karsilastirma icin en az 2 kullanici secin" : ""}
                 >
                   <Sparkles className={`h-5 w-5 ${isComparing ? "animate-spin" : ""}`} />
-                  {isComparing ? "Analiz Ediliyor..." : selectedUsers.length === 2 ? "AI Karsilastirma (2 Kullanici)" : "2 Kullanici Sec"}
+                  {isComparing ? "Analiz Ediliyor..." : selectedUsers.length >= 2 ? `AI Karsilastirma (${selectedUsers.length} Kullanici)` : "En az 2 Kullanici Sec"}
                 </button>
 
                 {selectedUsers.length > 0 && (

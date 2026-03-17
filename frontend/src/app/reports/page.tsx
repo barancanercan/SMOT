@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { api, User, ReportResponse, PartyReportResponse, PaginatedResponse } from "@/lib/api";
 import { useToast } from "@/components/ui/toast";
@@ -19,7 +19,7 @@ import {
   Activity,
   Lock,
   TrendingUp,
-  FileDown
+  Search
 } from "lucide-react";
 
 type ReportMode = "user" | "party" | "multi";
@@ -32,6 +32,8 @@ export default function ReportsPage() {
   const [report, setReport] = useState<string>("");
   const [useLLM, setUseLLM] = useState<boolean>(true);
   const [partyLLM, setPartyLLM] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
   // Fetch users with React Query
@@ -70,6 +72,18 @@ export default function ReportsPage() {
     return Array.from(new Set(normalized)).sort();
   }, [users]);
 
+  // Filter users by search query
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery) return users;
+    const query = searchQuery.toLowerCase();
+    return users.filter(
+      (u) =>
+        u.username.toLowerCase().includes(query) ||
+        u.name.toLowerCase().includes(query) ||
+        u.party?.toLowerCase().includes(query)
+    );
+  }, [users, searchQuery]);
+
   // Set default selections
   useMemo(() => {
     if (users.length > 0 && !selectedUser) {
@@ -79,6 +93,35 @@ export default function ReportsPage() {
       setSelectedParty(parties[0]);
     }
   }, [users, parties, selectedUser, selectedParty]);
+
+  // Handle keyboard shortcuts for alphabetical navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only if not already focused on an input
+      if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
+        return;
+      }
+
+      // Single letter key
+      if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+        const letter = e.key.toLowerCase();
+        const matchedUser = users.find(
+          (u) => u.username.toLowerCase().startsWith(letter) || u.name.toLowerCase().startsWith(letter)
+        );
+        if (matchedUser) {
+          setSelectedUser(matchedUser.username);
+          setSearchQuery(letter);
+          // Focus search input
+          searchInputRef.current?.focus();
+        }
+      }
+    };
+
+    if (mode === "user") {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [mode, users]);
 
   // User report mutation
   const userReportMutation = useMutation({
@@ -167,29 +210,20 @@ export default function ReportsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    const filename =
-      mode === "user"
-        ? `rapor_${selectedUser}_${new Date().toISOString().split("T")[0]}.md`
-        : `parti_rapor_${selectedParty}_${new Date().toISOString().split("T")[0]}.md`;
+    let filename;
+    if (mode === "user") {
+      filename = `rapor_${selectedUser}_${new Date().toISOString().split("T")[0]}.md`;
+    } else if (mode === "party") {
+      filename = `parti_rapor_${selectedParty}_${new Date().toISOString().split("T")[0]}.md`;
+    } else {
+      filename = `coklu_rapor_${new Date().toISOString().split("T")[0]}.md`;
+    }
     a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast.success("Markdown rapor indirildi");
-  };
-
-  const downloadPDF = async () => {
-    if (!selectedUser || mode !== "user") return;
-
-    try {
-      toast.success("PDF hazirlaniyor...");
-      const filename = `istihbarat_rapor_${selectedUser}_${new Date().toISOString().split("T")[0]}.pdf`;
-      await api.downloadFile(`/exports/report/${selectedUser}/pdf`, filename);
-      toast.success("PDF rapor indirildi");
-    } catch (error: any) {
-      toast.error(`PDF indirilemedi: ${error.message}`);
-    }
   };
 
   if (usersError) {
@@ -328,22 +362,41 @@ export default function ReportsPage() {
                   <label className="block text-sm font-medium text-gray-400 mb-2 font-mono uppercase tracking-wider">
                     Target Selection
                   </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search className="h-4 w-4 text-gray-500" />
+                    </div>
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Ara... (harf tuslayin)"
+                      className="w-full pl-10 pr-4 py-2 mb-2 bg-[#0B0B0B] border border-white/10 rounded-lg text-white font-mono text-sm focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-600"
+                    />
+                  </div>
                   <select
                     value={selectedUser}
                     onChange={(e) => setSelectedUser(e.target.value)}
                     disabled={usersLoading}
-                    className="w-full px-4 py-3 bg-[#0B0B0B] border border-white/10 rounded-xl text-white font-mono text-sm focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:border-white/20"
+                    size={6}
+                    className="w-full px-4 py-2 bg-[#0B0B0B] border border-white/10 rounded-xl text-white font-mono text-sm focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:border-white/20"
                   >
                     {usersLoading ? (
                       <option>Loading...</option>
                     ) : (
-                      users.map((user) => (
-                        <option key={user.username} value={user.username} className="bg-[#0B0B0B]">
+                      filteredUsers.map((user) => (
+                        <option key={user.username} value={user.username} className="bg-[#0B0B0B] py-1">
                           @{user.username} - {user.name}
                         </option>
                       ))
                     )}
                   </select>
+                  {searchQuery && (
+                    <p className="text-xs text-gray-500 mt-1 font-mono">
+                      {filteredUsers.length} sonuc bulundu
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-3">
@@ -524,24 +577,13 @@ export default function ReportsPage() {
             {report && !isGenerating && (
               <div className="flex flex-col gap-3 ml-auto">
                 <div className="h-6"></div>
-                <div className="flex gap-2">
-                  {mode === "user" && (
-                    <button
-                      onClick={downloadPDF}
-                      className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-xl hover:from-red-500 hover:to-red-400 transition-all font-medium shadow-lg shadow-red-500/25 hover:shadow-red-500/40"
-                    >
-                      <FileDown className="h-4 w-4 group-hover:translate-y-0.5 transition-transform" />
-                      <span>PDF</span>
-                    </button>
-                  )}
-                  <button
-                    onClick={downloadReport}
-                    className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-xl hover:from-emerald-500 hover:to-emerald-400 transition-all font-medium shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40"
-                  >
-                    <Download className="h-4 w-4 group-hover:translate-y-0.5 transition-transform" />
-                    <span>MD</span>
-                  </button>
-                </div>
+                <button
+                  onClick={downloadReport}
+                  className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-xl hover:from-emerald-500 hover:to-emerald-400 transition-all font-medium shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40"
+                >
+                  <Download className="h-4 w-4 group-hover:translate-y-0.5 transition-transform" />
+                  <span>Indir (MD)</span>
+                </button>
               </div>
             )}
           </div>
@@ -630,24 +672,13 @@ export default function ReportsPage() {
                   <span className="text-emerald-400 text-xs font-medium font-mono">COMPLETE</span>
                 </div>
 
-                {mode === "user" && (
-                  <button
-                    onClick={downloadPDF}
-                    className="group flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg border border-red-500/30 hover:bg-red-500/30 transition-all"
-                    title="PDF olarak indir"
-                  >
-                    <FileDown className="h-4 w-4 group-hover:translate-y-0.5 transition-transform" />
-                    <span className="text-sm font-mono">PDF</span>
-                  </button>
-                )}
-
                 <button
                   onClick={downloadReport}
                   className="group flex items-center gap-2 px-4 py-2 bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30 transition-all"
                   title="Markdown olarak indir"
                 >
                   <Download className="h-4 w-4 group-hover:translate-y-0.5 transition-transform" />
-                  <span className="text-sm font-mono">MD</span>
+                  <span className="text-sm font-mono">Indir</span>
                 </button>
               </div>
             </div>
