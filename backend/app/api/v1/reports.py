@@ -213,6 +213,158 @@ class PartyReportRequest(BaseModel):
     use_llm: bool = False
 
 
+class MultiUserReportRequest(BaseModel):
+    usernames: List[str]
+    use_llm: bool = True
+
+
+@router.post("/multi")
+@limiter.limit(RateLimits.HEAVY)
+async def generate_multi_user_report(
+    request: Request,
+    body: MultiUserReportRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Generate a combined report for multiple users.
+
+    Args:
+    - usernames: List of usernames (2-10 users)
+    - use_llm: Enable LLM analysis
+
+    Rate limit: 5 requests per minute
+    """
+    from app.core.models import Councilor, Tweet
+    from sqlalchemy import func
+
+    if not body.usernames:
+        raise HTTPException(status_code=400, detail="Kullanici listesi bos")
+
+    if len(body.usernames) < 2:
+        raise HTTPException(status_code=400, detail="En az 2 kullanici secilmeli")
+
+    if len(body.usernames) > 10:
+        raise HTTPException(status_code=400, detail="Maksimum 10 kullanici secebilirsiniz")
+
+    try:
+        # Get all selected users
+        councilors = db.query(Councilor).filter(
+            Councilor.username.in_(body.usernames)
+        ).all()
+
+        if not councilors:
+            raise HTTPException(status_code=404, detail="Kullanici bulunamadi")
+
+        councilor_map = {c.username: c for c in councilors}
+
+        # Build report header
+        report_lines = [
+            "# Coklu Kullanici Raporu",
+            "",
+            f"**Analiz Edilen Kullanicilar:** {len(councilors)}",
+            f"**Tarih:** {__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            "",
+            "---",
+            "",
+        ]
+
+        # Individual user sections
+        all_tweets_for_llm = []
+        for username in body.usernames:
+            if username not in councilor_map:
+                continue
+
+            c = councilor_map[username]
+
+            # Get user stats
+            stats = db.query(
+                func.count(Tweet.id).label("tweet_count"),
+                func.coalesce(func.sum(Tweet.likes), 0).label("total_likes"),
+                func.coalesce(func.sum(Tweet.retweets), 0).label("total_retweets"),
+                func.coalesce(func.sum(Tweet.replies), 0).label("total_replies"),
+            ).filter(
+                Tweet.username == username,
+                Tweet.is_retweet == False
+            ).first()
+
+            report_lines.append(f"## @{username} - {c.name}")
+            report_lines.append("")
+            report_lines.append(f"- **Parti:** {normalize_party_name(c.party)}")
+            report_lines.append(f"- **Ilce:** {c.district or 'Bilinmiyor'}")
+            report_lines.append(f"- **Tweet Sayisi:** {stats.tweet_count:,}")
+            report_lines.append(f"- **Toplam Like:** {stats.total_likes:,}")
+            report_lines.append(f"- **Toplam RT:** {stats.total_retweets:,}")
+            report_lines.append("")
+
+            # Collect tweets for LLM if enabled
+            if body.use_llm:
+                user_tweets = db.query(Tweet).filter(
+                    Tweet.username == username,
+                    Tweet.is_retweet == False
+                ).order_by(Tweet.tweet_date.desc()).limit(10).all()
+
+                for t in user_tweets:
+                    all_tweets_for_llm.append({
+                        'text': t.tweet_text,
+                        'date': str(t.tweet_date) if t.tweet_date else '',
+                        'likes': t.likes or 0,
+                        'retweets': t.retweets or 0,
+                        'username': username,
+                        'party': normalize_party_name(c.party)
+                    })
+
+        # LLM Combined Analysis
+        if body.use_llm and all_tweets_for_llm:
+            from app.services.analysis.analyzer import TweetAnalyzer
+
+            try:
+                analyzer = TweetAnalyzer()
+                analysis_result = analyzer.analyze_intelligence(
+                    all_tweets_for_llm,
+                    username="multi_user_analysis",
+                    party="Coklu"
+                )
+
+                if analysis_result.get('validated') and analysis_result.get('analysis'):
+                    analysis = analysis_result['analysis']
+                    report_lines.append("---")
+                    report_lines.append("")
+                    report_lines.append("## Birlesik AI Analizi")
+                    report_lines.append("")
+                    report_lines.append(f"**Genel Degerlendirme:** {analysis.executive_summary}")
+                    report_lines.append("")
+                    report_lines.append(f"**Ortak Temalar (Yesil):** {analysis.green_summary}")
+                    report_lines.append("")
+                    report_lines.append(f"**Elestiri Analizi (Kirmizi):** {analysis.red_summary}")
+                    report_lines.append("")
+                    report_lines.append(f"**Bagimsiz Konular (Gri):** {analysis.grey_summary}")
+                    if analysis.independent_topics:
+                        report_lines.append("")
+                        report_lines.append(f"**Onemli Konular:** {', '.join(analysis.independent_topics[:5])}")
+                    report_lines.append("")
+                    report_lines.append(f"**Analiz Guveni:** {analysis.confidence_score:.1%}")
+
+            except Exception as e:
+                logger.warning(f"Coklu kullanici LLM analizi basarisiz: {str(e)}")
+                report_lines.append("")
+                report_lines.append("*AI analizi yapilamadi*")
+
+        report = "\n".join(report_lines)
+
+        return {
+            "usernames": body.usernames,
+            "member_count": len(councilors),
+            "content": report,
+            "use_llm": body.use_llm,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Coklu rapor hatasi: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Rapor olusturulamadi: {str(e)}")
+
+
 @router.post("/party")
 @limiter.limit(RateLimits.HEAVY)
 async def generate_party_report(
@@ -222,6 +374,9 @@ async def generate_party_report(
 ):
     """
     Generate a summary report for all members of a party.
+
+    Options:
+    - use_llm: Enable LLM analysis for deeper insights (slower but more detailed)
 
     Rate limit: 5 requests per minute
     """
@@ -299,12 +454,68 @@ async def generate_party_report(
             name = member.name if member else t.username
             report_lines.append(f"{i}. **{name}** - {t.likes:,} like")
 
+        # LLM Analysis if requested
+        if body.use_llm:
+            from app.services.analysis.analyzer import TweetAnalyzer
+
+            # Collect tweets from all members (limited)
+            all_tweets = []
+            for member in members[:10]:  # Limit to 10 members
+                member_tweets = db.query(Tweet).filter(
+                    Tweet.username == member.username,
+                    Tweet.is_retweet == False
+                ).order_by(Tweet.tweet_date.desc()).limit(5).all()
+
+                for t in member_tweets:
+                    all_tweets.append({
+                        'text': t.tweet_text,
+                        'date': str(t.tweet_date) if t.tweet_date else '',
+                        'likes': t.likes or 0,
+                        'retweets': t.retweets or 0,
+                        'username': t.username
+                    })
+
+            if all_tweets:
+                try:
+                    analyzer = TweetAnalyzer()
+                    analysis_result = analyzer.analyze_intelligence(
+                        all_tweets,
+                        username=f"parti_{normalized_party}",
+                        party=normalized_party
+                    )
+
+                    if analysis_result.get('validated') and analysis_result.get('analysis'):
+                        analysis = analysis_result['analysis']
+                        report_lines.append("")
+                        report_lines.append("---")
+                        report_lines.append("")
+                        report_lines.append("## AI Analiz Ozeti")
+                        report_lines.append("")
+                        report_lines.append(f"**Yonetici Ozeti:** {analysis.executive_summary}")
+                        report_lines.append("")
+                        report_lines.append(f"**Parti Sadakati (Yesil Takim):** {analysis.green_summary}")
+                        report_lines.append(f"- Sadakat Seviyesi: {analysis.loyalty_level}")
+                        report_lines.append("")
+                        report_lines.append(f"**Muhalefet Elestirisi (Kirmizi Takim):** {analysis.red_summary}")
+                        report_lines.append(f"- Elestiri Seviyesi: {analysis.criticism_level}")
+                        report_lines.append("")
+                        report_lines.append(f"**Bagimsiz Konular (Gri Takim):** {analysis.grey_summary}")
+                        if analysis.independent_topics:
+                            report_lines.append(f"- Konular: {', '.join(analysis.independent_topics[:5])}")
+                        report_lines.append("")
+                        report_lines.append(f"**Guven Skoru:** {analysis.confidence_score:.1%}")
+                except Exception as e:
+                    logger.warning(f"LLM parti analizi basarisiz: {str(e)}")
+                    report_lines.append("")
+                    report_lines.append("*LLM analizi yapilamadi*")
+
         report = "\n".join(report_lines)
 
         return {
             "party": normalized_party,
             "member_count": len(members),
             "content": report,
+            "use_llm": body.use_llm,
         }
 
     except HTTPException:

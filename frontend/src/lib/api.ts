@@ -205,7 +205,10 @@ export interface PaginatedResponse<T> {
   total: number;
   page: number;
   page_size: number;
-  pages: number;
+  pages?: number;
+  total_pages?: number;
+  has_next?: boolean;
+  has_prev?: boolean;
 }
 
 export interface DashboardStats {
@@ -248,4 +251,71 @@ export interface Tweet {
 export interface AuthToken {
   access_token: string;
   token_type: string;
+}
+
+// User management types
+export interface CreateUserRequest {
+  username: string;
+  name: string;
+  party: string;
+  district?: string;
+}
+
+export interface CreateUserResponse {
+  success: boolean;
+  user: User;
+}
+
+export interface BulkCreateRequest {
+  users: CreateUserRequest[];
+}
+
+export interface BulkCreateResponse {
+  created: number;
+  skipped: number;
+  errors: string[];
+  total: number;
+}
+
+export interface DeleteUserResponse {
+  success: boolean;
+  deleted: string;
+  details: {
+    tweets_deleted: number;
+    profiles_deleted: number;
+    cache_deleted: number;
+  };
+}
+
+// Comparison types
+export interface UserMetrics {
+  username: string;
+  name: string;
+  party: string;
+  followers: number;
+  tweet_count: number;
+  total_likes: number;
+  total_retweets: number;
+  engagement_rate: number;
+}
+
+export interface ComparisonResponse {
+  users: UserMetrics[];
+}
+
+export interface ComparisonLLMResponse {
+  users: UserMetrics[];
+  analysis: string;
+}
+
+// Multi-user report types
+export interface MultiUserReportRequest {
+  usernames: string[];
+  use_llm: boolean;
+}
+
+export interface MultiUserReportResponse {
+  usernames: string[];
+  content: string;
+  member_count: number;
 }

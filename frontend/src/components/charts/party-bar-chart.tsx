@@ -121,7 +121,7 @@ export function PartyBarChart({
         <YAxis
           type="category"
           dataKey="party"
-          tick={{ fontSize: 12, fill: "#E5E7EB" }}
+          tick={{ fontSize: 12, fill: "#9CA3AF" }}
           tickLine={false}
           axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
           width={80}

@@ -4,17 +4,30 @@ Users API Routes
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.api.deps import get_db
 from app.api.schemas import PaginatedResponse, UserListItem, UserDetail
-from app.core.models import Councilor, Tweet, ProfileHistory
+from app.core.models import Councilor, Tweet, ProfileHistory, ReportCache
 from app.core.database import get_latest_profile, get_all_profile_history
 from app.core.rate_limit import limiter, RateLimits
 from app.core.constants import normalize_party_name
 
 router = APIRouter()
+
+
+# Request models
+class CreateUserRequest(BaseModel):
+    username: str
+    name: str
+    party: str
+    district: Optional[str] = None
+
+
+class BulkCreateRequest(BaseModel):
+    users: List[CreateUserRequest]
 
 
 @router.get("/")
@@ -218,3 +231,160 @@ async def get_user_profile_history(
         "history": history,
         "count": len(history),
     }
+
+
+@router.post("/")
+@limiter.limit(RateLimits.WRITE)
+async def create_user(
+    request: Request,
+    body: CreateUserRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new council member.
+
+    Rate limit: 20 requests per minute
+    """
+    # Check if username already exists
+    existing = db.query(Councilor).filter(Councilor.username == body.username).first()
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Kullanici zaten mevcut: @{body.username}")
+
+    # Normalize party name
+    normalized_party = normalize_party_name(body.party)
+
+    # Create new councilor
+    councilor = Councilor(
+        username=body.username,
+        name=body.name,
+        party=normalized_party,
+        district=body.district
+    )
+
+    try:
+        db.add(councilor)
+        db.commit()
+        db.refresh(councilor)
+
+        return {
+            "success": True,
+            "user": {
+                "id": councilor.id,
+                "username": councilor.username,
+                "name": councilor.name,
+                "party": councilor.party,
+                "district": councilor.district,
+            }
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Kullanici olusturulamadi: {str(e)}")
+
+
+@router.post("/bulk")
+@limiter.limit(RateLimits.BATCH)
+async def create_users_bulk(
+    request: Request,
+    body: BulkCreateRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Create multiple council members at once.
+
+    Skips duplicates and returns summary.
+
+    Rate limit: 3 requests per minute
+    """
+    if not body.users:
+        raise HTTPException(status_code=400, detail="Kullanici listesi bos")
+
+    if len(body.users) > 100:
+        raise HTTPException(status_code=400, detail="Maksimum 100 kullanici eklenebilir")
+
+    created = 0
+    skipped = 0
+    errors = []
+
+    for user_data in body.users:
+        try:
+            # Check if exists
+            existing = db.query(Councilor).filter(Councilor.username == user_data.username).first()
+            if existing:
+                skipped += 1
+                continue
+
+            # Normalize party
+            normalized_party = normalize_party_name(user_data.party)
+
+            # Create councilor
+            councilor = Councilor(
+                username=user_data.username,
+                name=user_data.name,
+                party=normalized_party,
+                district=user_data.district
+            )
+            db.add(councilor)
+            created += 1
+
+        except Exception as e:
+            errors.append(f"@{user_data.username}: {str(e)}")
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Toplu ekleme basarisiz: {str(e)}")
+
+    return {
+        "created": created,
+        "skipped": skipped,
+        "errors": errors,
+        "total": len(body.users),
+    }
+
+
+@router.delete("/{username}")
+@limiter.limit(RateLimits.WRITE)
+async def delete_user(
+    request: Request,
+    username: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a council member and all related data (cascade delete).
+
+    Deletes:
+    - Councilor record
+    - All tweets
+    - Profile history
+    - Cached reports
+
+    Rate limit: 20 requests per minute
+    """
+    # Find user
+    councilor = db.query(Councilor).filter(Councilor.username == username).first()
+    if not councilor:
+        raise HTTPException(status_code=404, detail=f"Kullanici bulunamadi: @{username}")
+
+    try:
+        # Delete related data (cascade)
+        tweets_deleted = db.query(Tweet).filter(Tweet.username == username).delete()
+        profiles_deleted = db.query(ProfileHistory).filter(ProfileHistory.username == username).delete()
+        cache_deleted = db.query(ReportCache).filter(ReportCache.username == username).delete()
+
+        # Delete councilor
+        db.delete(councilor)
+        db.commit()
+
+        return {
+            "success": True,
+            "deleted": username,
+            "details": {
+                "tweets_deleted": tweets_deleted,
+                "profiles_deleted": profiles_deleted,
+                "cache_deleted": cache_deleted,
+            }
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Silme islemi basarisiz: {str(e)}")

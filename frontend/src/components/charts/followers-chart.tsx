@@ -31,10 +31,10 @@ export function FollowersChart({
   if (!data || data.length === 0) {
     return (
       <div
-        className="flex items-center justify-center bg-gray-50 rounded-lg"
+        className="flex items-center justify-center bg-[#0B0B0B]/50 border border-white/10 rounded-lg"
         style={{ height }}
       >
-        <p className="text-gray-500">Veri bulunamadi</p>
+        <p className="text-gray-500 font-mono text-sm">Veri bulunamadi</p>
       </div>
     );
   }
@@ -63,19 +63,19 @@ export function FollowersChart({
         data={data}
         margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
       >
-        <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
         <XAxis
           dataKey="date"
-          tick={{ fontSize: 12, fill: "#6B7280" }}
+          tick={{ fontSize: 12, fill: "#9CA3AF" }}
           tickFormatter={formatDate}
           tickLine={false}
-          axisLine={{ stroke: "#E5E7EB" }}
+          axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
         />
         <YAxis
-          tick={{ fontSize: 12, fill: "#6B7280" }}
+          tick={{ fontSize: 12, fill: "#9CA3AF" }}
           tickFormatter={formatNumber}
           tickLine={false}
-          axisLine={{ stroke: "#E5E7EB" }}
+          axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
         />
         <Tooltip
           labelFormatter={(value) => {
@@ -94,11 +94,13 @@ export function FollowersChart({
             name === "followers" ? "Takipci" : "Takip",
           ]}
           contentStyle={{
-            backgroundColor: "white",
-            border: "1px solid #E5E7EB",
+            backgroundColor: "#1A1A1A",
+            border: "1px solid rgba(255,255,255,0.2)",
             borderRadius: "8px",
-            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.3)",
           }}
+          labelStyle={{ color: "#fff" }}
+          itemStyle={{ color: "#9CA3AF" }}
         />
         {showFollowing && <Legend />}
         <Line

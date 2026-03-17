@@ -9,6 +9,8 @@ import {
   FileText,
   Flame,
   Settings,
+  Users,
+  GitCompare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +18,8 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/analytics", label: "Grafikler", icon: BarChart3 },
   { href: "/reports", label: "Raporlar", icon: FileText },
+  { href: "/comparison", label: "Karsilastirma", icon: GitCompare },
+  { href: "/users", label: "Kullanicilar", icon: Users },
   { href: "/tweets", label: "Top Tweets", icon: Flame },
   { href: "/system", label: "Sistem", icon: Settings },
 ];

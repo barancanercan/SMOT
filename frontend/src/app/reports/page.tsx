@@ -22,14 +22,16 @@ import {
   FileDown
 } from "lucide-react";
 
-type ReportMode = "user" | "party";
+type ReportMode = "user" | "party" | "multi";
 
 export default function ReportsPage() {
   const [mode, setMode] = useState<ReportMode>("user");
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [selectedParty, setSelectedParty] = useState<string>("");
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [report, setReport] = useState<string>("");
   const [useLLM, setUseLLM] = useState<boolean>(true);
+  const [partyLLM, setPartyLLM] = useState<boolean>(false);
   const toast = useToast();
 
   // Fetch users with React Query
@@ -65,7 +67,7 @@ export default function ReportsPage() {
   // Extract unique parties with normalization
   const parties = useMemo(() => {
     const normalized = users.map((u) => normalizeParty(u.party)).filter(Boolean);
-    return [...new Set(normalized)].sort();
+    return Array.from(new Set(normalized)).sort();
   }, [users]);
 
   // Set default selections
@@ -97,10 +99,10 @@ export default function ReportsPage() {
 
   // Party report mutation
   const partyReportMutation = useMutation({
-    mutationFn: (data: { party: string }) =>
+    mutationFn: (data: { party: string; use_llm: boolean }) =>
       api.post<PartyReportResponse>("/reports/party", {
         party: data.party,
-        use_llm: false,
+        use_llm: data.use_llm,
       }),
     onSuccess: (data) => {
       setReport(data.content);
@@ -111,8 +113,21 @@ export default function ReportsPage() {
     },
   });
 
-  const isGenerating = userReportMutation.isPending || partyReportMutation.isPending;
-  const error = userReportMutation.error || partyReportMutation.error;
+  // Multi-user report mutation
+  const multiUserReportMutation = useMutation({
+    mutationFn: (data: { usernames: string[]; use_llm: boolean }) =>
+      api.post<{ usernames: string[]; content: string; member_count: number }>("/reports/multi", data),
+    onSuccess: (data) => {
+      setReport(data.content);
+      toast.success(`${data.member_count} kullanici raporu olusturuldu`);
+    },
+    onError: (error: Error) => {
+      toast.error(`Coklu rapor olusturulamadi: ${error.message}`);
+    },
+  });
+
+  const isGenerating = userReportMutation.isPending || partyReportMutation.isPending || multiUserReportMutation.isPending;
+  const error = userReportMutation.error || partyReportMutation.error || multiUserReportMutation.error;
 
   const handleGenerateUserReport = () => {
     if (!selectedUser) return;
@@ -123,7 +138,26 @@ export default function ReportsPage() {
   const handleGeneratePartyReport = () => {
     if (!selectedParty) return;
     setReport("");
-    partyReportMutation.mutate({ party: selectedParty });
+    partyReportMutation.mutate({ party: selectedParty, use_llm: partyLLM });
+  };
+
+  const handleGenerateMultiUserReport = () => {
+    if (selectedUsers.length < 2) {
+      toast.error("En az 2 kullanici secmelisiniz");
+      return;
+    }
+    setReport("");
+    multiUserReportMutation.mutate({ usernames: selectedUsers, use_llm: useLLM });
+  };
+
+  const toggleUserSelection = (username: string) => {
+    setSelectedUsers((prev) =>
+      prev.includes(username)
+        ? prev.filter((u) => u !== username)
+        : prev.length < 10
+        ? [...prev, username]
+        : prev
+    );
   };
 
   const downloadReport = () => {
@@ -268,6 +302,21 @@ export default function ReportsPage() {
             <Shield className={`h-4 w-4 transition-transform ${mode === "party" ? "rotate-0" : "group-hover:rotate-12"}`} />
             <span>Parti Analizi</span>
           </button>
+          <button
+            onClick={() => {
+              setMode("multi");
+              setReport("");
+              setSelectedUsers([]);
+            }}
+            className={`group flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
+              mode === "multi"
+                ? "bg-gradient-to-r from-purple-600/30 to-purple-500/20 text-purple-400 border border-purple-500/40 shadow-lg shadow-purple-500/20"
+                : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+            }`}
+          >
+            <Users className={`h-4 w-4 transition-transform ${mode === "multi" ? "rotate-0" : "group-hover:rotate-12"}`} />
+            <span>Coklu Kullanici</span>
+          </button>
         </div>
 
         {/* Controls - Dark Intelligence Card */}
@@ -346,7 +395,7 @@ export default function ReportsPage() {
                   </button>
                 </div>
               </>
-            ) : (
+            ) : mode === "party" ? (
               <>
                 <div className="flex-1 min-w-[280px]">
                   <label className="block text-sm font-medium text-gray-400 mb-2 font-mono uppercase tracking-wider">
@@ -371,7 +420,25 @@ export default function ReportsPage() {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <div className="h-6"></div>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={partyLLM}
+                        onChange={(e) => setPartyLLM(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-12 h-6 bg-[#0B0B0B] border border-white/10 rounded-full peer-checked:bg-gradient-to-r peer-checked:from-purple-600 peer-checked:to-purple-500 peer-checked:border-purple-500/50 transition-all shadow-inner"></div>
+                      <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-6 peer-checked:shadow-lg peer-checked:shadow-purple-500/50"></div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-purple-400" />
+                      <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors font-mono">
+                        LLM Analizi
+                      </span>
+                    </div>
+                  </label>
+
                   <button
                     onClick={handleGeneratePartyReport}
                     disabled={isGenerating || !selectedParty || usersLoading}
@@ -379,6 +446,76 @@ export default function ReportsPage() {
                   >
                     <Users className={`h-4 w-4 ${isGenerating ? "animate-pulse" : "group-hover:scale-110 transition-transform"}`} />
                     {isGenerating ? <span className="font-mono">Processing...</span> : <span>Parti Analizi</span>}
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* Multi-user mode */
+              <>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-400 mb-2 font-mono uppercase tracking-wider">
+                    Kullanici Secimi ({selectedUsers.length}/10)
+                  </label>
+                  <div className="max-h-48 overflow-y-auto bg-[#0B0B0B] border border-white/10 rounded-xl p-3 space-y-1">
+                    {usersLoading ? (
+                      <p className="text-gray-500 text-sm">Yukleniyor...</p>
+                    ) : (
+                      users.map((user) => (
+                        <label
+                          key={user.username}
+                          className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${
+                            selectedUsers.includes(user.username)
+                              ? "bg-purple-500/20 border border-purple-500/30"
+                              : "hover:bg-white/5"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.includes(user.username)}
+                            onChange={() => toggleUserSelection(user.username)}
+                            className="w-4 h-4 rounded border-white/20 bg-[#0B0B0B] text-purple-500 focus:ring-purple-500/20"
+                          />
+                          <span className="text-sm text-white">
+                            <span className="text-blue-400 font-mono">@{user.username}</span>
+                            <span className="text-gray-400 ml-2">- {user.name}</span>
+                          </span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={useLLM}
+                        onChange={(e) => setUseLLM(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-12 h-6 bg-[#0B0B0B] border border-white/10 rounded-full peer-checked:bg-gradient-to-r peer-checked:from-purple-600 peer-checked:to-purple-500 peer-checked:border-purple-500/50 transition-all shadow-inner"></div>
+                      <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-6 peer-checked:shadow-lg peer-checked:shadow-purple-500/50"></div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-purple-400" />
+                      <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors font-mono">
+                        Birlesik AI Analizi
+                      </span>
+                    </div>
+                  </label>
+
+                  <button
+                    onClick={handleGenerateMultiUserReport}
+                    disabled={isGenerating || selectedUsers.length < 2 || usersLoading}
+                    className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl hover:from-purple-500 hover:to-purple-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40"
+                  >
+                    <Users className={`h-4 w-4 ${isGenerating ? "animate-pulse" : "group-hover:scale-110 transition-transform"}`} />
+                    {isGenerating ? (
+                      <span className="font-mono">Processing...</span>
+                    ) : (
+                      <span>Birlesik Rapor ({selectedUsers.length})</span>
+                    )}
                   </button>
                 </div>
               </>
