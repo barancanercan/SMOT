@@ -23,7 +23,7 @@ from app.core.database import (
     clear_report_cache
 )
 from app.core.constants import normalize_party_name
-from app.services.scraping.profile_scraper import get_weekly_comparison
+# NOTE: get_weekly_comparison is imported lazily to avoid selenium dependency
 from app.services.reporting.metrics import (
     get_user_engagement_stats,
     get_top_tweets,
@@ -155,7 +155,12 @@ class ReportGenerator:
 
     def _generate_follower_change_section(self, username: str) -> str:
         """Soru 4: Takipci degisimi"""
-        comparison = get_weekly_comparison(username)
+        # Lazy import to avoid selenium dependency at startup
+        try:
+            from app.services.scraping.profile_scraper import get_weekly_comparison
+            comparison = get_weekly_comparison(username)
+        except ImportError:
+            comparison = None
 
         if not comparison:
             return """## Takipci Degisimi
