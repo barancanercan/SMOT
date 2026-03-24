@@ -16,7 +16,7 @@
 
 <br/>
 
-<img src="https://raw.githubusercontent.com/barancanercan/MeclisIstihbaratSistemi/main/docs/banner.png" alt="M.I.S Banner" width="800"/>
+<img src="https://raw.githubusercontent.com/barancanercan/MeclisIstihbaratSistemi/main/docs/logo.png" alt="M.I.S Logo" width="300"/>
 
 **Turkiye'nin Belediye Meclis uyelerinin sosyal medya aktivitelerini analiz eden,**
 **profesyonel istihbarat raporlari ureten modern SaaS platformu.**
