@@ -1,0 +1,27 @@
+# Render Blueprint - Meclis Istihbarat Sistemi
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: meclis-api
+    runtime: python
+    region: frankfurt  # EU region for Turkey
+    plan: free
+    rootDir: backend
+    buildCommand: chmod +x build.sh && ./build.sh
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: LLM_PROVIDER
+        value: openai
+      - key: OPENAI_API_KEY
+        sync: false  # User must set this manually in Render dashboard
+      - key: DATABASE_URL
+        value: sqlite:///./data/meclis.db
+    healthCheckPath: /health
+    autoDeploy: true

@@ -40,10 +40,10 @@ backend/logs/
 mcp_server.log
 
 # Database
-*.db
 *.db.bak
 *.db.old
 !data/.gitkeep
+!data/meclis.db
 
 # Cache
 .cache/

@@ -16,6 +16,9 @@ ROOT_DIR = Path(__file__).parent.parent.parent.parent  # meclis-istihbarat/
 BACKEND_DIR = ROOT_DIR / "backend"
 DATA_DIR = ROOT_DIR / "data"
 
+# Ensure data directory exists (important for Render deployment)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
 
 class Settings(BaseSettings):
     """Application settings with environment variable support"""
@@ -36,7 +39,7 @@ class Settings(BaseSettings):
     api_port: int = Field(default=8000, description="API port")
     api_prefix: str = Field(default="/api/v1", description="API prefix")
     cors_origins: str = Field(
-        default="http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001",
+        default="http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,https://meclis-istihbarat-sistemi.vercel.app",
         description="Allowed CORS origins (comma separated) - NO WILDCARDS in production"
     )
 
