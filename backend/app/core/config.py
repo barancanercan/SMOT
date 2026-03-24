@@ -12,11 +12,21 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 # Project paths
-ROOT_DIR = Path(__file__).parent.parent.parent.parent  # meclis-istihbarat/
-BACKEND_DIR = ROOT_DIR / "backend"
-DATA_DIR = ROOT_DIR / "data"
+BACKEND_DIR = Path(__file__).parent.parent.parent  # backend/
+ROOT_DIR = BACKEND_DIR.parent  # meclis-istihbarat/
 
-# Ensure data directory exists (important for Render deployment)
+# Data directory - use environment variable or default to relative path
+_data_dir_env = os.environ.get("DATA_DIR")
+if _data_dir_env:
+    DATA_DIR = Path(_data_dir_env)
+else:
+    # Check if we're in production (Render) or development
+    if os.environ.get("ENVIRONMENT") == "production":
+        DATA_DIR = BACKEND_DIR / "data"  # Inside backend for Render
+    else:
+        DATA_DIR = ROOT_DIR / "data"  # Outside backend for local dev
+
+# Ensure data directory exists
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
