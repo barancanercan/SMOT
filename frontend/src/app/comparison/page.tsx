@@ -181,18 +181,32 @@ export default function ComparisonPage() {
     enabled: (activeTab === "party" && selectedParties.length > 0) || (activeTab === "user" && selectedUsers.length > 0),
   });
 
-  // Recent tweets query
+  // Recent tweets query for first selection
   const { data: recentTweets, refetch: refetchRecent } = useQuery({
-    queryKey: ["recent-tweets", activeTab, selectedParties, selectedUsers],
+    queryKey: ["recent-tweets", activeTab, selectedParties[0], selectedUsers[0]],
     queryFn: () => {
       if (activeTab === "party" && selectedParties.length > 0) {
-        return api.get<RecentTweetsResponse>(`/analytics/tweets/recent?party=${selectedParties[0]}&limit=3`);
+        return api.get<RecentTweetsResponse>(`/analytics/tweets/recent?party=${encodeURIComponent(selectedParties[0])}&limit=3`);
       } else if (activeTab === "user" && selectedUsers.length > 0) {
         return api.get<RecentTweetsResponse>(`/analytics/tweets/recent?username=${selectedUsers[0]}&limit=3`);
       }
       return null;
     },
     enabled: (activeTab === "party" && selectedParties.length > 0) || (activeTab === "user" && selectedUsers.length > 0),
+  });
+
+  // Recent tweets query for second selection (party comparison)
+  const { data: recentTweets2, refetch: refetchRecent2 } = useQuery({
+    queryKey: ["recent-tweets-2", activeTab, selectedParties[1], selectedUsers[1]],
+    queryFn: () => {
+      if (activeTab === "party" && selectedParties.length > 1) {
+        return api.get<RecentTweetsResponse>(`/analytics/tweets/recent?party=${encodeURIComponent(selectedParties[1])}&limit=3`);
+      } else if (activeTab === "user" && selectedUsers.length > 1) {
+        return api.get<RecentTweetsResponse>(`/analytics/tweets/recent?username=${selectedUsers[1]}&limit=3`);
+      }
+      return null;
+    },
+    enabled: (activeTab === "party" && selectedParties.length > 1) || (activeTab === "user" && selectedUsers.length > 1),
   });
 
   // User compare mutation
@@ -205,6 +219,7 @@ export default function ComparisonPage() {
       toast.success("Karsilastirma tamamlandi");
       refetchWeeklyTop();
       refetchRecent();
+      refetchRecent2();
     },
     onError: (error: Error) => {
       toast.error(`Karsilastirma basarisiz: ${error.message}`);
@@ -235,6 +250,7 @@ export default function ComparisonPage() {
       toast.success("Parti karsilastirmasi tamamlandi");
       refetchWeeklyTop();
       refetchRecent();
+      refetchRecent2();
     },
     onError: (error: Error) => {
       toast.error(`Parti karsilastirmasi basarisiz: ${error.message}`);
@@ -709,8 +725,58 @@ export default function ComparisonPage() {
               </div>
             )}
 
-            {/* Recent 3 Tweets */}
-            {recentTweets?.tweets && recentTweets.tweets.length > 0 && (comparisonData || partyComparisonData) && (
+            {/* Recent 3 Tweets - Side by Side for Party Comparison */}
+            {activeTab === "party" && partyComparisonData && (recentTweets?.tweets || recentTweets2?.tweets) && (
+              <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden">
+                <div className="flex items-center gap-3 px-6 py-4 border-b border-white/10 bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-transparent">
+                  <Clock className="h-5 w-5 text-cyan-400" />
+                  <span className="text-white font-semibold">Son 3 Tweet (Parti Bazli)</span>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4 p-4">
+                  {/* First Party */}
+                  {selectedParties[0] && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: getPartyColor(selectedParties[0]) }}
+                        />
+                        <span className="text-white font-semibold">{selectedParties[0]}</span>
+                      </div>
+                      {recentTweets?.tweets && recentTweets.tweets.length > 0 ? (
+                        recentTweets.tweets.map((tweet) => (
+                          <TweetCard key={tweet.id} tweet={tweet} />
+                        ))
+                      ) : (
+                        <div className="text-gray-500 text-sm text-center py-4">Tweet bulunamadi</div>
+                      )}
+                    </div>
+                  )}
+                  {/* Second Party */}
+                  {selectedParties[1] && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: getPartyColor(selectedParties[1]) }}
+                        />
+                        <span className="text-white font-semibold">{selectedParties[1]}</span>
+                      </div>
+                      {recentTweets2?.tweets && recentTweets2.tweets.length > 0 ? (
+                        recentTweets2.tweets.map((tweet) => (
+                          <TweetCard key={tweet.id} tweet={tweet} />
+                        ))
+                      ) : (
+                        <div className="text-gray-500 text-sm text-center py-4">Tweet bulunamadi</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Recent 3 Tweets - for User Comparison */}
+            {activeTab === "user" && comparisonData && recentTweets?.tweets && recentTweets.tweets.length > 0 && (
               <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden">
                 <div className="flex items-center gap-3 px-6 py-4 border-b border-white/10 bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-transparent">
                   <Clock className="h-5 w-5 text-cyan-400" />
