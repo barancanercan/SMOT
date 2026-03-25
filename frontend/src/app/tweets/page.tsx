@@ -54,7 +54,7 @@ export default function TweetsPage() {
     error: usersError,
   } = useQuery({
     queryKey: ["users"],
-    queryFn: () => api.get<PaginatedResponse<User>>("/users/?page_size=500"),
+    queryFn: () => api.get<PaginatedResponse<User>>("/users/?page_size=100"),
     staleTime: 5 * 60 * 1000,
   });
 

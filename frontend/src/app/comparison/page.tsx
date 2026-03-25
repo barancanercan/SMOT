@@ -143,7 +143,7 @@ export default function ComparisonPage() {
   // Fetch users list
   const { data: usersData, isLoading: usersLoading } = useQuery({
     queryKey: ["users", "all"],
-    queryFn: () => api.get<PaginatedResponse<User>>("/users/?page_size=500"),
+    queryFn: () => api.get<PaginatedResponse<User>>("/users/?page_size=100"),
     staleTime: 5 * 60 * 1000,
   });
 
