@@ -319,3 +319,51 @@ export interface MultiUserReportResponse {
   content: string;
   member_count: number;
 }
+
+// Party comparison types
+export interface PartyMetrics {
+  party: string;
+  member_count: number;
+  total_followers: number;
+  avg_followers: number;
+  tweet_count: number;
+  total_likes: number;
+  total_retweets: number;
+  total_engagement: number;
+  engagement_rate: number;
+}
+
+export interface PartyComparisonResponse {
+  parties: PartyMetrics[];
+}
+
+export interface PartyComparisonLLMResponse {
+  parties: PartyMetrics[];
+  analysis: string;
+}
+
+// Tweet types for comparison
+export interface TweetItem {
+  id: number;
+  username: string;
+  name: string;
+  party: string;
+  tweet_text: string;
+  tweet_date: string;
+  likes: number;
+  retweets: number;
+  replies: number;
+  views: number;
+  engagement?: number;
+}
+
+export interface WeeklyTopTweetsResponse {
+  period: string;
+  filter: { party?: string; username?: string };
+  tweets: TweetItem[];
+}
+
+export interface RecentTweetsResponse {
+  filter: { party?: string; username?: string };
+  tweets: TweetItem[];
+}

@@ -8,6 +8,11 @@ import {
   PaginatedResponse,
   ComparisonResponse,
   ComparisonLLMResponse,
+  PartyComparisonResponse,
+  PartyComparisonLLMResponse,
+  WeeklyTopTweetsResponse,
+  RecentTweetsResponse,
+  TweetItem,
 } from "@/lib/api";
 import { useToast } from "@/components/ui/toast";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
@@ -20,10 +25,14 @@ import {
   TrendingUp,
   Heart,
   MessageCircle,
+  Repeat2,
   Eye,
   BarChart3,
   Brain,
   Search,
+  Building2,
+  Calendar,
+  Clock,
 } from "lucide-react";
 import {
   BarChart,
@@ -58,17 +67,14 @@ const getPartyColor = (party: string): string => {
   return PARTY_COLORS[party] || "#60A5FA";
 };
 
-// Format numbers for display
 const formatNumber = (num: number) => {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
   if (num >= 1000) return (num / 1000).toFixed(1) + "K";
   return num.toLocaleString("tr-TR");
 };
 
-// Custom tooltip for charts
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload || !payload.length) return null;
-
   return (
     <div className="bg-[#1A1A1A] border border-white/20 rounded-lg px-4 py-3 shadow-xl">
       <p className="text-white font-semibold mb-2">{label}</p>
@@ -82,26 +88,72 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+// Tweet Card Component
+const TweetCard = ({ tweet, showUser = true }: { tweet: TweetItem; showUser?: boolean }) => (
+  <div className="bg-[#0B0B0B] rounded-lg border border-white/5 p-4 hover:border-white/10 transition-all">
+    {showUser && (
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-blue-400 font-mono text-sm">@{tweet.username}</span>
+        <span
+          className="px-2 py-0.5 text-xs rounded-full"
+          style={{
+            backgroundColor: getPartyColor(tweet.party) + "30",
+            color: getPartyColor(tweet.party),
+          }}
+        >
+          {tweet.party}
+        </span>
+      </div>
+    )}
+    <p className="text-gray-300 text-sm mb-3 line-clamp-3">{tweet.tweet_text}</p>
+    <div className="flex items-center justify-between text-xs text-gray-500">
+      <div className="flex items-center gap-3">
+        <span className="flex items-center gap-1">
+          <Heart className="w-3 h-3 text-red-400" />
+          {formatNumber(tweet.likes)}
+        </span>
+        <span className="flex items-center gap-1">
+          <Repeat2 className="w-3 h-3 text-green-400" />
+          {formatNumber(tweet.retweets)}
+        </span>
+        <span className="flex items-center gap-1">
+          <Eye className="w-3 h-3 text-blue-400" />
+          {formatNumber(tweet.views)}
+        </span>
+      </div>
+      <span className="flex items-center gap-1">
+        <Clock className="w-3 h-3" />
+        {tweet.tweet_date?.split("T")[0] || "-"}
+      </span>
+    </div>
+  </div>
+);
+
 export default function ComparisonPage() {
+  const [activeTab, setActiveTab] = useState<"party" | "user">("party");
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [selectedParties, setSelectedParties] = useState<string[]>([]);
   const [comparisonData, setComparisonData] = useState<ComparisonResponse | null>(null);
+  const [partyComparisonData, setPartyComparisonData] = useState<PartyComparisonResponse | null>(null);
   const [analysisText, setAnalysisText] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
   // Fetch users list
-  const {
-    data: usersData,
-    isLoading: usersLoading,
-    error: usersError,
-  } = useQuery({
+  const { data: usersData, isLoading: usersLoading } = useQuery({
     queryKey: ["users", "all"],
-    queryFn: () => api.get<PaginatedResponse<User>>("/users/?page_size=100"),
+    queryFn: () => api.get<PaginatedResponse<User>>("/users/?page_size=500"),
     staleTime: 5 * 60 * 1000,
   });
 
   const users = usersData?.items || [];
+
+  // Get unique parties
+  const parties = useMemo(() => {
+    const partySet = new Set(users.map((u) => u.party).filter(Boolean));
+    return Array.from(partySet).sort();
+  }, [users]);
 
   // Filter users by search
   const filteredUsers = useMemo(() => {
@@ -115,23 +167,35 @@ export default function ComparisonPage() {
     );
   }, [users, searchQuery]);
 
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
-        return;
+  // Weekly top tweets query
+  const { data: weeklyTopTweets, refetch: refetchWeeklyTop } = useQuery({
+    queryKey: ["weekly-top-tweets", activeTab, selectedParties, selectedUsers],
+    queryFn: () => {
+      if (activeTab === "party" && selectedParties.length > 0) {
+        return api.get<WeeklyTopTweetsResponse>(`/analytics/tweets/weekly-top?party=${selectedParties[0]}&limit=5`);
+      } else if (activeTab === "user" && selectedUsers.length > 0) {
+        return api.get<WeeklyTopTweetsResponse>(`/analytics/tweets/weekly-top?username=${selectedUsers[0]}&limit=5`);
       }
-      if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
-        setSearchQuery(e.key.toLowerCase());
-        searchInputRef.current?.focus();
+      return api.get<WeeklyTopTweetsResponse>("/analytics/tweets/weekly-top?limit=5");
+    },
+    enabled: (activeTab === "party" && selectedParties.length > 0) || (activeTab === "user" && selectedUsers.length > 0),
+  });
+
+  // Recent tweets query
+  const { data: recentTweets, refetch: refetchRecent } = useQuery({
+    queryKey: ["recent-tweets", activeTab, selectedParties, selectedUsers],
+    queryFn: () => {
+      if (activeTab === "party" && selectedParties.length > 0) {
+        return api.get<RecentTweetsResponse>(`/analytics/tweets/recent?party=${selectedParties[0]}&limit=3`);
+      } else if (activeTab === "user" && selectedUsers.length > 0) {
+        return api.get<RecentTweetsResponse>(`/analytics/tweets/recent?username=${selectedUsers[0]}&limit=3`);
       }
-    };
+      return null;
+    },
+    enabled: (activeTab === "party" && selectedParties.length > 0) || (activeTab === "user" && selectedUsers.length > 0),
+  });
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  // Compare mutation
+  // User compare mutation
   const compareMutation = useMutation({
     mutationFn: (usernames: string[]) =>
       api.post<ComparisonResponse>("/analytics/compare", { usernames }),
@@ -139,13 +203,15 @@ export default function ComparisonPage() {
       setComparisonData(data);
       setAnalysisText("");
       toast.success("Karsilastirma tamamlandi");
+      refetchWeeklyTop();
+      refetchRecent();
     },
     onError: (error: Error) => {
       toast.error(`Karsilastirma basarisiz: ${error.message}`);
     },
   });
 
-  // Compare with LLM mutation
+  // User compare with LLM
   const compareLLMMutation = useMutation({
     mutationFn: (usernames: string[]) =>
       api.post<ComparisonLLMResponse>("/analytics/compare/llm", { usernames }),
@@ -159,7 +225,41 @@ export default function ComparisonPage() {
     },
   });
 
-  const isComparing = compareMutation.isPending || compareLLMMutation.isPending;
+  // Party compare mutation
+  const partyCompareMutation = useMutation({
+    mutationFn: (partyList: string[]) =>
+      api.post<PartyComparisonResponse>("/analytics/parties/compare", { parties: partyList }),
+    onSuccess: (data) => {
+      setPartyComparisonData(data);
+      setAnalysisText("");
+      toast.success("Parti karsilastirmasi tamamlandi");
+      refetchWeeklyTop();
+      refetchRecent();
+    },
+    onError: (error: Error) => {
+      toast.error(`Parti karsilastirmasi basarisiz: ${error.message}`);
+    },
+  });
+
+  // Party compare with LLM
+  const partyCompareLLMMutation = useMutation({
+    mutationFn: (partyList: string[]) =>
+      api.post<PartyComparisonLLMResponse>("/analytics/parties/compare/llm", { parties: partyList }),
+    onSuccess: (data) => {
+      setPartyComparisonData({ parties: data.parties });
+      setAnalysisText(data.analysis);
+      toast.success("AI parti analizi tamamlandi");
+    },
+    onError: (error: Error) => {
+      toast.error(`AI parti analizi basarisiz: ${error.message}`);
+    },
+  });
+
+  const isComparing =
+    compareMutation.isPending ||
+    compareLLMMutation.isPending ||
+    partyCompareMutation.isPending ||
+    partyCompareLLMMutation.isPending;
 
   const toggleUserSelection = (username: string) => {
     setSelectedUsers((prev) =>
@@ -171,28 +271,61 @@ export default function ComparisonPage() {
     );
   };
 
+  const togglePartySelection = (party: string) => {
+    setSelectedParties((prev) =>
+      prev.includes(party)
+        ? prev.filter((p) => p !== party)
+        : prev.length < 10
+        ? [...prev, party]
+        : prev
+    );
+  };
+
   const handleCompare = () => {
-    if (selectedUsers.length < 2) {
-      toast.error("En az 2 kullanici secmelisiniz");
-      return;
+    if (activeTab === "user") {
+      if (selectedUsers.length < 2) {
+        toast.error("En az 2 kullanici secmelisiniz");
+        return;
+      }
+      compareMutation.mutate(selectedUsers);
+    } else {
+      if (selectedParties.length < 2) {
+        toast.error("En az 2 parti secmelisiniz");
+        return;
+      }
+      partyCompareMutation.mutate(selectedParties);
     }
-    compareMutation.mutate(selectedUsers);
   };
 
   const handleCompareWithLLM = () => {
-    if (selectedUsers.length < 2) {
-      toast.error("En az 2 kullanici secmelisiniz");
-      return;
+    if (activeTab === "user") {
+      if (selectedUsers.length < 2) {
+        toast.error("En az 2 kullanici secmelisiniz");
+        return;
+      }
+      compareLLMMutation.mutate(selectedUsers);
+    } else {
+      if (selectedParties.length < 2) {
+        toast.error("En az 2 parti secmelisiniz");
+        return;
+      }
+      partyCompareLLMMutation.mutate(selectedParties);
     }
-    if (selectedUsers.length > 10) {
-      toast.error("Maksimum 10 kullanici secilebilir");
-      return;
-    }
-    compareLLMMutation.mutate(selectedUsers);
   };
 
-  // Prepare chart data
-  const barChartData = comparisonData?.users.map((u) => ({
+  const clearSelection = () => {
+    if (activeTab === "user") {
+      setSelectedUsers([]);
+      setComparisonData(null);
+    } else {
+      setSelectedParties([]);
+      setPartyComparisonData(null);
+    }
+    setAnalysisText("");
+  };
+
+  // Chart data
+  const userBarChartData = comparisonData?.users.map((u) => ({
     name: `@${u.username}`,
     Takipci: u.followers,
     Tweet: u.tweet_count,
@@ -201,43 +334,14 @@ export default function ComparisonPage() {
     party: u.party,
   })) || [];
 
-  // Prepare radar chart data (normalized)
-  const radarChartData = comparisonData ? (() => {
-    const maxFollowers = Math.max(...comparisonData.users.map(u => u.followers)) || 1;
-    const maxTweets = Math.max(...comparisonData.users.map(u => u.tweet_count)) || 1;
-    const maxLikes = Math.max(...comparisonData.users.map(u => u.total_likes)) || 1;
-    const maxRetweets = Math.max(...comparisonData.users.map(u => u.total_retweets)) || 1;
-    const maxEngagement = Math.max(...comparisonData.users.map(u => u.engagement_rate)) || 1;
-
-    return [
-      { metric: "Takipci", ...Object.fromEntries(comparisonData.users.map(u => [u.username, (u.followers / maxFollowers) * 100])) },
-      { metric: "Tweet", ...Object.fromEntries(comparisonData.users.map(u => [u.username, (u.tweet_count / maxTweets) * 100])) },
-      { metric: "Like", ...Object.fromEntries(comparisonData.users.map(u => [u.username, (u.total_likes / maxLikes) * 100])) },
-      { metric: "RT", ...Object.fromEntries(comparisonData.users.map(u => [u.username, (u.total_retweets / maxRetweets) * 100])) },
-      { metric: "Etkilesim", ...Object.fromEntries(comparisonData.users.map(u => [u.username, (u.engagement_rate / maxEngagement) * 100])) },
-    ];
-  })() : [];
-
-  if (usersError) {
-    return (
-      <div className="min-h-screen bg-[#0B0B0B] text-white p-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-[#1A1A1A]/80 rounded-2xl border border-red-500/30 p-12 text-center">
-            <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Sistem Hatasi</h2>
-            <p className="text-gray-400 mb-4">Kullanicilar yuklenemedi</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl"
-            >
-              <RefreshCw className="inline-block h-4 w-4 mr-2" />
-              Yeniden Dene
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const partyBarChartData = partyComparisonData?.parties.map((p) => ({
+    name: p.party,
+    Takipci: p.total_followers,
+    Tweet: p.tweet_count,
+    Like: p.total_likes,
+    RT: p.total_retweets,
+    Uye: p.member_count,
+  })) || [];
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] text-white">
@@ -247,7 +351,7 @@ export default function ComparisonPage() {
       <div className="relative max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="relative mb-8 p-8 rounded-2xl bg-gradient-to-br from-[#1A1A1A] via-[#151515] to-[#0F0F0F] border border-white/10 overflow-hidden shadow-2xl">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <div className="flex items-center gap-3 mb-3">
                 <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/30">
@@ -258,55 +362,113 @@ export default function ComparisonPage() {
                 </span>
               </div>
               <h1 className="text-3xl font-bold text-white mb-2">
-                Kullanici Karsilastirma
+                {activeTab === "party" ? "Parti Karsilastirma" : "Uye Karsilastirma"}
               </h1>
               <p className="text-gray-500 text-sm">
-                Birden fazla kullaniciyi yan yana karsilastirin ve AI analizi yapin
+                {activeTab === "party"
+                  ? "Partileri yan yana karsilastirin ve AI analizi yapin"
+                  : "Meclis uyelerini yan yana karsilastirin ve AI analizi yapin"}
               </p>
+            </div>
+
+            {/* Tab Buttons */}
+            <div className="flex bg-[#0B0B0B] rounded-xl p-1 border border-white/10">
+              <button
+                onClick={() => {
+                  setActiveTab("party");
+                  setComparisonData(null);
+                  setAnalysisText("");
+                }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all ${
+                  activeTab === "party"
+                    ? "bg-purple-600 text-white"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <Building2 className="w-4 h-4" />
+                Parti
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("user");
+                  setPartyComparisonData(null);
+                  setAnalysisText("");
+                }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all ${
+                  activeTab === "user"
+                    ? "bg-purple-600 text-white"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Uye
+              </button>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* User Selection Panel */}
+          {/* Selection Panel */}
           <div className="lg:col-span-1">
             <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 p-6 sticky top-8">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Users className="h-5 w-5 text-purple-400" />
-                Kullanici Sec ({selectedUsers.length}/10)
+                {activeTab === "party" ? (
+                  <>
+                    <Building2 className="h-5 w-5 text-purple-400" />
+                    Parti Sec ({selectedParties.length}/10)
+                  </>
+                ) : (
+                  <>
+                    <Users className="h-5 w-5 text-purple-400" />
+                    Kullanici Sec ({selectedUsers.length}/10)
+                  </>
+                )}
               </h3>
 
-              {/* Search input */}
-              <div className="relative mb-3">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-500" />
+              {activeTab === "user" && (
+                <div className="relative mb-3">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-4 w-4 text-gray-500" />
+                  </div>
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Ara..."
+                    className="w-full pl-10 pr-4 py-2 bg-[#0B0B0B] border border-white/10 rounded-lg text-white font-mono text-sm focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all placeholder:text-gray-600"
+                  />
                 </div>
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Ara... (harf tuslayin)"
-                  className="w-full pl-10 pr-4 py-2 bg-[#0B0B0B] border border-white/10 rounded-lg text-white font-mono text-sm focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all placeholder:text-gray-600"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-white"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-
-              {searchQuery && (
-                <p className="text-xs text-gray-500 mb-2 font-mono">
-                  {filteredUsers.length} sonuc bulundu
-                </p>
               )}
 
               <div className="max-h-64 overflow-y-auto space-y-1 mb-4">
-                {usersLoading ? (
+                {activeTab === "party" ? (
+                  parties.map((party) => (
+                    <label
+                      key={party}
+                      className={`flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all ${
+                        selectedParties.includes(party)
+                          ? "bg-purple-500/20 border border-purple-500/30"
+                          : "hover:bg-white/5"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedParties.includes(party)}
+                        onChange={() => togglePartySelection(party)}
+                        className="w-4 h-4 rounded border-white/20 bg-[#0B0B0B] text-purple-500"
+                      />
+                      <span
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: getPartyColor(party) }}
+                      />
+                      <span className="text-white">{party}</span>
+                      <span className="text-xs text-gray-500 ml-auto">
+                        {users.filter((u) => u.party === party).length} uye
+                      </span>
+                    </label>
+                  ))
+                ) : usersLoading ? (
                   <div className="py-8 text-center">
                     <div className="w-8 h-8 mx-auto mb-2 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
                     <p className="text-gray-500 text-sm">Yukleniyor...</p>
@@ -325,7 +487,7 @@ export default function ComparisonPage() {
                         type="checkbox"
                         checked={selectedUsers.includes(user.username)}
                         onChange={() => toggleUserSelection(user.username)}
-                        className="w-4 h-4 rounded border-white/20 bg-[#0B0B0B] text-purple-500 focus:ring-purple-500/20"
+                        className="w-4 h-4 rounded border-white/20 bg-[#0B0B0B] text-purple-500"
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-white truncate">
@@ -350,7 +512,7 @@ export default function ComparisonPage() {
               <div className="space-y-2">
                 <button
                   onClick={handleCompare}
-                  disabled={isComparing || selectedUsers.length < 2}
+                  disabled={isComparing || (activeTab === "user" ? selectedUsers.length < 2 : selectedParties.length < 2)}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl hover:from-purple-500 hover:to-purple-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
                 >
                   <BarChart3 className={`h-5 w-5 ${isComparing ? "animate-pulse" : ""}`} />
@@ -359,21 +521,16 @@ export default function ComparisonPage() {
 
                 <button
                   onClick={handleCompareWithLLM}
-                  disabled={isComparing || selectedUsers.length < 2}
+                  disabled={isComparing || (activeTab === "user" ? selectedUsers.length < 2 : selectedParties.length < 2)}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl hover:from-blue-500 hover:to-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
-                  title={selectedUsers.length < 2 ? "AI karsilastirma icin en az 2 kullanici secin" : ""}
                 >
                   <Sparkles className={`h-5 w-5 ${isComparing ? "animate-spin" : ""}`} />
-                  {isComparing ? "Analiz Ediliyor..." : selectedUsers.length >= 2 ? `AI Karsilastirma (${selectedUsers.length} Kullanici)` : "En az 2 Kullanici Sec"}
+                  {isComparing ? "Analiz Ediliyor..." : "AI Analizi"}
                 </button>
 
-                {selectedUsers.length > 0 && (
+                {(selectedUsers.length > 0 || selectedParties.length > 0) && (
                   <button
-                    onClick={() => {
-                      setSelectedUsers([]);
-                      setComparisonData(null);
-                      setAnalysisText("");
-                    }}
+                    onClick={clearSelection}
                     className="w-full px-4 py-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all text-sm"
                   >
                     Secimi Temizle
@@ -385,31 +542,94 @@ export default function ComparisonPage() {
 
           {/* Results Panel */}
           <div className="lg:col-span-2 space-y-6">
-            {!comparisonData && !isComparing && (
+            {/* Empty State */}
+            {!comparisonData && !partyComparisonData && !isComparing && (
               <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 p-12 text-center">
                 <GitCompare className="w-16 h-16 text-purple-400/50 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">
-                  Karsilastirma Bekliyor
-                </h3>
+                <h3 className="text-xl font-semibold text-white mb-2">Karsilastirma Bekliyor</h3>
                 <p className="text-gray-500">
-                  En az 2 kullanici secin ve karsilastir butonuna basin
+                  {activeTab === "party"
+                    ? "En az 2 parti secin ve karsilastir butonuna basin"
+                    : "En az 2 kullanici secin ve karsilastir butonuna basin"}
                 </p>
               </div>
             )}
 
+            {/* Loading State */}
             {isComparing && (
               <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 p-12 text-center">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
                 <p className="text-white font-semibold">Karsilastirma Yapiliyor...</p>
-                <p className="text-gray-500 text-sm mt-2 font-mono">
-                  {selectedUsers.length} kullanici analiz ediliyor
-                </p>
               </div>
             )}
 
-            {comparisonData && !isComparing && (
+            {/* Party Comparison Results */}
+            {activeTab === "party" && partyComparisonData && !isComparing && (
               <>
-                {/* Metric Cards */}
+                {/* Party Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {partyComparisonData.parties.map((party) => (
+                    <div
+                      key={party.party}
+                      className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 p-4"
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: getPartyColor(party.party) }}
+                        />
+                        <span className="text-white font-semibold">{party.party}</span>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Uye</span>
+                          <span className="text-white font-mono">{party.member_count}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Takipci</span>
+                          <span className="text-white font-mono">{formatNumber(party.total_followers)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Tweet</span>
+                          <span className="text-white font-mono">{formatNumber(party.tweet_count)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Etkilesim</span>
+                          <span className="text-emerald-400 font-mono">{party.engagement_rate}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Party Bar Chart */}
+                <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-purple-400" />
+                    Parti Metrikleri
+                  </h3>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={partyBarChartData} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                        <XAxis type="number" tick={{ fontSize: 12, fill: "#9CA3AF" }} tickFormatter={formatNumber} />
+                        <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "#9CA3AF" }} width={100} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend />
+                        <Bar dataKey="Takipci" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
+                        <Bar dataKey="Tweet" fill="#3B82F6" radius={[0, 4, 4, 0]} />
+                        <Bar dataKey="Like" fill="#EF4444" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* User Comparison Results */}
+            {activeTab === "user" && comparisonData && !isComparing && (
+              <>
+                {/* User Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {comparisonData.users.slice(0, 4).map((user) => (
                     <div
@@ -424,15 +644,15 @@ export default function ComparisonPage() {
                         <span className="text-blue-400 font-mono text-sm">@{user.username}</span>
                       </div>
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between">
+                        <div className="flex justify-between">
                           <span className="text-xs text-gray-500">Takipci</span>
                           <span className="text-white font-mono">{formatNumber(user.followers)}</span>
                         </div>
-                        <div className="flex items-center justify-between">
+                        <div className="flex justify-between">
                           <span className="text-xs text-gray-500">Tweet</span>
                           <span className="text-white font-mono">{formatNumber(user.tweet_count)}</span>
                         </div>
-                        <div className="flex items-center justify-between">
+                        <div className="flex justify-between">
                           <span className="text-xs text-gray-500">Etkilesim</span>
                           <span className="text-emerald-400 font-mono">{user.engagement_rate.toFixed(1)}</span>
                         </div>
@@ -441,7 +661,7 @@ export default function ComparisonPage() {
                   ))}
                 </div>
 
-                {/* Bar Chart */}
+                {/* User Bar Chart */}
                 <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 p-6">
                   <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-purple-400" />
@@ -449,23 +669,12 @@ export default function ComparisonPage() {
                   </h3>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={barChartData} layout="vertical">
+                      <BarChart data={userBarChartData} layout="vertical">
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                        <XAxis
-                          type="number"
-                          tick={{ fontSize: 12, fill: "#9CA3AF" }}
-                          tickFormatter={formatNumber}
-                          axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
-                        />
-                        <YAxis
-                          type="category"
-                          dataKey="name"
-                          tick={{ fontSize: 12, fill: "#9CA3AF" }}
-                          axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
-                          width={100}
-                        />
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
-                        <Legend wrapperStyle={{ color: "#9CA3AF" }} />
+                        <XAxis type="number" tick={{ fontSize: 12, fill: "#9CA3AF" }} tickFormatter={formatNumber} />
+                        <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "#9CA3AF" }} width={100} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend />
                         <Bar dataKey="Takipci" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
                         <Bar dataKey="Tweet" fill="#3B82F6" radius={[0, 4, 4, 0]} />
                         <Bar dataKey="Like" fill="#EF4444" radius={[0, 4, 4, 0]} />
@@ -474,106 +683,64 @@ export default function ComparisonPage() {
                     </ResponsiveContainer>
                   </div>
                 </div>
+              </>
+            )}
 
-                {/* Radar Chart */}
-                {radarChartData.length > 0 && comparisonData.users.length <= 5 && (
-                  <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-blue-400" />
-                      Cok Boyutlu Karsilastirma
-                    </h3>
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart data={radarChartData}>
-                          <PolarGrid stroke="rgba(255,255,255,0.1)" />
-                          <PolarAngleAxis dataKey="metric" tick={{ fontSize: 12, fill: "#9CA3AF" }} />
-                          <PolarRadiusAxis tick={{ fontSize: 10, fill: "#6B7280" }} domain={[0, 100]} />
-                          {comparisonData.users.map((user, idx) => (
-                            <Radar
-                              key={user.username}
-                              name={`@${user.username}`}
-                              dataKey={user.username}
-                              stroke={getPartyColor(user.party)}
-                              fill={getPartyColor(user.party)}
-                              fillOpacity={0.2}
-                              strokeWidth={2}
-                            />
-                          ))}
-                          <Legend wrapperStyle={{ color: "#9CA3AF" }} />
-                          <Tooltip content={<CustomTooltip />} />
-                        </RadarChart>
-                      </ResponsiveContainer>
+            {/* Top 5 Weekly Tweets */}
+            {weeklyTopTweets?.tweets && weeklyTopTweets.tweets.length > 0 && (comparisonData || partyComparisonData) && (
+              <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-5 w-5 text-amber-400" />
+                    <span className="text-white font-semibold">Bu Haftanin Top 5 Tweeti</span>
+                  </div>
+                  <span className="text-xs text-gray-500 font-mono">{weeklyTopTweets.period}</span>
+                </div>
+                <div className="p-4 space-y-3">
+                  {weeklyTopTweets.tweets.map((tweet, idx) => (
+                    <div key={tweet.id} className="flex gap-3">
+                      <span className="text-2xl font-bold text-amber-400/50 w-8">#{idx + 1}</span>
+                      <div className="flex-1">
+                        <TweetCard tweet={tweet} />
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
+              </div>
+            )}
 
-                {/* Detailed Table */}
-                <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-white/10">
-                    <h3 className="text-lg font-semibold text-white">Detayli Metrikler</h3>
+            {/* Recent 3 Tweets */}
+            {recentTweets?.tweets && recentTweets.tweets.length > 0 && (comparisonData || partyComparisonData) && (
+              <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden">
+                <div className="flex items-center gap-3 px-6 py-4 border-b border-white/10 bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-transparent">
+                  <Clock className="h-5 w-5 text-cyan-400" />
+                  <span className="text-white font-semibold">Son 3 Tweet</span>
+                </div>
+                <div className="p-4 grid gap-3 md:grid-cols-3">
+                  {recentTweets.tweets.map((tweet) => (
+                    <TweetCard key={tweet.id} tweet={tweet} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* LLM Analysis */}
+            {analysisText && (
+              <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-gradient-to-r from-blue-500/10 via-blue-500/5 to-transparent">
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="h-5 w-5 text-blue-400" />
+                    <span className="text-white font-semibold">AI Analiz Ozeti</span>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-white/10 bg-[#0B0B0B]/50">
-                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase">Kullanici</th>
-                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase">Parti</th>
-                          <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase">Takipci</th>
-                          <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase">Tweet</th>
-                          <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase">Like</th>
-                          <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase">RT</th>
-                          <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase">Etkilesim</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {comparisonData.users.map((user) => (
-                          <tr key={user.username} className="border-b border-white/5 hover:bg-white/5">
-                            <td className="py-3 px-4">
-                              <span className="text-blue-400 font-mono">@{user.username}</span>
-                              <p className="text-xs text-gray-500">{user.name}</p>
-                            </td>
-                            <td className="py-3 px-4">
-                              <span
-                                className="px-2 py-1 text-xs rounded-full"
-                                style={{
-                                  backgroundColor: getPartyColor(user.party) + "30",
-                                  color: getPartyColor(user.party),
-                                }}
-                              >
-                                {user.party}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-right text-white font-mono">{formatNumber(user.followers)}</td>
-                            <td className="py-3 px-4 text-right text-white font-mono">{formatNumber(user.tweet_count)}</td>
-                            <td className="py-3 px-4 text-right text-red-400 font-mono">{formatNumber(user.total_likes)}</td>
-                            <td className="py-3 px-4 text-right text-green-400 font-mono">{formatNumber(user.total_retweets)}</td>
-                            <td className="py-3 px-4 text-right text-purple-400 font-mono">{user.engagement_rate.toFixed(2)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="flex items-center gap-2 bg-blue-500/20 px-3 py-1 rounded-full border border-blue-500/30">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+                    <span className="text-blue-400 text-xs font-mono">Yapay Zeka</span>
                   </div>
                 </div>
-
-                {/* LLM Analysis */}
-                {analysisText && (
-                  <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden">
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-gradient-to-r from-blue-500/10 via-blue-500/5 to-transparent">
-                      <div className="flex items-center gap-3">
-                        <Sparkles className="h-5 w-5 text-blue-400" />
-                        <span className="text-white font-semibold">AI Analiz Ozeti</span>
-                      </div>
-                      <div className="flex items-center gap-2 bg-blue-500/20 px-3 py-1 rounded-full border border-blue-500/30">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
-                        <span className="text-blue-400 text-xs font-mono">Yapay Zeka</span>
-                      </div>
-                    </div>
-                    <div className="p-6">
-                      <MarkdownRenderer content={analysisText} />
-                    </div>
-                  </div>
-                )}
-              </>
+                <div className="p-6">
+                  <MarkdownRenderer content={analysisText} />
+                </div>
+              </div>
             )}
           </div>
         </div>
