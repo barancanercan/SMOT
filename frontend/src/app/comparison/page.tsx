@@ -181,28 +181,28 @@ export default function ComparisonPage() {
     enabled: (activeTab === "party" && selectedParties.length > 0) || (activeTab === "user" && selectedUsers.length > 0),
   });
 
-  // Recent tweets query for first selection
-  const { data: recentTweets, refetch: refetchRecent } = useQuery({
-    queryKey: ["recent-tweets", activeTab, selectedParties[0], selectedUsers[0]],
+  // Top 5 tweets query for first selection (by engagement)
+  const { data: partyTopTweets1, refetch: refetchPartyTop1 } = useQuery({
+    queryKey: ["party-top-tweets-1", activeTab, selectedParties[0], selectedUsers[0]],
     queryFn: () => {
       if (activeTab === "party" && selectedParties.length > 0) {
-        return api.get<RecentTweetsResponse>(`/analytics/tweets/recent?party=${encodeURIComponent(selectedParties[0])}&limit=3`);
+        return api.get<RecentTweetsResponse>(`/analytics/tweets/top?party=${encodeURIComponent(selectedParties[0])}&limit=5`);
       } else if (activeTab === "user" && selectedUsers.length > 0) {
-        return api.get<RecentTweetsResponse>(`/analytics/tweets/recent?username=${selectedUsers[0]}&limit=3`);
+        return api.get<RecentTweetsResponse>(`/analytics/tweets/top?username=${selectedUsers[0]}&limit=5`);
       }
       return null;
     },
     enabled: (activeTab === "party" && selectedParties.length > 0) || (activeTab === "user" && selectedUsers.length > 0),
   });
 
-  // Recent tweets query for second selection (party comparison)
-  const { data: recentTweets2, refetch: refetchRecent2 } = useQuery({
-    queryKey: ["recent-tweets-2", activeTab, selectedParties[1], selectedUsers[1]],
+  // Top 5 tweets query for second selection (by engagement)
+  const { data: partyTopTweets2, refetch: refetchPartyTop2 } = useQuery({
+    queryKey: ["party-top-tweets-2", activeTab, selectedParties[1], selectedUsers[1]],
     queryFn: () => {
       if (activeTab === "party" && selectedParties.length > 1) {
-        return api.get<RecentTweetsResponse>(`/analytics/tweets/recent?party=${encodeURIComponent(selectedParties[1])}&limit=3`);
+        return api.get<RecentTweetsResponse>(`/analytics/tweets/top?party=${encodeURIComponent(selectedParties[1])}&limit=5`);
       } else if (activeTab === "user" && selectedUsers.length > 1) {
-        return api.get<RecentTweetsResponse>(`/analytics/tweets/recent?username=${selectedUsers[1]}&limit=3`);
+        return api.get<RecentTweetsResponse>(`/analytics/tweets/top?username=${selectedUsers[1]}&limit=5`);
       }
       return null;
     },
@@ -218,8 +218,8 @@ export default function ComparisonPage() {
       setAnalysisText("");
       toast.success("Karsilastirma tamamlandi");
       refetchWeeklyTop();
-      refetchRecent();
-      refetchRecent2();
+      refetchPartyTop1();
+      refetchPartyTop2();
     },
     onError: (error: Error) => {
       toast.error(`Karsilastirma basarisiz: ${error.message}`);
@@ -249,8 +249,8 @@ export default function ComparisonPage() {
       setAnalysisText("");
       toast.success("Parti karsilastirmasi tamamlandi");
       refetchWeeklyTop();
-      refetchRecent();
-      refetchRecent2();
+      refetchPartyTop1();
+      refetchPartyTop2();
     },
     onError: (error: Error) => {
       toast.error(`Parti karsilastirmasi basarisiz: ${error.message}`);
@@ -725,12 +725,12 @@ export default function ComparisonPage() {
               </div>
             )}
 
-            {/* Recent 3 Tweets - Side by Side for Party Comparison */}
-            {activeTab === "party" && partyComparisonData && (recentTweets?.tweets || recentTweets2?.tweets) && (
+            {/* Top 5 Tweets - Side by Side for Party Comparison */}
+            {activeTab === "party" && partyComparisonData && (partyTopTweets1?.tweets || partyTopTweets2?.tweets) && (
               <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden">
-                <div className="flex items-center gap-3 px-6 py-4 border-b border-white/10 bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-transparent">
-                  <Clock className="h-5 w-5 text-cyan-400" />
-                  <span className="text-white font-semibold">Son 3 Tweet (Parti Bazli)</span>
+                <div className="flex items-center gap-3 px-6 py-4 border-b border-white/10 bg-gradient-to-r from-orange-500/10 via-orange-500/5 to-transparent">
+                  <TrendingUp className="h-5 w-5 text-orange-400" />
+                  <span className="text-white font-semibold">Top 5 Tweet (Parti Bazli)</span>
                 </div>
                 <div className="grid md:grid-cols-2 gap-4 p-4">
                   {/* First Party */}
@@ -743,9 +743,14 @@ export default function ComparisonPage() {
                         />
                         <span className="text-white font-semibold">{selectedParties[0]}</span>
                       </div>
-                      {recentTweets?.tweets && recentTweets.tweets.length > 0 ? (
-                        recentTweets.tweets.map((tweet) => (
-                          <TweetCard key={tweet.id} tweet={tweet} />
+                      {partyTopTweets1?.tweets && partyTopTweets1.tweets.length > 0 ? (
+                        partyTopTweets1.tweets.map((tweet, idx) => (
+                          <div key={tweet.id} className="flex gap-2">
+                            <span className="text-lg font-bold text-orange-400/50 w-6">#{idx + 1}</span>
+                            <div className="flex-1">
+                              <TweetCard tweet={tweet} />
+                            </div>
+                          </div>
                         ))
                       ) : (
                         <div className="text-gray-500 text-sm text-center py-4">Tweet bulunamadi</div>
@@ -762,9 +767,14 @@ export default function ComparisonPage() {
                         />
                         <span className="text-white font-semibold">{selectedParties[1]}</span>
                       </div>
-                      {recentTweets2?.tweets && recentTweets2.tweets.length > 0 ? (
-                        recentTweets2.tweets.map((tweet) => (
-                          <TweetCard key={tweet.id} tweet={tweet} />
+                      {partyTopTweets2?.tweets && partyTopTweets2.tweets.length > 0 ? (
+                        partyTopTweets2.tweets.map((tweet, idx) => (
+                          <div key={tweet.id} className="flex gap-2">
+                            <span className="text-lg font-bold text-orange-400/50 w-6">#{idx + 1}</span>
+                            <div className="flex-1">
+                              <TweetCard tweet={tweet} />
+                            </div>
+                          </div>
                         ))
                       ) : (
                         <div className="text-gray-500 text-sm text-center py-4">Tweet bulunamadi</div>
@@ -775,16 +785,21 @@ export default function ComparisonPage() {
               </div>
             )}
 
-            {/* Recent 3 Tweets - for User Comparison */}
-            {activeTab === "user" && comparisonData && recentTweets?.tweets && recentTweets.tweets.length > 0 && (
+            {/* Top 5 Tweets - for User Comparison */}
+            {activeTab === "user" && comparisonData && partyTopTweets1?.tweets && partyTopTweets1.tweets.length > 0 && (
               <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden">
-                <div className="flex items-center gap-3 px-6 py-4 border-b border-white/10 bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-transparent">
-                  <Clock className="h-5 w-5 text-cyan-400" />
-                  <span className="text-white font-semibold">Son 3 Tweet</span>
+                <div className="flex items-center gap-3 px-6 py-4 border-b border-white/10 bg-gradient-to-r from-orange-500/10 via-orange-500/5 to-transparent">
+                  <TrendingUp className="h-5 w-5 text-orange-400" />
+                  <span className="text-white font-semibold">Top 5 Tweet</span>
                 </div>
-                <div className="p-4 grid gap-3 md:grid-cols-3">
-                  {recentTweets.tweets.map((tweet) => (
-                    <TweetCard key={tweet.id} tweet={tweet} />
+                <div className="p-4 space-y-3">
+                  {partyTopTweets1.tweets.map((tweet, idx) => (
+                    <div key={tweet.id} className="flex gap-3">
+                      <span className="text-xl font-bold text-orange-400/50 w-8">#{idx + 1}</span>
+                      <div className="flex-1">
+                        <TweetCard tweet={tweet} />
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
