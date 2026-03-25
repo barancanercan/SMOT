@@ -804,3 +804,65 @@ async def get_recent_tweets(
     except Exception as e:
         logger.error(f"Recent tweets hatasi: {str(e)}", exc_info=True)
         return {"filter": {}, "tweets": []}
+
+
+@router.get("/tweets/top")
+@limiter.limit(RateLimits.STANDARD)
+async def get_top_tweets_all(
+    request: Request,
+    party: Optional[str] = None,
+    username: Optional[str] = None,
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all-time top tweets by engagement.
+    Filter by party or username.
+    """
+    try:
+        query = db.query(Tweet).filter(Tweet.is_retweet == False)
+
+        # Filter by party or username
+        if username:
+            query = query.filter(Tweet.username == username)
+        elif party:
+            normalized_party = normalize_party_name(party)
+            councilors = db.query(Councilor).all()
+            party_members = [c.username for c in councilors if normalize_party_name(c.party) == normalized_party]
+            if party_members:
+                query = query.filter(Tweet.username.in_(party_members))
+
+        # Order by engagement
+        query = query.order_by(
+            (func.coalesce(Tweet.likes, 0) + func.coalesce(Tweet.retweets, 0)).desc()
+        ).limit(limit)
+
+        tweets = query.all()
+
+        # Get councilor info
+        councilors = db.query(Councilor).all()
+        councilor_map = {c.username: c for c in councilors}
+
+        return {
+            "filter": {"party": party, "username": username},
+            "limit": limit,
+            "tweets": [
+                {
+                    "id": t.id,
+                    "username": t.username,
+                    "name": councilor_map.get(t.username).name if councilor_map.get(t.username) else t.username,
+                    "party": normalize_party_name(councilor_map.get(t.username).party) if councilor_map.get(t.username) else "",
+                    "tweet_text": t.tweet_text,
+                    "tweet_date": t.tweet_date,
+                    "likes": t.likes or 0,
+                    "retweets": t.retweets or 0,
+                    "replies": t.replies or 0,
+                    "views": t.views or 0,
+                    "engagement": (t.likes or 0) + (t.retweets or 0) + (t.replies or 0),
+                }
+                for t in tweets
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Top tweets hatasi: {str(e)}", exc_info=True)
+        return {"filter": {}, "limit": limit, "tweets": []}

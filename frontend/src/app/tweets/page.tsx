@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api, User, Tweet, PaginatedResponse } from "@/lib/api";
+import { api, User, PaginatedResponse, TweetItem } from "@/lib/api";
 import {
   Flame,
   ThumbsUp,
@@ -12,15 +12,40 @@ import {
   AlertCircle,
   Activity,
   Zap,
+  Building2,
+  Users,
+  Clock,
+  Settings2,
 } from "lucide-react";
 
+// Party colors
+const PARTY_COLORS: Record<string, string> = {
+  CHP: "#E53935",
+  "AK Parti": "#FF9800",
+  MHP: "#C62828",
+  "IYI Parti": "#1E88E5",
+  "DEM Parti": "#7B1FA2",
+  BBP: "#D32F2F",
+  TIP: "#F44336",
+  "Saadet Partisi": "#43A047",
+  Bagimsiz: "#78909C",
+};
+
+const getPartyColor = (party: string): string => {
+  return PARTY_COLORS[party] || "#60A5FA";
+};
+
 interface TopTweetsResponse {
-  username: string;
-  tweets: (Tweet & { engagement: number })[];
+  filter: { party?: string; username?: string };
+  limit: number;
+  tweets: TweetItem[];
 }
 
 export default function TweetsPage() {
+  const [activeTab, setActiveTab] = useState<"party" | "user">("party");
   const [selectedUser, setSelectedUser] = useState<string>("");
+  const [selectedParty, setSelectedParty] = useState<string>("");
+  const [limit, setLimit] = useState<number>(10);
 
   // Fetch users
   const {
@@ -29,29 +54,44 @@ export default function TweetsPage() {
     error: usersError,
   } = useQuery({
     queryKey: ["users"],
-    queryFn: () => api.get<PaginatedResponse<User>>("/users/"),
+    queryFn: () => api.get<PaginatedResponse<User>>("/users/?page_size=500"),
     staleTime: 5 * 60 * 1000,
   });
 
   const users = usersData?.items || [];
 
-  // Set default user when users load
+  // Get unique parties
+  const parties = useMemo(() => {
+    const partySet = new Set(users.map((u) => u.party).filter(Boolean));
+    return Array.from(partySet).sort();
+  }, [users]);
+
+  // Set defaults when data loads
   useMemo(() => {
     if (users.length > 0 && !selectedUser) {
       setSelectedUser(users[0].username);
     }
-  }, [users, selectedUser]);
+    if (parties.length > 0 && !selectedParty) {
+      setSelectedParty(parties[0]);
+    }
+  }, [users, parties, selectedUser, selectedParty]);
 
-  // Fetch top tweets for selected user
+  // Fetch top tweets
   const {
     data: tweetsData,
     isLoading: tweetsLoading,
     error: tweetsError,
   } = useQuery({
-    queryKey: ["top-tweets", selectedUser],
-    queryFn: () =>
-      api.get<TopTweetsResponse>(`/tweets/${selectedUser}/top?limit=20`),
-    enabled: !!selectedUser,
+    queryKey: ["top-tweets", activeTab, selectedUser, selectedParty, limit],
+    queryFn: () => {
+      if (activeTab === "party" && selectedParty) {
+        return api.get<TopTweetsResponse>(`/analytics/tweets/top?party=${encodeURIComponent(selectedParty)}&limit=${limit}`);
+      } else if (activeTab === "user" && selectedUser) {
+        return api.get<TopTweetsResponse>(`/analytics/tweets/top?username=${selectedUser}&limit=${limit}`);
+      }
+      return null;
+    },
+    enabled: (activeTab === "party" && !!selectedParty) || (activeTab === "user" && !!selectedUser),
     staleTime: 2 * 60 * 1000,
   });
 
@@ -63,11 +103,10 @@ export default function TweetsPage() {
     return num.toString();
   };
 
-  // Get engagement level color
   const getEngagementLevel = (engagement: number) => {
-    if (engagement >= 10000) return { color: "text-[#00D1B2]", label: "YÜKSEK" };
+    if (engagement >= 10000) return { color: "text-[#00D1B2]", label: "YUKSEK" };
     if (engagement >= 5000) return { color: "text-[#4DA3FF]", label: "ORTA" };
-    return { color: "text-gray-500", label: "DÜŞÜK" };
+    return { color: "text-gray-500", label: "DUSUK" };
   };
 
   if (usersError) {
@@ -78,10 +117,10 @@ export default function TweetsPage() {
           <AlertCircle className="relative h-12 w-12 text-red-500 mb-4" />
         </div>
         <h2 className="text-xl font-semibold text-white mb-2">
-          KULLANICILAR YÜKLENEMEDI
+          KULLANICILAR YUKLENEMEDI
         </h2>
         <p className="text-gray-400">
-          API bağlantısını kontrol edin ve sayfayı yenileyin.
+          API baglantisini kontrol edin ve sayfayi yenileyin.
         </p>
       </div>
     );
@@ -91,60 +130,142 @@ export default function TweetsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="relative">
-        {/* Glassmorphism card */}
         <div className="relative bg-[#1A1A1A] border border-[#4DA3FF]/20 rounded-xl p-6 backdrop-blur-xl">
           <div className="absolute inset-0 bg-gradient-to-br from-[#4DA3FF]/5 to-transparent rounded-xl" />
 
-          <div className="relative flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="relative">
-                  <div className="absolute inset-0 blur-lg bg-orange-500/30 rounded-full" />
-                  <Flame className="relative h-7 w-7 text-orange-500" />
+          <div className="relative">
+            {/* Title Row */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="relative">
+                    <div className="absolute inset-0 blur-lg bg-orange-500/30 rounded-full" />
+                    <Flame className="relative h-7 w-7 text-orange-500" />
+                  </div>
+                  <h1 className="text-2xl font-bold text-white tracking-tight">
+                    TOP TWEETLER
+                  </h1>
+                  <div className="px-3 py-1 bg-[#00D1B2]/10 border border-[#00D1B2]/30 rounded-full">
+                    <span className="text-xs font-mono text-[#00D1B2]">SINYAL ANALIZI</span>
+                  </div>
                 </div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">
-                  TOP TWEETLER
-                </h1>
-                <div className="px-3 py-1 bg-[#00D1B2]/10 border border-[#00D1B2]/30 rounded-full">
-                  <span className="text-xs font-mono text-[#00D1B2]">SINYAL ANALIZI</span>
-                </div>
+                <p className="text-gray-400 text-sm font-mono">
+                  En cok etkilesim alan tweetler // yuksek etkilesim sinyalleri
+                </p>
               </div>
-              <p className="text-gray-400 text-sm font-mono">
-                En cok etkilesim alan tweetler // yuksek etkilesim sinyalleri
-              </p>
+
+              {/* Tab Buttons */}
+              <div className="flex bg-[#0B0B0B] rounded-xl p-1 border border-white/10">
+                <button
+                  onClick={() => setActiveTab("party")}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all ${
+                    activeTab === "party"
+                      ? "bg-orange-600 text-white"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <Building2 className="w-4 h-4" />
+                  Parti
+                </button>
+                <button
+                  onClick={() => setActiveTab("user")}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all ${
+                    activeTab === "user"
+                      ? "bg-orange-600 text-white"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  Uye
+                </button>
+              </div>
             </div>
 
-            {/* User selector */}
-            <div className="relative">
-              <select
-                value={selectedUser}
-                onChange={(e) => setSelectedUser(e.target.value)}
-                disabled={usersLoading}
-                className="px-5 py-2.5 bg-[#0B0B0B] border border-[#4DA3FF]/30 rounded-lg
-                         text-white font-mono text-sm
-                         focus:ring-2 focus:ring-[#4DA3FF]/50 focus:border-[#4DA3FF]
-                         hover:border-[#4DA3FF]/50 transition-all
-                         disabled:opacity-50 disabled:cursor-not-allowed
-                         appearance-none cursor-pointer
-                         pr-10"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234DA3FF'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right 0.5rem center",
-                  backgroundSize: "1.5em 1.5em",
-                }}
-              >
-                {usersLoading ? (
-                  <option>YÜKLENIYOR...</option>
-                ) : (
-                  users.map((user) => (
-                    <option key={user.username} value={user.username}>
-                      @{user.username}
-                    </option>
-                  ))
-                )}
-              </select>
-              <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#4DA3FF]/30 to-transparent" />
+            {/* Filter Row */}
+            <div className="flex items-center gap-4 flex-wrap">
+              {/* Party/User Selector */}
+              {activeTab === "party" ? (
+                <div className="relative">
+                  <label className="block text-xs text-gray-500 font-mono mb-1">PARTI SEC</label>
+                  <select
+                    value={selectedParty}
+                    onChange={(e) => setSelectedParty(e.target.value)}
+                    className="px-4 py-2.5 bg-[#0B0B0B] border border-[#4DA3FF]/30 rounded-lg
+                             text-white font-mono text-sm min-w-[180px]
+                             focus:ring-2 focus:ring-[#4DA3FF]/50 focus:border-[#4DA3FF]
+                             hover:border-[#4DA3FF]/50 transition-all cursor-pointer"
+                  >
+                    {parties.map((party) => (
+                      <option key={party} value={party}>
+                        {party}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="relative">
+                  <label className="block text-xs text-gray-500 font-mono mb-1">UYE SEC</label>
+                  <select
+                    value={selectedUser}
+                    onChange={(e) => setSelectedUser(e.target.value)}
+                    disabled={usersLoading}
+                    className="px-4 py-2.5 bg-[#0B0B0B] border border-[#4DA3FF]/30 rounded-lg
+                             text-white font-mono text-sm min-w-[180px]
+                             focus:ring-2 focus:ring-[#4DA3FF]/50 focus:border-[#4DA3FF]
+                             hover:border-[#4DA3FF]/50 transition-all
+                             disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {usersLoading ? (
+                      <option>YUKLENIYOR...</option>
+                    ) : (
+                      users.map((user) => (
+                        <option key={user.username} value={user.username}>
+                          @{user.username} - {user.party}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+              )}
+
+              {/* Limit Selector */}
+              <div className="relative">
+                <label className="block text-xs text-gray-500 font-mono mb-1">TWEET SAYISI</label>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={limit}
+                    onChange={(e) => setLimit(Number(e.target.value))}
+                    className="px-4 py-2.5 bg-[#0B0B0B] border border-[#4DA3FF]/30 rounded-lg
+                             text-white font-mono text-sm
+                             focus:ring-2 focus:ring-[#4DA3FF]/50 focus:border-[#4DA3FF]
+                             hover:border-[#4DA3FF]/50 transition-all cursor-pointer"
+                  >
+                    <option value={5}>Top 5</option>
+                    <option value={10}>Top 10</option>
+                    <option value={15}>Top 15</option>
+                    <option value={20}>Top 20</option>
+                    <option value={30}>Top 30</option>
+                    <option value={50}>Top 50</option>
+                  </select>
+                  <Settings2 className="w-4 h-4 text-gray-500" />
+                </div>
+              </div>
+
+              {/* Active filter badge */}
+              <div className="ml-auto flex items-center gap-2 px-4 py-2 bg-[#0B0B0B] border border-white/10 rounded-lg">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{
+                    backgroundColor: activeTab === "party"
+                      ? getPartyColor(selectedParty)
+                      : getPartyColor(users.find(u => u.username === selectedUser)?.party || ""),
+                  }}
+                />
+                <span className="text-white font-mono text-sm">
+                  {activeTab === "party" ? selectedParty : `@${selectedUser}`}
+                </span>
+                <span className="text-gray-500 text-xs">({tweets.length} tweet)</span>
+              </div>
             </div>
           </div>
         </div>
@@ -154,7 +275,7 @@ export default function TweetsPage() {
       {tweetsError && (
         <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg flex items-center gap-3 backdrop-blur-sm">
           <AlertCircle className="h-5 w-5 flex-shrink-0" />
-          <span className="font-mono text-sm">TWEETLER YÜKLENEMEDI</span>
+          <span className="font-mono text-sm">TWEETLER YUKLENEMEDI</span>
         </div>
       )}
 
@@ -178,7 +299,7 @@ export default function TweetsPage() {
       ) : (
         <div className="space-y-3">
           {tweets.map((tweet, index) => {
-            const engagementLevel = getEngagementLevel(tweet.engagement);
+            const engagementLevel = getEngagementLevel(tweet.engagement || 0);
 
             return (
               <div
@@ -210,14 +331,30 @@ export default function TweetsPage() {
                         </div>
                       </div>
 
-                      {/* Username */}
+                      {/* Username & Party */}
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-[#4DA3FF] font-medium">
                           @{tweet.username}
                         </span>
+                        {activeTab === "party" && (
+                          <>
+                            <span className="text-xs text-gray-600">|</span>
+                            <span className="text-xs text-gray-400">{tweet.name}</span>
+                          </>
+                        )}
+                        <span
+                          className="px-2 py-0.5 text-xs rounded-full"
+                          style={{
+                            backgroundColor: getPartyColor(tweet.party) + "30",
+                            color: getPartyColor(tweet.party),
+                          }}
+                        >
+                          {tweet.party}
+                        </span>
                         <div className="w-1 h-1 rounded-full bg-gray-600" />
-                        <span className="text-xs text-gray-500 font-mono">
-                          {tweet.tweet_date}
+                        <span className="text-xs text-gray-500 font-mono flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {tweet.tweet_date?.split("T")[0] || "-"}
                         </span>
                       </div>
                     </div>
@@ -239,7 +376,7 @@ export default function TweetsPage() {
                   </div>
 
                   {/* Metrics */}
-                  <div className="flex items-center gap-6 text-sm">
+                  <div className="flex items-center gap-6 text-sm flex-wrap">
                     {/* Like */}
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0B0B0B]/50 rounded-md border border-gray-800 hover:border-pink-500/30 transition-colors group/metric">
                       <ThumbsUp className="h-4 w-4 text-gray-500 group-hover/metric:text-pink-500 transition-colors" />
@@ -276,7 +413,7 @@ export default function TweetsPage() {
                     <div className="ml-auto flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-[#4DA3FF]/10 to-[#00D1B2]/10 rounded-md border border-[#4DA3FF]/20">
                       <Activity className="h-4 w-4 text-[#00D1B2]" />
                       <span className="font-mono text-white font-bold text-sm">
-                        {formatNumber(tweet.engagement)}
+                        {formatNumber(tweet.engagement || 0)}
                       </span>
                       <span className="text-xs text-gray-500 font-mono">ETK</span>
                     </div>
