@@ -81,6 +81,7 @@
 - Platform-aware LLM routing
 - OpenAI GPT-3.5/4 (Onerilir)
 - Ollama (Yerel & Ucretsiz)
+- Instaloader API (%100 guvenilir)
 
 </td>
 </tr>
@@ -529,8 +530,13 @@ MeclisIstihbaratSistemi/
 │   │   │   ├── analysis/     # LLM integration
 │   │   │   │   ├── analyzer.py
 │   │   │   │   └── prompts.py
-│   │   │   └── reporting/    # Report generation
+│   │   │   ├── reporting/    # Report generation
+│   │   │   └── scraping/     # Social media scrapers
+│   │   │       ├── instagram_scraper.py      # Selenium
+│   │   │       └── instagram_api_scraper.py  # Instaloader API
 │   │   └── utils/            # Helpers
+│   ├── scripts/              # Utility scripts
+│   │   └── update_instagram_engagement.py
 │   ├── data/                 # SQLite database
 │   ├── requirements.txt
 │   └── Dockerfile
@@ -629,6 +635,29 @@ python -c "from app.core.database import clear_report_cache; clear_report_cache(
 ```
 </details>
 
+<details>
+<summary><b>Instagram 0 Like Sorunu</b></summary>
+
+```bash
+# Engagement verilerini guncelle (API-based, %100 guvenilir)
+cd backend
+python scripts/update_instagram_engagement.py
+```
+</details>
+
+<details>
+<summary><b>Instagram Scraping</b></summary>
+
+```bash
+# Yeni API-based scraper (onerilir)
+cd backend
+python -m app.services.scraping.instagram_api_scraper --users USERNAME --max-posts 50
+
+# Coklu kullanici
+python -m app.services.scraping.instagram_api_scraper --users user1 user2 user3
+```
+</details>
+
 ---
 
 ## Lisans
@@ -647,7 +676,7 @@ Bu proje [MIT Lisansi](LICENSE) altinda lisanslanmistir.
 
 ---
 
-<sub>M.I.S v3.3 - Yapay Zeka ile Coklu Platform Siyasi Analiz</sub>
+<sub>M.I.S v3.4 - Yapay Zeka ile Coklu Platform Siyasi Analiz</sub>
 
 <sub>Made with by Baran Can Ercan</sub>
 
