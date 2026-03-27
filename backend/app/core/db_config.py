@@ -69,13 +69,60 @@ def session_scope() -> Generator[Session, None, None]:
         session.close()
 
 
+def _run_migrations():
+    """Run database migrations to add missing columns"""
+    import sqlite3
+
+    # Only for SQLite
+    if not settings.database_url.startswith("sqlite"):
+        return
+
+    db_path = settings.database_url.replace("sqlite:///", "")
+
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        def column_exists(table, column):
+            cursor.execute(f"PRAGMA table_info({table})")
+            return column in [row[1] for row in cursor.fetchall()]
+
+        def table_exists(table):
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
+            return cursor.fetchone() is not None
+
+        # Add missing columns to councilors
+        if table_exists("councilors"):
+            if not column_exists("councilors", "instagram_username"):
+                cursor.execute("ALTER TABLE councilors ADD COLUMN instagram_username VARCHAR(100)")
+                logger.info("Added instagram_username to councilors")
+            if not column_exists("councilors", "instagram_updated_at"):
+                cursor.execute("ALTER TABLE councilors ADD COLUMN instagram_updated_at DATETIME")
+                logger.info("Added instagram_updated_at to councilors")
+
+        # Add listed_count to profile_history
+        if table_exists("profile_history"):
+            if not column_exists("profile_history", "listed_count"):
+                cursor.execute("ALTER TABLE profile_history ADD COLUMN listed_count INTEGER DEFAULT 0")
+                logger.info("Added listed_count to profile_history")
+
+        conn.commit()
+        conn.close()
+        logger.info("Database migrations completed")
+    except Exception as e:
+        logger.warning(f"Migration warning (non-fatal): {e}")
+
+
 def init_db():
     """Initialize database tables using ORM models"""
     from app.core.models import Base
-    
+
     logger.info("Creating database tables with SQLAlchemy ORM...")
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created successfully")
+
+    # Run migrations for existing tables
+    _run_migrations()
 
 
 def get_scoped_session() -> scoped_session:
