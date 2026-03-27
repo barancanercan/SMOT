@@ -524,7 +524,7 @@ async def generate_party_report(
     Rate limit: 5 requests per minute
     """
     from app.core.models import Councilor, Tweet, ProfileHistory, InstagramPost
-    from sqlalchemy import func
+    from sqlalchemy import func, Integer
 
     platform = body.platform
 
@@ -568,7 +568,7 @@ async def generate_party_report(
                 func.count(InstagramPost.id).label("total_posts"),
                 func.coalesce(func.sum(InstagramPost.likes), 0).label("total_likes"),
                 func.coalesce(func.sum(InstagramPost.comments), 0).label("total_comments"),
-                func.sum(func.cast(InstagramPost.is_video, db.bind.dialect.type_descriptor(type(1)))).label("total_videos"),
+                func.sum(func.cast(InstagramPost.is_video, Integer)).label("total_videos"),
             ).filter(
                 InstagramPost.username.in_(instagram_usernames)
             ).first()
