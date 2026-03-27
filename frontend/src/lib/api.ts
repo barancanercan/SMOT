@@ -188,6 +188,12 @@ class ApiClient {
 export const api = new ApiClient();
 
 // ============================================================================
+// Platform Types
+// ============================================================================
+
+export type Platform = "twitter" | "instagram" | "both";
+
+// ============================================================================
 // Type definitions for API responses
 // ============================================================================
 
@@ -198,6 +204,7 @@ export interface User {
   party: string;
   district?: string;
   tweet_count?: number;
+  instagram_username?: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -212,14 +219,34 @@ export interface PaginatedResponse<T> {
 }
 
 export interface DashboardStats {
+  // Twitter stats
   total_tweets: number;
   total_original: number;
   total_retweets: number;
+  total_retweets_count?: number;
   total_councilors: number;
   active_users: number;
   total_likes: number;
   total_views: number;
   total_replies: number;
+  total_profiles?: number;
+  // Instagram stats (when platform=instagram or both)
+  total_posts?: number;
+  total_photos?: number;
+  total_videos?: number;
+  total_instagram_profiles?: number;
+  instagram_active_users?: number;
+  total_comments?: number;
+  instagram_likes?: number;
+  twitter_likes?: number;
+  twitter_views?: number;
+  twitter_replies?: number;
+  twitter_active_users?: number;
+  // Combined (when platform=both)
+  total_content?: number;
+  total_engagement?: number;
+  // Platform indicator
+  platform?: string;
 }
 
 export interface ReportResponse {
@@ -366,4 +393,108 @@ export interface WeeklyTopTweetsResponse {
 export interface RecentTweetsResponse {
   filter: { party?: string; username?: string };
   tweets: TweetItem[];
+}
+
+// Instagram post item (for listings)
+export interface InstagramPostItem {
+  id: number;
+  username: string;
+  name: string;
+  party: string;
+  caption: string;
+  post_date: string;
+  post_url: string;
+  likes: number;
+  comments: number;
+  is_video: boolean;
+  engagement: number;
+}
+
+export interface TopPostsResponse {
+  filter: { party?: string; username?: string };
+  limit: number;
+  posts: InstagramPostItem[];
+}
+
+export interface WeeklyTopPostsResponse {
+  period: string;
+  filter: { party?: string; username?: string };
+  posts: InstagramPostItem[];
+}
+
+// Instagram types
+export interface InstagramPost {
+  id: number;
+  username: string;
+  caption: string;
+  post_date: string;
+  post_url: string;
+  likes: number;
+  comments: number;
+  is_video: boolean;
+  engagement?: number;
+}
+
+export interface InstagramProfile {
+  username: string;
+  full_name?: string;
+  bio?: string;
+  followers: number;
+  following: number;
+  posts_count: number;
+  date?: string;
+}
+
+// Multi-platform request types
+export interface GenerateReportRequest {
+  username: string;
+  use_llm: boolean;
+  force_refresh?: boolean;
+  platform?: Platform;
+}
+
+export interface PartyReportRequestBody {
+  party: string;
+  use_llm: boolean;
+  platform?: Platform;
+}
+
+export interface MultiUserReportRequestBody {
+  usernames: string[];
+  use_llm: boolean;
+  platform?: Platform;
+}
+
+export interface ComparisonRequestBody {
+  usernames: string[];
+  platform?: Platform;
+}
+
+// Engagement ranking with platform
+export interface EngagementRankingItem {
+  username: string;
+  name: string;
+  party: string;
+  tweet_count?: number;
+  post_count?: number;
+  content_count?: number;
+  total_likes: number;
+  total_retweets?: number;
+  total_replies?: number;
+  total_views?: number;
+  total_comments?: number;
+  total_engagement: number;
+  platform?: string;
+}
+
+// Followers ranking with platform
+export interface FollowersRankingItem {
+  username: string;
+  name: string;
+  party: string;
+  district?: string;
+  followers_count: number;
+  following_count: number;
+  posts_count?: number;
+  platform?: string;
 }

@@ -93,8 +93,8 @@ class XTwitterScraper:
             # Disable images for faster loading
             options.add_argument("--blink-settings=imagesEnabled=false")
 
-            # Launch undetected chrome
-            self.driver = uc.Chrome(options=options, headless=False)
+            # Launch undetected chrome with version matching
+            self.driver = uc.Chrome(options=options, headless=False, version_main=146)
 
             logger.info("Browser ready (bot detection bypass active)")
         except Exception as e:
@@ -269,10 +269,19 @@ class XTwitterScraper:
                                     By.XPATH,
                                     ".//button[@data-testid='tweet-text-show-more-link']"
                                 )
-                                show_more_btn.click()
+                                # Scroll element into view first
+                                self.driver.execute_script(
+                                    "arguments[0].scrollIntoView({block: 'center'});",
+                                    show_more_btn
+                                )
+                                time.sleep(0.2)
+                                # Use JavaScript click to bypass intercepted click
+                                self.driver.execute_script("arguments[0].click();", show_more_btn)
                                 time.sleep(0.3)  # Brief wait for expansion
                             except (NoSuchElementException, StaleElementReferenceException):
                                 pass  # No "Show more" button or element became stale
+                            except Exception:
+                                pass  # Any other click error, continue with truncated text
 
                             # Get FULL tweet text (after expanding if needed)
                             text_elem = element.find_element(

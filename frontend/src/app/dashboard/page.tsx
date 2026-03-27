@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api, DashboardStats } from "@/lib/api";
+import { api, DashboardStats, Platform } from "@/lib/api";
 import { MetricCard } from "@/components/features/metric-card";
 import {
   BarChart3,
@@ -14,18 +15,24 @@ import {
   Activity,
   Shield,
   Zap,
+  Image as ImageIcon,
+  Camera,
+  Video,
 } from "lucide-react";
 import { PartyBarChart } from "@/components/charts/party-bar-chart";
 import { EngagementPieChart } from "@/components/charts/engagement-pie-chart";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { SkeletonMetricCard, SkeletonCard } from "@/components/ui/skeleton";
 import { PartyBadge } from "@/components/ui/badge";
+import { PlatformSelector } from "@/components/ui/platform-selector";
 import Image from "next/image";
 
 export default function DashboardPage() {
+  const [platform, setPlatform] = useState<Platform>("twitter");
+
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["dashboard-overview"],
-    queryFn: () => api.get<DashboardStats>("/dashboard/overview"),
+    queryKey: ["dashboard-overview", platform],
+    queryFn: () => api.get<DashboardStats>(`/dashboard/overview?platform=${platform}`),
   });
 
   const { data: parties, isLoading: partiesLoading } = useQuery({
@@ -38,13 +45,25 @@ export default function DashboardPage() {
     queryFn: () => api.get<any[]>("/analytics/engagement?limit=5"),
   });
 
-  // Engagement breakdown for pie chart
+  // Engagement breakdown for pie chart (platform-aware)
   const engagementData = stats
-    ? [
-        { name: "Begeniler", value: stats.total_likes || 0 },
-        { name: "Retweetler", value: (stats as any).total_retweets_count || 0 },
-        { name: "Yorumlar", value: stats.total_replies || 0 },
-      ]
+    ? platform === "instagram"
+      ? [
+          { name: "Begeniler", value: stats.total_likes || 0 },
+          { name: "Yorumlar", value: stats.total_comments || 0 },
+        ]
+      : platform === "both"
+      ? [
+          { name: "X Begeniler", value: stats.twitter_likes || 0 },
+          { name: "X Retweetler", value: stats.total_retweets_count || 0 },
+          { name: "IG Begeniler", value: stats.instagram_likes || 0 },
+          { name: "IG Yorumlar", value: stats.total_comments || 0 },
+        ]
+      : [
+          { name: "Begeniler", value: stats.total_likes || 0 },
+          { name: "Retweetler", value: stats.total_retweets_count || 0 },
+          { name: "Yorumlar", value: stats.total_replies || 0 },
+        ]
     : [];
 
   return (
@@ -92,10 +111,17 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* System Status Indicator */}
-          <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#00D1B2]/10 border border-[#00D1B2]/30">
-            <div className="w-2 h-2 rounded-full bg-[#00D1B2] animate-pulse" />
-            <span className="text-[#00D1B2] text-sm font-medium">SISTEM AKTIF</span>
+          {/* Platform Selector & Status */}
+          <div className="flex items-center gap-4">
+            <PlatformSelector
+              value={platform}
+              onChange={setPlatform}
+              size="md"
+            />
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#00D1B2]/10 border border-[#00D1B2]/30">
+              <div className="w-2 h-2 rounded-full bg-[#00D1B2] animate-pulse" />
+              <span className="text-[#00D1B2] text-sm font-medium">SISTEM AKTIF</span>
+            </div>
           </div>
         </div>
       </div>
@@ -109,7 +135,7 @@ export default function DashboardPage() {
             <SkeletonMetricCard />
             <SkeletonMetricCard />
           </>
-        ) : (
+        ) : platform === "twitter" ? (
           <>
             <div className="group relative">
               <div className="absolute inset-0 bg-gradient-to-r from-[#4DA3FF]/0 via-[#4DA3FF]/10 to-[#4DA3FF]/0 rounded-xl blur-xl group-hover:via-[#4DA3FF]/20 transition-all" />
@@ -189,74 +215,240 @@ export default function DashboardPage() {
               </div>
             </div>
           </>
-        )}
-      </div>
-
-      {/* Secondary Metrics - Engagement Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {statsLoading ? (
+        ) : platform === "instagram" ? (
           <>
-            <SkeletonMetricCard />
-            <SkeletonMetricCard />
-            <SkeletonMetricCard />
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-500/0 via-pink-500/10 to-pink-500/0 rounded-xl blur-xl group-hover:via-pink-500/20 transition-all" />
+              <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:border-pink-500/50 transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 rounded-lg bg-pink-500/10">
+                    <Camera className="h-5 w-5 text-pink-500" />
+                  </div>
+                  <Zap className="h-4 w-4 text-gray-600" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-400">Toplam Post</p>
+                  <p className="text-3xl font-bold text-white">
+                    {stats?.total_posts?.toLocaleString("tr-TR") || "0"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {stats?.total_photos || 0} foto, {stats?.total_videos || 0} video
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#00D1B2]/0 via-[#00D1B2]/10 to-[#00D1B2]/0 rounded-xl blur-xl group-hover:via-[#00D1B2]/20 transition-all" />
+              <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:border-[#00D1B2]/50 transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 rounded-lg bg-[#00D1B2]/10">
+                    <Users className="h-5 w-5 text-[#00D1B2]" />
+                  </div>
+                  <Zap className="h-4 w-4 text-gray-600" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-400">Instagram Profil</p>
+                  <p className="text-3xl font-bold text-white">
+                    {stats?.total_instagram_profiles?.toLocaleString("tr-TR") || "0"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {stats?.instagram_active_users || 0} aktif
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/10 to-red-500/0 rounded-xl blur-xl group-hover:via-red-500/20 transition-all" />
+              <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:border-red-500/50 transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 rounded-lg bg-red-500/10">
+                    <Heart className="h-5 w-5 text-red-500" />
+                  </div>
+                  <Zap className="h-4 w-4 text-gray-600" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-400">Toplam Like</p>
+                  <p className="text-3xl font-bold text-white">
+                    {stats?.total_likes?.toLocaleString("tr-TR") || "0"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-purple-500/0 rounded-xl blur-xl group-hover:via-purple-500/20 transition-all" />
+              <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:border-purple-500/50 transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 rounded-lg bg-purple-500/10">
+                    <MessageCircle className="h-5 w-5 text-purple-500" />
+                  </div>
+                  <Zap className="h-4 w-4 text-gray-600" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-400">Toplam Yorum</p>
+                  <p className="text-3xl font-bold text-white">
+                    {stats?.total_comments?.toLocaleString("tr-TR") || "0"}
+                  </p>
+                </div>
+              </div>
+            </div>
           </>
         ) : (
+          /* BOTH platforms */
           <>
-            <div className="relative bg-gradient-to-br from-[#1A1A1A] to-[#0B0B0B] border border-white/10 rounded-xl p-6 hover:border-blue-500/50 transition-all overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-blue-500/10 ring-1 ring-blue-500/20">
-                  <MessageCircle className="h-6 w-6 text-blue-400" />
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#4DA3FF]/0 via-[#4DA3FF]/10 to-[#4DA3FF]/0 rounded-xl blur-xl group-hover:via-[#4DA3FF]/20 transition-all" />
+              <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:border-[#4DA3FF]/50 transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 rounded-lg bg-gradient-to-r from-[#4DA3FF]/20 to-pink-500/20">
+                    <BarChart3 className="h-5 w-5 text-purple-400" />
+                  </div>
+                  <Zap className="h-4 w-4 text-gray-600" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-400">Toplam Yorum</p>
-                  <p className="text-2xl font-bold text-white">
-                    {stats?.total_replies?.toLocaleString("tr-TR") || "0"}
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-400">Toplam Icerik</p>
+                  <p className="text-3xl font-bold text-white">
+                    {stats?.total_content?.toLocaleString("tr-TR") || "0"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {stats?.total_tweets || 0} tweet, {stats?.total_posts || 0} post
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="relative bg-gradient-to-br from-[#1A1A1A] to-[#0B0B0B] border border-white/10 rounded-xl p-6 hover:border-green-500/50 transition-all overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-green-500/10 ring-1 ring-green-500/20">
-                  <Repeat2 className="h-6 w-6 text-green-400" />
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#00D1B2]/0 via-[#00D1B2]/10 to-[#00D1B2]/0 rounded-xl blur-xl group-hover:via-[#00D1B2]/20 transition-all" />
+              <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:border-[#00D1B2]/50 transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 rounded-lg bg-[#00D1B2]/10">
+                    <Users className="h-5 w-5 text-[#00D1B2]" />
+                  </div>
+                  <Zap className="h-4 w-4 text-gray-600" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-400">Toplam Retweet</p>
-                  <p className="text-2xl font-bold text-white">
-                    {(stats as any)?.total_retweets_count?.toLocaleString("tr-TR") || "0"}
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-400">Meclis Uyesi</p>
+                  <p className="text-3xl font-bold text-white">
+                    {stats?.total_councilors?.toLocaleString("tr-TR") || "0"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {stats?.total_profiles || 0} profil
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="relative bg-gradient-to-br from-[#1A1A1A] to-[#0B0B0B] border border-white/10 rounded-xl p-6 hover:border-purple-500/50 transition-all overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-purple-500/10 ring-1 ring-purple-500/20">
-                  <TrendingUp className="h-6 w-6 text-purple-400" />
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-500/0 via-pink-500/10 to-pink-500/0 rounded-xl blur-xl group-hover:via-pink-500/20 transition-all" />
+              <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:border-pink-500/50 transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 rounded-lg bg-pink-500/10">
+                    <Heart className="h-5 w-5 text-pink-500" />
+                  </div>
+                  <Zap className="h-4 w-4 text-gray-600" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-400">Ort. Etkilesim</p>
-                  <p className="text-2xl font-bold text-white">
-                    {stats?.total_tweets && stats.total_tweets > 0
-                      ? Math.round(
-                          ((stats.total_likes || 0) +
-                            (stats.total_replies || 0) +
-                            ((stats as any).total_retweets_count || 0)) /
-                            stats.total_tweets
-                        ).toLocaleString("tr-TR")
-                      : "0"}
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-400">Toplam Like</p>
+                  <p className="text-3xl font-bold text-white">
+                    {stats?.total_likes?.toLocaleString("tr-TR") || "0"}
                   </p>
-                  <p className="text-xs text-gray-500">tweet basina</p>
+                  <p className="text-xs text-gray-500">
+                    X: {stats?.twitter_likes || 0}, IG: {stats?.instagram_likes || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-purple-500/0 rounded-xl blur-xl group-hover:via-purple-500/20 transition-all" />
+              <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:border-purple-500/50 transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 rounded-lg bg-purple-500/10">
+                    <TrendingUp className="h-5 w-5 text-purple-500" />
+                  </div>
+                  <Zap className="h-4 w-4 text-gray-600" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-400">Toplam Etkilesim</p>
+                  <p className="text-3xl font-bold text-white">
+                    {stats?.total_engagement?.toLocaleString("tr-TR") || "0"}
+                  </p>
                 </div>
               </div>
             </div>
           </>
         )}
       </div>
+
+      {/* Secondary Metrics - Engagement Stats (Platform-aware) */}
+      {platform === "twitter" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {statsLoading ? (
+            <>
+              <SkeletonMetricCard />
+              <SkeletonMetricCard />
+              <SkeletonMetricCard />
+            </>
+          ) : (
+            <>
+              <div className="relative bg-gradient-to-br from-[#1A1A1A] to-[#0B0B0B] border border-white/10 rounded-xl p-6 hover:border-blue-500/50 transition-all overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative flex items-center gap-4">
+                  <div className="p-3 rounded-lg bg-blue-500/10 ring-1 ring-blue-500/20">
+                    <MessageCircle className="h-6 w-6 text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-400">Toplam Reply</p>
+                    <p className="text-2xl font-bold text-white">
+                      {stats?.total_replies?.toLocaleString("tr-TR") || "0"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative bg-gradient-to-br from-[#1A1A1A] to-[#0B0B0B] border border-white/10 rounded-xl p-6 hover:border-green-500/50 transition-all overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative flex items-center gap-4">
+                  <div className="p-3 rounded-lg bg-green-500/10 ring-1 ring-green-500/20">
+                    <Repeat2 className="h-6 w-6 text-green-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-400">Toplam Retweet</p>
+                    <p className="text-2xl font-bold text-white">
+                      {(stats as any)?.total_retweets_count?.toLocaleString("tr-TR") || "0"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative bg-gradient-to-br from-[#1A1A1A] to-[#0B0B0B] border border-white/10 rounded-xl p-6 hover:border-purple-500/50 transition-all overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative flex items-center gap-4">
+                  <div className="p-3 rounded-lg bg-purple-500/10 ring-1 ring-purple-500/20">
+                    <TrendingUp className="h-6 w-6 text-purple-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-400">Ort. Etkilesim</p>
+                    <p className="text-2xl font-bold text-white">
+                      {stats?.total_tweets && stats.total_tweets > 0
+                        ? Math.round(
+                            ((stats.total_likes || 0) +
+                              (stats.total_replies || 0) +
+                              ((stats as any).total_retweets_count || 0)) /
+                              stats.total_tweets
+                          ).toLocaleString("tr-TR")
+                        : "0"}
+                    </p>
+                    <p className="text-xs text-gray-500">tweet basina</p>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Charts Row - Intelligence Panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

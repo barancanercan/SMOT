@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """
-Profile Scraper v1.0 - Twitter Profil Bilgileri
-- Takipci sayisi
-- Takip sayisi
-- Tweet sayisi
-- Listed count
+Profile Scraper v2.0 - Twitter Profil Bilgileri (Detaylı)
+- Takipçi/takip sayısı
+- Tweet sayısı
+- Bio (biyografi)
+- Location (konum)
+- Website
+- Verified (mavi tik)
+- Join date (katılma tarihi)
 """
 
 import time
@@ -16,8 +19,6 @@ from app.utils.logger import get_logger
 from app.utils.retry_config import retry_on_scraping_error
 
 logger = get_logger("ProfileScraper")
-
-# Add parent directory for imports
 
 try:
     from selenium.webdriver.common.by import By
@@ -39,25 +40,30 @@ except ImportError:
 
 
 class ProfileScraper:
-    """Twitter profil bilgilerini toplayan scraper"""
+    """Twitter profil bilgilerini toplayan scraper v2.0"""
 
-    def __init__(self, driver=None, headless=True):
+    def __init__(self, driver=None, headless=False, require_manual_login=True):
         """
         Args:
-            driver: Mevcut selenium driver (x_scraper'dan paylasilabilir)
-            headless: Kendi driver olusturulacaksa headless mod
+            driver: Mevcut selenium driver (x_scraper'dan paylaşılabilir)
+            headless: Kendi driver oluşturulacaksa headless mod
+            require_manual_login: Manuel login bekle
         """
         self.driver = driver
         self.own_driver = False
+        self.logged_in = False
+        self.require_manual_login = require_manual_login
 
         if self.driver is None:
             self._init_driver(headless)
             self.own_driver = True
+            if require_manual_login:
+                self._manual_login_wait()
 
     def _init_driver(self, headless: bool):
         """Initialize Chrome driver"""
         if not SELENIUM_AVAILABLE or not UNDETECTED_AVAILABLE:
-            raise Exception("Selenium veya undetected-chromedriver yuklu degil")
+            raise Exception("Selenium veya undetected-chromedriver yüklü değil")
 
         import platform
         options = uc.ChromeOptions()
@@ -70,12 +76,54 @@ class ProfileScraper:
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
         options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument("--blink-settings=imagesEnabled=false")
         options.add_argument(
             "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         )
 
-        self.driver = uc.Chrome(options=options, version_main=None, use_subprocess=False)
+        self.driver = uc.Chrome(options=options, headless=False, version_main=146)
+        logger.info("Browser hazır")
+
+    def _manual_login_wait(self):
+        """Wait for user to manually login to X.com"""
+        try:
+            logger.info("=" * 70)
+            logger.info("MANUEL LOGIN GEREKLİ")
+            logger.info("=" * 70)
+
+            self.driver.get("https://x.com/login")
+            time.sleep(2)
+
+            logger.info("Lütfen açılan browser'da X/Twitter'a giriş yapın...")
+            logger.info("Sistem 120 saniye bekleyecek...")
+
+            for i in range(120):
+                current_url = self.driver.current_url
+                if "x.com/login" not in current_url and "x.com/i/flow" not in current_url:
+                    self.logged_in = True
+                    logger.info("LOGIN BAŞARILI!")
+                    return True
+
+                try:
+                    self.driver.find_element(By.XPATH, "//nav[@aria-label='Primary navigation']")
+                    self.logged_in = True
+                    logger.info("LOGIN BAŞARILI!")
+                    return True
+                except Exception:
+                    pass
+
+                if i % 10 == 0 and i > 0:
+                    logger.info(f"Bekleniyor... {i}s geçti")
+
+                time.sleep(1)
+
+            logger.warning("120 saniye doldu, login algılanamadı")
+            self.logged_in = False
+            return False
+
+        except Exception as e:
+            logger.error(f"Login hatası: {e}")
+            self.logged_in = False
+            return False
 
     def _parse_count(self, text: str) -> int:
         """Parse count strings like '1.2K', '5.5M', '123'"""
@@ -100,15 +148,21 @@ class ProfileScraper:
     @retry_on_scraping_error
     def scrape_profile(self, username: str) -> Optional[Dict]:
         """
-        Tek bir kullanicinin profil bilgilerini cek
+        Tek bir kullanıcının TÜM profil bilgilerini çek
 
         Returns:
             {
                 'username': str,
+                'display_name': str,
+                'bio': str,
+                'location': str,
+                'website': str,
+                'join_date': str,
+                'verified': bool,
                 'followers': int,
                 'following': int,
                 'tweets': int,
-                'listed': int,
+                'profile_image_url': str,
                 'scrape_date': str (YYYY-MM-DD)
             }
         """
@@ -120,18 +174,18 @@ class ProfileScraper:
 
         try:
             self.driver.get(url)
-            time.sleep(random.uniform(2, 3))
+            time.sleep(random.uniform(2, 4))
 
             # Profil mevcut mu kontrol et
             try:
                 self.driver.find_element(
                     By.XPATH,
-                    "//span[contains(text(), 'does not exist') or contains(text(), 'mevcut de')]"
+                    "//span[contains(text(), 'does not exist') or contains(text(), 'mevcut de') or contains(text(), 'Account suspended')]"
                 )
-                logger.warning(f"@{username}: Profil bulunamadi")
+                logger.warning(f"@{username}: Profil bulunamadı veya askıya alınmış")
                 return None
             except NoSuchElementException:
-                pass  # Profile exists, continue
+                pass  # Profile exists
 
             # Profil yüklenmesini bekle
             try:
@@ -139,23 +193,112 @@ class ProfileScraper:
                     EC.presence_of_element_located((By.XPATH, "//div[@data-testid='UserName']"))
                 )
             except TimeoutException:
-                logger.warning(f"Timeout waiting for profile to load for @{username}")
+                logger.warning(f"Timeout: @{username}")
                 pass
 
             result = {
                 'username': username,
+                'display_name': '',
+                'bio': '',
+                'location': '',
+                'website': '',
+                'join_date': '',
+                'verified': False,
                 'followers': 0,
                 'following': 0,
                 'tweets': 0,
-                'listed': 0,
+                'profile_image_url': '',
                 'scrape_date': datetime.now().strftime("%Y-%m-%d")
             }
+
+            # ==========================================
+            # DISPLAY NAME
+            # ==========================================
+            try:
+                name_elem = self.driver.find_element(
+                    By.XPATH,
+                    "//div[@data-testid='UserName']//span[not(contains(text(), '@'))]"
+                )
+                result['display_name'] = name_elem.text.strip()
+            except NoSuchElementException:
+                pass
+
+            # ==========================================
+            # VERIFIED (Mavi Tik)
+            # ==========================================
+            try:
+                self.driver.find_element(
+                    By.XPATH,
+                    "//div[@data-testid='UserName']//*[contains(@aria-label, 'Verified') or contains(@aria-label, 'verified') or @data-testid='icon-verified']"
+                )
+                result['verified'] = True
+            except NoSuchElementException:
+                result['verified'] = False
+
+            # ==========================================
+            # BIO (Biyografi)
+            # ==========================================
+            try:
+                bio_elem = self.driver.find_element(
+                    By.XPATH,
+                    "//div[@data-testid='UserDescription']"
+                )
+                result['bio'] = bio_elem.text.strip()
+            except NoSuchElementException:
+                pass
+
+            # ==========================================
+            # LOCATION
+            # ==========================================
+            try:
+                location_elem = self.driver.find_element(
+                    By.XPATH,
+                    "//span[@data-testid='UserLocation']"
+                )
+                result['location'] = location_elem.text.strip()
+            except NoSuchElementException:
+                pass
+
+            # ==========================================
+            # WEBSITE / URL
+            # ==========================================
+            try:
+                url_elem = self.driver.find_element(
+                    By.XPATH,
+                    "//a[@data-testid='UserUrl']"
+                )
+                result['website'] = url_elem.get_attribute("href") or url_elem.text.strip()
+            except NoSuchElementException:
+                pass
+
+            # ==========================================
+            # JOIN DATE (Katılma Tarihi)
+            # ==========================================
+            try:
+                join_elem = self.driver.find_element(
+                    By.XPATH,
+                    "//span[@data-testid='UserJoinDate']"
+                )
+                result['join_date'] = join_elem.text.strip()
+            except NoSuchElementException:
+                pass
+
+            # ==========================================
+            # PROFILE IMAGE URL
+            # ==========================================
+            try:
+                img_elem = self.driver.find_element(
+                    By.XPATH,
+                    "//div[@data-testid='UserAvatar-Container-unknown']//img | //a[contains(@href, '/photo')]//img"
+                )
+                result['profile_image_url'] = img_elem.get_attribute("src") or ""
+            except NoSuchElementException:
+                pass
 
             # ==========================================
             # FOLLOWERS COUNT
             # ==========================================
             try:
-                # Method 1: aria-label from link
                 followers_link = self.driver.find_element(
                     By.XPATH,
                     f"//a[@href='/{username}/verified_followers' or @href='/{username}/followers']"
@@ -164,14 +307,12 @@ class ProfileScraper:
                 result['followers'] = self._parse_count(followers_text.split()[0])
             except NoSuchElementException:
                 try:
-                    # Method 2: Text content near "Followers"
                     followers_elem = self.driver.find_element(
                         By.XPATH,
-                        "//span[contains(text(), 'Followers') or contains(text(), 'Takipci')]/.."
+                        "//span[contains(text(), 'Followers') or contains(text(), 'Takipçi')]/.."
                     )
                     text = followers_elem.text
-                    # Extract number before "Followers"
-                    match = re.search(r'([\d.,KMB]+)\s*(Followers|Takipci)', text, re.IGNORECASE)
+                    match = re.search(r'([\d.,KMB]+)\s*(Followers|Takipçi)', text, re.IGNORECASE)
                     if match:
                         result['followers'] = self._parse_count(match.group(1))
                 except Exception:
@@ -204,7 +345,6 @@ class ProfileScraper:
             # TWEET COUNT (posts)
             # ==========================================
             try:
-                # Header'daki post sayisi
                 posts_elem = self.driver.find_element(
                     By.XPATH,
                     "//div[@data-testid='UserName']/following::div[contains(text(), 'post') or contains(text(), 'gönderi')]"
@@ -213,7 +353,6 @@ class ProfileScraper:
                 result['tweets'] = self._parse_count(posts_text.split()[0])
             except NoSuchElementException:
                 try:
-                    # Alternative: Look for post count in header
                     header = self.driver.find_element(
                         By.XPATH,
                         "//div[@data-testid='primaryColumn']//h2[@role='heading']/.."
@@ -225,12 +364,7 @@ class ProfileScraper:
                 except Exception:
                     pass
 
-            # ==========================================
-            # LISTED COUNT (optional)
-            # ==========================================
-            # Listed count genellikle profilde direkt gorunmuyor
-            # Ileride eklenebilir
-
+            logger.info(f"@{username}: {result['followers']:,} takipçi | Bio: {len(result['bio'])} karakter")
             return result
 
         except Exception as e:
@@ -239,15 +373,9 @@ class ProfileScraper:
 
     def scrape_profiles(self, usernames: List[str]) -> List[Dict]:
         """
-        Birden fazla kullanicinin profil bilgilerini cek
-
-        Args:
-            usernames: Kullanici adlari listesi
-
-        Returns:
-            Profil bilgileri listesi
+        Birden fazla kullanıcının profil bilgilerini çek
         """
-        logger.info(f"PROFIL SCRAPER v1.0 - Kullanici sayisi: {len(usernames)}")
+        logger.info(f"PROFIL SCRAPER v2.0 - Kullanıcı sayısı: {len(usernames)}")
 
         results = []
 
@@ -258,38 +386,47 @@ class ProfileScraper:
 
             if profile:
                 results.append(profile)
-                logger.info(f"Takipci: {profile['followers']:,} | Takip: {profile['following']:,} | Tweet: {profile['tweets']:,}")
             else:
-                logger.error(f"@{username} alinirken HATA")
+                logger.warning(f"@{username} alınamadı")
 
             # Rate limiting
             if i < len(usernames):
-                time.sleep(random.uniform(1, 2))
+                time.sleep(random.uniform(2, 4))
 
-        logger.info(f"Tamamlandi: {len(results)}/{len(usernames)} profil")
+        logger.info(f"Tamamlandı: {len(results)}/{len(usernames)} profil")
         return results
 
     def scrape_and_save(self, usernames: List[str]) -> int:
         """
-        Profilleri cek ve database'e kaydet
-
-        Returns:
-            Kaydedilen profil sayisi
+        Profilleri çek ve database'e kaydet
         """
-        from app.core.database import save_profile_snapshot
+        from app.core.database import save_profile_snapshot, update_councilor_profile
 
         profiles = self.scrape_profiles(usernames)
         saved = 0
 
         for p in profiles:
-            success = save_profile_snapshot(
+            # ProfileHistory'ye sayısal metrikleri kaydet
+            save_profile_snapshot(
                 username=p['username'],
                 followers_count=p['followers'],
                 following_count=p['following'],
                 tweet_count=p['tweets'],
-                listed_count=p['listed'],
+                listed_count=0,
                 scrape_date=p['scrape_date']
             )
+
+            # Councilor tablosuna detaylı bilgileri kaydet
+            success = update_councilor_profile(
+                username=p['username'],
+                bio=p['bio'],
+                location=p['location'],
+                website=p['website'],
+                verified=p['verified'],
+                profile_image_url=p['profile_image_url'],
+                join_date=p['join_date']
+            )
+
             if success:
                 saved += 1
 
@@ -297,7 +434,7 @@ class ProfileScraper:
         return saved
 
     def close(self):
-        """Driver'i kapat (sadece kendi olusturduysa)"""
+        """Driver'ı kapat (sadece kendi oluşturduysa)"""
         if self.own_driver and self.driver:
             try:
                 self.driver.quit()
@@ -312,25 +449,11 @@ class ProfileScraper:
 
 
 # ============================================================================
-# HAFTALIK KARSILASTIRMA FONKSIYONLARI
+# HAFTALIK KARŞILAŞTIRMA FONKSİYONLARI
 # ============================================================================
 
 def get_weekly_comparison(username: str) -> Optional[Dict]:
-    """
-    Son 7 gunluk profil degisimini getir
-
-    Returns:
-        {
-            'username': str,
-            'followers_change': int,
-            'following_change': int,
-            'tweets_change': int,
-            'followers_start': int,
-            'followers_end': int,
-            'period_start': str,
-            'period_end': str
-        }
-    """
+    """Son 7 günlük profil değişimini getir"""
     from app.core.database import get_all_profile_history
     from datetime import datetime, timedelta
 
@@ -339,13 +462,9 @@ def get_weekly_comparison(username: str) -> Optional[Dict]:
     if len(history) < 2:
         return None
 
-    # Son kayit
     latest = history[-1]
-
-    # 7 gun oncesine en yakin kayit
     target_date = datetime.strptime(latest['date'], "%Y-%m-%d") - timedelta(days=7)
 
-    # En yakin kaydi bul
     closest = None
     min_diff = float('inf')
 
@@ -357,7 +476,7 @@ def get_weekly_comparison(username: str) -> Optional[Dict]:
             closest = h
 
     if not closest:
-        closest = history[0]  # En eski kayit
+        closest = history[0]
 
     return {
         'username': username,
@@ -372,29 +491,27 @@ def get_weekly_comparison(username: str) -> Optional[Dict]:
 
 
 def get_all_weekly_comparisons(usernames: List[str]) -> List[Dict]:
-    """Tum kullanicilar icin haftalik karsilastirma"""
+    """Tüm kullanıcılar için haftalık karşılaştırma"""
     results = []
-
     for username in usernames:
         comparison = get_weekly_comparison(username)
         if comparison:
             results.append(comparison)
-
     return results
 
 
 def print_weekly_report(usernames: List[str]):
-    """Haftalik degisim raporu yazdir"""
+    """Haftalık değişim raporu yazdır"""
     comparisons = get_all_weekly_comparisons(usernames)
 
     if not comparisons:
-        logger.warning("Karsilastirma icin yeterli veri yok")
+        logger.warning("Karşılaştırma için yeterli veri yok")
         return
 
     print(f"\n{'='*80}")
     print("HAFTALIK PROFIL DEGISIM RAPORU")
     print(f"{'='*80}")
-    print(f"{'Kullanici':<20} {'Takipci':<15} {'Degisim':<12} {'Takip':<10} {'Tweet':<10}")
+    print(f"{'Kullanıcı':<20} {'Takipçi':<15} {'Değişim':<12} {'Takip':<10} {'Tweet':<10}")
     print(f"{'-'*80}")
 
     for c in comparisons:
@@ -405,21 +522,21 @@ def print_weekly_report(usernames: List[str]):
               f"{c['following_change']:>+10} {c['tweets_change']:>+10}")
 
     print(f"{'='*80}")
-    print(f"Donem: {comparisons[0]['period_start']} - {comparisons[0]['period_end']}")
+    print(f"Dönem: {comparisons[0]['period_start']} - {comparisons[0]['period_end']}")
     print(f"{'='*80}\n")
 
 
 # ============================================================================
-# TEST / CLI
+# CLI / TEST
 # ============================================================================
 
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Twitter Profil Scraper")
-    parser.add_argument("--users", nargs="+", help="Kullanici adlari")
+    parser = argparse.ArgumentParser(description="Twitter Profil Scraper v2.0")
+    parser.add_argument("--users", nargs="+", help="Kullanıcı adları")
     parser.add_argument("--save", action="store_true", help="Database'e kaydet")
-    parser.add_argument("--compare", action="store_true", help="Haftalik karsilastirma goster")
+    parser.add_argument("--compare", action="store_true", help="Haftalık karşılaştırma göster")
 
     args = parser.parse_args()
 
@@ -432,8 +549,17 @@ if __name__ == "__main__":
             else:
                 results = scraper.scrape_profiles(args.users)
                 for r in results:
-                    print(r)
+                    print(f"\n@{r['username']}:")
+                    print(f"  Ad: {r['display_name']}")
+                    print(f"  Bio: {r['bio'][:100]}..." if len(r['bio']) > 100 else f"  Bio: {r['bio']}")
+                    print(f"  Konum: {r['location']}")
+                    print(f"  Website: {r['website']}")
+                    print(f"  Katılım: {r['join_date']}")
+                    print(f"  Verified: {r['verified']}")
+                    print(f"  Takipçi: {r['followers']:,}")
+                    print(f"  Takip: {r['following']:,}")
+                    print(f"  Tweet: {r['tweets']:,}")
     else:
-        print("Kullanim:")
+        print("Kullanım:")
         print("  python profile_scraper.py --users user1 user2 --save")
         print("  python profile_scraper.py --users user1 user2 --compare")

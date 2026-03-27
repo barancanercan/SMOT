@@ -751,6 +751,189 @@ class TweetAnalyzer:
             }
 
 
+    def analyze_instagram(self, posts: List[Dict], username: str,
+                          party: Optional[str] = None) -> Dict:
+        """
+        Instagram-only istihbarat analizi
+
+        Args:
+            posts: Instagram post listesi
+            username: Kullanıcı adı
+            party: Meclis üyesinin partisi
+
+        Returns:
+            IntelligenceAnalysis benzeri sözlük
+        """
+        MAX_POSTS = 25
+
+        if len(posts) > MAX_POSTS:
+            logger.warning(f"Post sayısı ({len(posts)}) maksimum limitin ({MAX_POSTS}) üzerinde.")
+            posts = posts[:MAX_POSTS]
+
+        prompt = get_prompt(
+            'instagram',
+            instagram_posts=posts,
+            username=username,
+            party=party or "Bilinmiyor",
+            post_count=len(posts)
+        )
+
+        logger.info(f"@{username} için Instagram analizi yapiliyor...")
+
+        with LLMCallTimer(
+            model=self.model,
+            prompt_type="instagram",
+            username=username,
+            tweet_count=len(posts)
+        ) as timer:
+            try:
+                response = self._call_llm(prompt)
+            except Exception as e:
+                timer.record_failure(str(e))
+                return {
+                    'username': username,
+                    'party': party,
+                    'post_count': len(posts),
+                    'error': str(e),
+                    'elapsed_seconds': timer.latency_ms / 1000,
+                    'validated': False,
+                    'platform': 'instagram'
+                }
+
+        elapsed = timer.latency_ms / 1000
+        logger.info(f"Instagram analizi tamamlandi ({elapsed:.1f}s)")
+
+        # Parse response
+        validated_data = self._parse_json_response(response, IntelligenceAnalysis)
+
+        if validated_data:
+            confidence = validated_data.confidence_score
+            timer.record_success(validated=True, confidence_score=confidence)
+            return {
+                'username': username,
+                'party': party,
+                'post_count': len(posts),
+                'raw_response': response,
+                'analysis': validated_data,
+                'elapsed_seconds': elapsed,
+                'confidence_score': confidence,
+                'validated': True,
+                'platform': 'instagram'
+            }
+        else:
+            timer.record_success(validated=False)
+            return {
+                'username': username,
+                'party': party,
+                'post_count': len(posts),
+                'raw_response': response,
+                'elapsed_seconds': elapsed,
+                'validated': False,
+                'platform': 'instagram'
+            }
+
+    def analyze_multi_platform(
+        self,
+        tweets: List[Dict],
+        instagram_posts: List[Dict],
+        username: str,
+        party: Optional[str] = None
+    ) -> Dict:
+        """
+        Çoklu platform (Twitter + Instagram) istihbarat analizi
+
+        Args:
+            tweets: Tweet listesi
+            instagram_posts: Instagram post listesi
+            username: Kullanıcı adı
+            party: Meclis üyesinin partisi
+
+        Returns:
+            Multi-platform IntelligenceAnalysis
+        """
+        MAX_TWEETS = 20
+        MAX_POSTS = 20
+
+        if len(tweets) > MAX_TWEETS:
+            tweets = tweets[:MAX_TWEETS]
+        if len(instagram_posts) > MAX_POSTS:
+            instagram_posts = instagram_posts[:MAX_POSTS]
+
+        # Determine platforms string
+        platforms = []
+        if tweets:
+            platforms.append("Twitter")
+        if instagram_posts:
+            platforms.append("Instagram")
+        platforms_str = " + ".join(platforms) if platforms else "Yok"
+
+        prompt = get_prompt(
+            'multi_platform',
+            tweets=tweets,
+            instagram_posts=instagram_posts,
+            username=username,
+            party=party or "Bilinmiyor",
+            platforms=platforms_str
+        )
+
+        logger.info(f"@{username} için çoklu platform analizi yapiliyor ({platforms_str})...")
+
+        with LLMCallTimer(
+            model=self.model,
+            prompt_type="multi_platform",
+            username=username,
+            tweet_count=len(tweets) + len(instagram_posts)
+        ) as timer:
+            try:
+                response = self._call_llm(prompt)
+            except Exception as e:
+                timer.record_failure(str(e))
+                return {
+                    'username': username,
+                    'party': party,
+                    'tweet_count': len(tweets),
+                    'post_count': len(instagram_posts),
+                    'error': str(e),
+                    'elapsed_seconds': timer.latency_ms / 1000,
+                    'validated': False,
+                    'platform': 'both'
+                }
+
+        elapsed = timer.latency_ms / 1000
+        logger.info(f"Çoklu platform analizi tamamlandi ({elapsed:.1f}s)")
+
+        # Parse response
+        validated_data = self._parse_json_response(response, IntelligenceAnalysis)
+
+        if validated_data:
+            confidence = validated_data.confidence_score
+            timer.record_success(validated=True, confidence_score=confidence)
+            return {
+                'username': username,
+                'party': party,
+                'tweet_count': len(tweets),
+                'post_count': len(instagram_posts),
+                'raw_response': response,
+                'analysis': validated_data,
+                'elapsed_seconds': elapsed,
+                'confidence_score': confidence,
+                'validated': True,
+                'platform': 'both'
+            }
+        else:
+            timer.record_success(validated=False)
+            return {
+                'username': username,
+                'party': party,
+                'tweet_count': len(tweets),
+                'post_count': len(instagram_posts),
+                'raw_response': response,
+                'elapsed_seconds': elapsed,
+                'validated': False,
+                'platform': 'both'
+            }
+
+
 # ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================

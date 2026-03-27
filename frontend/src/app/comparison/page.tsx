@@ -13,7 +13,11 @@ import {
   WeeklyTopTweetsResponse,
   RecentTweetsResponse,
   TweetItem,
+  Platform,
+  TopPostsResponse,
+  InstagramPostItem,
 } from "@/lib/api";
+import { PlatformSelector } from "@/components/ui/platform-selector";
 import { useToast } from "@/components/ui/toast";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import {
@@ -33,6 +37,10 @@ import {
   Building2,
   Calendar,
   Clock,
+  Camera,
+  Video,
+  Image,
+  ExternalLink,
 } from "lucide-react";
 import {
   BarChart,
@@ -68,6 +76,7 @@ const getPartyColor = (party: string): string => {
 };
 
 const formatNumber = (num: number) => {
+  if (num === undefined || num === null) return "0";
   if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
   if (num >= 1000) return (num / 1000).toFixed(1) + "K";
   return num.toLocaleString("tr-TR");
@@ -121,10 +130,82 @@ const TweetCard = ({ tweet, showUser = true }: { tweet: TweetItem; showUser?: bo
           {formatNumber(tweet.views)}
         </span>
       </div>
-      <span className="flex items-center gap-1">
-        <Clock className="w-3 h-3" />
-        {tweet.tweet_date?.split("T")[0] || "-"}
-      </span>
+      <div className="flex items-center gap-2">
+        <span className="flex items-center gap-1">
+          <Clock className="w-3 h-3" />
+          {tweet.tweet_date?.split("T")[0] || "-"}
+        </span>
+        <a
+          href={`https://x.com/${tweet.username}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-400 hover:text-blue-300 transition-colors"
+          title="X'de Gor"
+        >
+          <ExternalLink className="w-3 h-3" />
+        </a>
+      </div>
+    </div>
+  </div>
+);
+
+// Instagram Post Card Component
+const PostCard = ({ post, showUser = true }: { post: InstagramPostItem; showUser?: boolean }) => (
+  <div className="bg-[#0B0B0B] rounded-lg border border-white/5 p-4 hover:border-pink-500/20 transition-all">
+    {showUser && (
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-pink-400 font-mono text-sm">@{post.username}</span>
+        <span
+          className="px-2 py-0.5 text-xs rounded-full"
+          style={{
+            backgroundColor: getPartyColor(post.party) + "30",
+            color: getPartyColor(post.party),
+          }}
+        >
+          {post.party}
+        </span>
+        {post.is_video ? (
+          <span className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-purple-500/20 text-purple-400">
+            <Video className="w-3 h-3" />
+            Video
+          </span>
+        ) : (
+          <span className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-pink-500/20 text-pink-400">
+            <Image className="w-3 h-3" />
+            Foto
+          </span>
+        )}
+      </div>
+    )}
+    <p className="text-gray-300 text-sm mb-3 line-clamp-3">{post.caption || "(Aciklama yok)"}</p>
+    <div className="flex items-center justify-between text-xs text-gray-500">
+      <div className="flex items-center gap-3">
+        <span className="flex items-center gap-1">
+          <Heart className="w-3 h-3 text-red-400" />
+          {formatNumber(post.likes)}
+        </span>
+        <span className="flex items-center gap-1">
+          <MessageCircle className="w-3 h-3 text-blue-400" />
+          {formatNumber(post.comments)}
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="flex items-center gap-1">
+          <Clock className="w-3 h-3" />
+          {post.post_date?.split("T")[0] || "-"}
+        </span>
+        {post.post_url && (
+          <a
+            href={post.post_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-pink-400 hover:text-pink-300 transition-colors"
+            title="Instagram'da Ac"
+          >
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
+      </div>
     </div>
   </div>
 );
@@ -137,6 +218,7 @@ export default function ComparisonPage() {
   const [partyComparisonData, setPartyComparisonData] = useState<PartyComparisonResponse | null>(null);
   const [analysisText, setAnalysisText] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [platform, setPlatform] = useState<Platform>("twitter");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
@@ -209,10 +291,40 @@ export default function ComparisonPage() {
     enabled: (activeTab === "party" && selectedParties.length > 1) || (activeTab === "user" && selectedUsers.length > 1),
   });
 
+  // Top 5 Instagram posts query for first selection
+  const { data: partyTopPosts1, refetch: refetchPartyPosts1 } = useQuery({
+    queryKey: ["party-top-posts-1", activeTab, selectedParties[0], selectedUsers[0], platform],
+    queryFn: () => {
+      if (platform === "twitter") return null;
+      if (activeTab === "party" && selectedParties.length > 0) {
+        return api.get<TopPostsResponse>(`/analytics/posts/top?party=${encodeURIComponent(selectedParties[0])}&limit=5`);
+      } else if (activeTab === "user" && selectedUsers.length > 0) {
+        return api.get<TopPostsResponse>(`/analytics/posts/top?username=${selectedUsers[0]}&limit=5`);
+      }
+      return null;
+    },
+    enabled: platform !== "twitter" && ((activeTab === "party" && selectedParties.length > 0) || (activeTab === "user" && selectedUsers.length > 0)),
+  });
+
+  // Top 5 Instagram posts query for second selection
+  const { data: partyTopPosts2, refetch: refetchPartyPosts2 } = useQuery({
+    queryKey: ["party-top-posts-2", activeTab, selectedParties[1], selectedUsers[1], platform],
+    queryFn: () => {
+      if (platform === "twitter") return null;
+      if (activeTab === "party" && selectedParties.length > 1) {
+        return api.get<TopPostsResponse>(`/analytics/posts/top?party=${encodeURIComponent(selectedParties[1])}&limit=5`);
+      } else if (activeTab === "user" && selectedUsers.length > 1) {
+        return api.get<TopPostsResponse>(`/analytics/posts/top?username=${selectedUsers[1]}&limit=5`);
+      }
+      return null;
+    },
+    enabled: platform !== "twitter" && ((activeTab === "party" && selectedParties.length > 1) || (activeTab === "user" && selectedUsers.length > 1)),
+  });
+
   // User compare mutation
   const compareMutation = useMutation({
-    mutationFn: (usernames: string[]) =>
-      api.post<ComparisonResponse>("/analytics/compare", { usernames }),
+    mutationFn: (data: { usernames: string[]; platform: Platform }) =>
+      api.post<ComparisonResponse>("/analytics/compare", { usernames: data.usernames, platform: data.platform }),
     onSuccess: (data) => {
       setComparisonData(data);
       setAnalysisText("");
@@ -228,8 +340,8 @@ export default function ComparisonPage() {
 
   // User compare with LLM
   const compareLLMMutation = useMutation({
-    mutationFn: (usernames: string[]) =>
-      api.post<ComparisonLLMResponse>("/analytics/compare/llm", { usernames }),
+    mutationFn: (data: { usernames: string[]; platform: Platform }) =>
+      api.post<ComparisonLLMResponse>("/analytics/compare/llm", { usernames: data.usernames, platform: data.platform }),
     onSuccess: (data) => {
       setComparisonData({ users: data.users });
       setAnalysisText(data.analysis);
@@ -242,8 +354,8 @@ export default function ComparisonPage() {
 
   // Party compare mutation
   const partyCompareMutation = useMutation({
-    mutationFn: (partyList: string[]) =>
-      api.post<PartyComparisonResponse>("/analytics/parties/compare", { parties: partyList }),
+    mutationFn: (data: { parties: string[]; platform: Platform }) =>
+      api.post<PartyComparisonResponse>("/analytics/parties/compare", { parties: data.parties, platform: data.platform }),
     onSuccess: (data) => {
       setPartyComparisonData(data);
       setAnalysisText("");
@@ -259,8 +371,8 @@ export default function ComparisonPage() {
 
   // Party compare with LLM
   const partyCompareLLMMutation = useMutation({
-    mutationFn: (partyList: string[]) =>
-      api.post<PartyComparisonLLMResponse>("/analytics/parties/compare/llm", { parties: partyList }),
+    mutationFn: (data: { parties: string[]; platform: Platform }) =>
+      api.post<PartyComparisonLLMResponse>("/analytics/parties/compare/llm", { parties: data.parties, platform: data.platform }),
     onSuccess: (data) => {
       setPartyComparisonData({ parties: data.parties });
       setAnalysisText(data.analysis);
@@ -303,13 +415,13 @@ export default function ComparisonPage() {
         toast.error("En az 2 kullanici secmelisiniz");
         return;
       }
-      compareMutation.mutate(selectedUsers);
+      compareMutation.mutate({ usernames: selectedUsers, platform });
     } else {
       if (selectedParties.length < 2) {
         toast.error("En az 2 parti secmelisiniz");
         return;
       }
-      partyCompareMutation.mutate(selectedParties);
+      partyCompareMutation.mutate({ parties: selectedParties, platform });
     }
   };
 
@@ -319,13 +431,13 @@ export default function ComparisonPage() {
         toast.error("En az 2 kullanici secmelisiniz");
         return;
       }
-      compareLLMMutation.mutate(selectedUsers);
+      compareLLMMutation.mutate({ usernames: selectedUsers, platform });
     } else {
       if (selectedParties.length < 2) {
         toast.error("En az 2 parti secmelisiniz");
         return;
       }
-      partyCompareLLMMutation.mutate(selectedParties);
+      partyCompareLLMMutation.mutate({ parties: selectedParties, platform });
     }
   };
 
@@ -387,38 +499,43 @@ export default function ComparisonPage() {
               </p>
             </div>
 
-            {/* Tab Buttons */}
-            <div className="flex bg-[#0B0B0B] rounded-xl p-1 border border-white/10">
-              <button
-                onClick={() => {
-                  setActiveTab("party");
-                  setComparisonData(null);
-                  setAnalysisText("");
-                }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all ${
-                  activeTab === "party"
-                    ? "bg-purple-600 text-white"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                <Building2 className="w-4 h-4" />
-                Parti
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab("user");
-                  setPartyComparisonData(null);
-                  setAnalysisText("");
-                }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all ${
-                  activeTab === "user"
-                    ? "bg-purple-600 text-white"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                <Users className="w-4 h-4" />
-                Uye
-              </button>
+            <div className="flex items-center gap-4">
+              {/* Platform Selector */}
+              <PlatformSelector value={platform} onChange={setPlatform} />
+
+              {/* Tab Buttons */}
+              <div className="flex bg-[#0B0B0B] rounded-xl p-1 border border-white/10">
+                <button
+                  onClick={() => {
+                    setActiveTab("party");
+                    setComparisonData(null);
+                    setAnalysisText("");
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all ${
+                    activeTab === "party"
+                      ? "bg-purple-600 text-white"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <Building2 className="w-4 h-4" />
+                  Parti
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab("user");
+                    setPartyComparisonData(null);
+                    setAnalysisText("");
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all ${
+                    activeTab === "user"
+                      ? "bg-purple-600 text-white"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  Uye
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -703,7 +820,7 @@ export default function ComparisonPage() {
             )}
 
             {/* Top 5 Weekly Tweets */}
-            {weeklyTopTweets?.tweets && weeklyTopTweets.tweets.length > 0 && (comparisonData || partyComparisonData) && (
+            {platform !== "instagram" && weeklyTopTweets?.tweets && weeklyTopTweets.tweets.length > 0 && (comparisonData || partyComparisonData) && (
               <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent">
                   <div className="flex items-center gap-3">
@@ -726,7 +843,7 @@ export default function ComparisonPage() {
             )}
 
             {/* Top 5 Tweets - Side by Side for Party Comparison */}
-            {activeTab === "party" && partyComparisonData && (partyTopTweets1?.tweets || partyTopTweets2?.tweets) && (
+            {activeTab === "party" && partyComparisonData && platform !== "instagram" && (partyTopTweets1?.tweets || partyTopTweets2?.tweets) && (
               <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden">
                 <div className="flex items-center gap-3 px-6 py-4 border-b border-white/10 bg-gradient-to-r from-orange-500/10 via-orange-500/5 to-transparent">
                   <TrendingUp className="h-5 w-5 text-orange-400" />
@@ -786,7 +903,7 @@ export default function ComparisonPage() {
             )}
 
             {/* Top 5 Tweets - for User Comparison */}
-            {activeTab === "user" && comparisonData && partyTopTweets1?.tweets && partyTopTweets1.tweets.length > 0 && (
+            {activeTab === "user" && comparisonData && partyTopTweets1?.tweets && partyTopTweets1.tweets.length > 0 && platform !== "instagram" && (
               <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden">
                 <div className="flex items-center gap-3 px-6 py-4 border-b border-white/10 bg-gradient-to-r from-orange-500/10 via-orange-500/5 to-transparent">
                   <TrendingUp className="h-5 w-5 text-orange-400" />
@@ -798,6 +915,86 @@ export default function ComparisonPage() {
                       <span className="text-xl font-bold text-orange-400/50 w-8">#{idx + 1}</span>
                       <div className="flex-1">
                         <TweetCard tweet={tweet} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Top 5 Instagram Posts - Side by Side for Party Comparison */}
+            {activeTab === "party" && partyComparisonData && platform !== "twitter" && (partyTopPosts1?.posts || partyTopPosts2?.posts) && (
+              <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden">
+                <div className="flex items-center gap-3 px-6 py-4 border-b border-white/10 bg-gradient-to-r from-pink-500/10 via-pink-500/5 to-transparent">
+                  <Camera className="h-5 w-5 text-pink-400" />
+                  <span className="text-white font-semibold">Top 5 Instagram Post (Parti Bazli)</span>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4 p-4">
+                  {/* First Party */}
+                  {selectedParties[0] && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: getPartyColor(selectedParties[0]) }}
+                        />
+                        <span className="text-white font-semibold">{selectedParties[0]}</span>
+                      </div>
+                      {partyTopPosts1?.posts && partyTopPosts1.posts.length > 0 ? (
+                        partyTopPosts1.posts.map((post, idx) => (
+                          <div key={post.id} className="flex gap-2">
+                            <span className="text-lg font-bold text-pink-400/50 w-6">#{idx + 1}</span>
+                            <div className="flex-1">
+                              <PostCard post={post} />
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-gray-500 text-sm text-center py-4">Instagram postu bulunamadi</div>
+                      )}
+                    </div>
+                  )}
+                  {/* Second Party */}
+                  {selectedParties[1] && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: getPartyColor(selectedParties[1]) }}
+                        />
+                        <span className="text-white font-semibold">{selectedParties[1]}</span>
+                      </div>
+                      {partyTopPosts2?.posts && partyTopPosts2.posts.length > 0 ? (
+                        partyTopPosts2.posts.map((post, idx) => (
+                          <div key={post.id} className="flex gap-2">
+                            <span className="text-lg font-bold text-pink-400/50 w-6">#{idx + 1}</span>
+                            <div className="flex-1">
+                              <PostCard post={post} />
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-gray-500 text-sm text-center py-4">Instagram postu bulunamadi</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Top 5 Instagram Posts - for User Comparison */}
+            {activeTab === "user" && comparisonData && platform !== "twitter" && partyTopPosts1?.posts && partyTopPosts1.posts.length > 0 && (
+              <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden">
+                <div className="flex items-center gap-3 px-6 py-4 border-b border-white/10 bg-gradient-to-r from-pink-500/10 via-pink-500/5 to-transparent">
+                  <Camera className="h-5 w-5 text-pink-400" />
+                  <span className="text-white font-semibold">Top 5 Instagram Post</span>
+                </div>
+                <div className="p-4 space-y-3">
+                  {partyTopPosts1.posts.map((post, idx) => (
+                    <div key={post.id} className="flex gap-3">
+                      <span className="text-xl font-bold text-pink-400/50 w-8">#{idx + 1}</span>
+                      <div className="flex-1">
+                        <PostCard post={post} />
                       </div>
                     </div>
                   ))}

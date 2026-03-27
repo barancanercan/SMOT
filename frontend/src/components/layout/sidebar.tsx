@@ -11,6 +11,7 @@ import {
   Settings,
   Users,
   GitCompare,
+  Camera,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/comparison", label: "Karsilastirma", icon: GitCompare },
   { href: "/users", label: "Kullanicilar", icon: Users },
   { href: "/tweets", label: "Top Tweetler", icon: Flame },
+  { href: "/instagram", label: "Top Postlar", icon: Camera },
   { href: "/system", label: "Sistem", icon: Settings },
 ];
 

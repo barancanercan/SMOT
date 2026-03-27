@@ -165,8 +165,117 @@ JSON:"""
 
 
 # ============================================================================
+# MULTI-PLATFORM PROMPT
+# ============================================================================
+
+PROMPT_MULTI_PLATFORM_JSON = """Siyasi istihbarat analisti olarak @{username} hesabını analiz et.
+
+HESAP: @{username} | Parti: {party} | Platformlar: {platforms}
+
+GÖREV: Hem Twitter hem Instagram paylaşımlarını okuyup karşılaştırmalı analiz yap.
+
+TWITTER PAYLAŞIMLARI:
+{tweets}
+
+INSTAGRAM PAYLAŞIMLARI:
+{instagram_posts}
+
+ANALIZ TALEPLERI:
+1. Her platformdaki mesaj tutarlılığı
+2. Platform-spesifik stratejiler (görsel vs metin ağırlıklı)
+3. Kitle farklılıkları ve hedefleme
+4. Parti sadakati ve muhalefet tutumu
+
+ÇIKTI (JSON):
+{{
+  "executive_summary": "2-3 cümlelik genel değerlendirme",
+  "platform_comparison": {{
+    "consistency": "Tutarlı/Kısmen Tutarlı/Farklı",
+    "twitter_focus": "Twitter'daki ana tema",
+    "instagram_focus": "Instagram'daki ana tema",
+    "audience_difference": "Kitle farkı analizi"
+  }},
+  "green_summary": "Parti sadakati analizi (her iki platform)",
+  "loyalty_level": "Yüksek/Orta/Düşük",
+  "red_summary": "Muhalefet eleştirisi analizi (her iki platform)",
+  "criticism_level": "Yüksek/Orta/Düşük",
+  "grey_summary": "Bağımsız gündemler (her iki platform)",
+  "independent_topics": ["konu1", "konu2", "konu3"],
+  "recommendation": "Platform stratejisi önerisi",
+  "confidence_score": 0.85
+}}
+
+JSON:"""
+
+
+# ============================================================================
+# INSTAGRAM-ONLY PROMPT
+# ============================================================================
+
+PROMPT_INSTAGRAM_ANALYSIS_JSON = """Siyasi istihbarat analisti olarak @{username} Instagram hesabını analiz et.
+
+HESAP: @{username} | Parti: {party} | Post Sayısı: {post_count}
+
+GÖREV: Instagram paylaşımlarını okuyup 3 kategoride (Yeşil/Kırmızı/Gri) analiz yap.
+
+INSTAGRAM PAYLAŞIMLARI:
+{instagram_posts}
+
+ÇIKTI (JSON):
+{{
+  "executive_summary": "2-3 cümlelik genel değerlendirme",
+  "green_summary": "Parti sadakati içeren paylaşımlar analizi",
+  "loyalty_level": "Yüksek/Orta/Düşük",
+  "red_summary": "Eleştirel paylaşımlar analizi",
+  "criticism_level": "Yüksek/Orta/Düşük",
+  "grey_summary": "Apolitik/kişisel paylaşımlar",
+  "independent_topics": ["konu1", "konu2", "konu3"],
+  "visual_strategy": "Görsel içerik stratejisi (foto/video kullanımı)",
+  "engagement_pattern": "Etkileşim kalıbı analizi",
+  "confidence_score": 0.85
+}}
+
+JSON:"""
+
+
+# ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
+
+def format_instagram_for_prompt(posts: list, max_posts: int = 25) -> str:
+    """
+    Instagram post listesini analiz için formatla.
+
+    Args:
+        posts: Instagram post listesi
+        max_posts: Maksimum post sayısı (default: 25)
+    """
+    if not posts:
+        return "[Instagram verisi yok]"
+
+    selected = posts[:max_posts]
+
+    lines = []
+    for i, p in enumerate(selected, 1):
+        caption = p.get('caption', p.get('text', ''))
+        if caption and len(caption) > 200:
+            caption = caption[:200] + "..."
+
+        date = p.get('post_date', p.get('date', ''))
+        if date and len(date) > 10:
+            date = date[:10]
+
+        media_type = "Video" if p.get('is_video') else "Foto"
+        likes = p.get('likes', 0)
+        comments = p.get('comments', 0)
+
+        if date:
+            lines.append(f"[{i}] {media_type} ({date}) [{likes} like, {comments} yorum] {caption}")
+        else:
+            lines.append(f"[{i}] {media_type} [{likes} like, {comments} yorum] {caption}")
+
+    return "\n".join(lines)
+
 
 def format_tweets_for_prompt(tweets: list, max_tweets: int = 25, include_metrics: bool = False) -> str:
     """
@@ -245,11 +354,13 @@ def get_prompt(prompt_type: str, **kwargs) -> str:
     Prompt şablonunu doldur ve döndür.
 
     Args:
-        prompt_type: 'intelligence', 'full', 'main_topics', 'party_defense', 'opposition', 'comparison'
+        prompt_type: 'intelligence', 'full', 'main_topics', 'party_defense', 'opposition',
+                     'comparison', 'multi_platform', 'instagram'
         **kwargs: Şablonda kullanılacak değişkenler
             - tweets: Orijinal tweet listesi
             - retweets: Retweet listesi (intelligence prompt için)
             - tweets1, tweets2: Karşılaştırma için tweet listeleri
+            - instagram_posts: Instagram post listesi (multi_platform/instagram için)
 
     Returns:
         Doldurulmuş prompt string
@@ -260,7 +371,9 @@ def get_prompt(prompt_type: str, **kwargs) -> str:
         'main_topics': PROMPT_MAIN_TOPICS_JSON,
         'party_defense': PROMPT_PARTY_DEFENSE_JSON,
         'opposition': PROMPT_OPPOSITION_CRITICISM_JSON,
-        'comparison': PROMPT_COMPARISON_JSON
+        'comparison': PROMPT_COMPARISON_JSON,
+        'multi_platform': PROMPT_MULTI_PLATFORM_JSON,
+        'instagram': PROMPT_INSTAGRAM_ANALYSIS_JSON
     }
 
     template = prompts.get(prompt_type)
@@ -277,6 +390,12 @@ def get_prompt(prompt_type: str, **kwargs) -> str:
     if 'tweets2' in kwargs and isinstance(kwargs['tweets2'], list):
         kwargs['tweets2'] = format_tweets_for_prompt(kwargs['tweets2'])
 
+    # instagram_posts listesi varsa formatla
+    if 'instagram_posts' in kwargs and isinstance(kwargs['instagram_posts'], list):
+        kwargs['instagram_posts'] = format_instagram_for_prompt(kwargs['instagram_posts'])
+    elif 'instagram_posts' not in kwargs:
+        kwargs['instagram_posts'] = "[Instagram verisi mevcut değil]"
+
     # retweets listesi varsa formatla (intelligence prompt için)
     if 'retweets' in kwargs and isinstance(kwargs['retweets'], list):
         kwargs['retweets'] = format_retweets_for_prompt(kwargs['retweets'])
@@ -288,7 +407,9 @@ def get_prompt(prompt_type: str, **kwargs) -> str:
         'party': 'Bilinmiyor',
         'username': 'kullanici',
         'tweet_count': 0,
+        'post_count': 0,
         'period': 'Tüm zamanlar',
+        'platforms': 'twitter',
         'username1': 'kullanici1',
         'username2': 'kullanici2',
         'party1': 'Bilinmiyor',

@@ -2,13 +2,11 @@
 
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api, User, PaginatedResponse, TweetItem } from "@/lib/api";
+import { api, User, PaginatedResponse, InstagramPostItem, TopPostsResponse } from "@/lib/api";
 import {
-  Flame,
-  ThumbsUp,
+  Camera,
+  Heart,
   MessageCircle,
-  Repeat2,
-  Eye,
   AlertCircle,
   Activity,
   Zap,
@@ -16,6 +14,8 @@ import {
   Users,
   Clock,
   Settings2,
+  Video,
+  Image as ImageIcon,
   ExternalLink,
 } from "lucide-react";
 
@@ -33,16 +33,10 @@ const PARTY_COLORS: Record<string, string> = {
 };
 
 const getPartyColor = (party: string): string => {
-  return PARTY_COLORS[party] || "#60A5FA";
+  return PARTY_COLORS[party] || "#E1306C";
 };
 
-interface TopTweetsResponse {
-  filter: { party?: string; username?: string };
-  limit: number;
-  tweets: TweetItem[];
-}
-
-export default function TweetsPage() {
+export default function InstagramPage() {
   const [activeTab, setActiveTab] = useState<"party" | "user">("party");
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [selectedParty, setSelectedParty] = useState<string>("");
@@ -77,18 +71,18 @@ export default function TweetsPage() {
     }
   }, [users, parties, selectedUser, selectedParty]);
 
-  // Fetch top tweets
+  // Fetch top posts
   const {
-    data: tweetsData,
-    isLoading: tweetsLoading,
-    error: tweetsError,
+    data: postsData,
+    isLoading: postsLoading,
+    error: postsError,
   } = useQuery({
-    queryKey: ["top-tweets", activeTab, selectedUser, selectedParty, limit],
+    queryKey: ["top-posts", activeTab, selectedUser, selectedParty, limit],
     queryFn: () => {
       if (activeTab === "party" && selectedParty) {
-        return api.get<TopTweetsResponse>(`/analytics/tweets/top?party=${encodeURIComponent(selectedParty)}&limit=${limit}`);
+        return api.get<TopPostsResponse>(`/analytics/posts/top?party=${encodeURIComponent(selectedParty)}&limit=${limit}`);
       } else if (activeTab === "user" && selectedUser) {
-        return api.get<TopTweetsResponse>(`/analytics/tweets/top?username=${selectedUser}&limit=${limit}`);
+        return api.get<TopPostsResponse>(`/analytics/posts/top?username=${selectedUser}&limit=${limit}`);
       }
       return null;
     },
@@ -96,7 +90,7 @@ export default function TweetsPage() {
     staleTime: 2 * 60 * 1000,
   });
 
-  const tweets = tweetsData?.tweets || [];
+  const posts = postsData?.posts || [];
 
   const formatNumber = (num: number) => {
     if (num === undefined || num === null) return "0";
@@ -106,8 +100,8 @@ export default function TweetsPage() {
   };
 
   const getEngagementLevel = (engagement: number) => {
-    if (engagement >= 10000) return { color: "text-[#00D1B2]", label: "YUKSEK" };
-    if (engagement >= 5000) return { color: "text-[#4DA3FF]", label: "ORTA" };
+    if (engagement >= 1000) return { color: "text-[#00D1B2]", label: "YUKSEK" };
+    if (engagement >= 500) return { color: "text-[#E1306C]", label: "ORTA" };
     return { color: "text-gray-500", label: "DUSUK" };
   };
 
@@ -132,8 +126,8 @@ export default function TweetsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="relative">
-        <div className="relative bg-[#1A1A1A] border border-[#4DA3FF]/20 rounded-xl p-6 backdrop-blur-xl">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#4DA3FF]/5 to-transparent rounded-xl" />
+        <div className="relative bg-[#1A1A1A] border border-[#E1306C]/20 rounded-xl p-6 backdrop-blur-xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#E1306C]/5 to-[#833AB4]/5 rounded-xl" />
 
           <div className="relative">
             {/* Title Row */}
@@ -141,18 +135,18 @@ export default function TweetsPage() {
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <div className="relative">
-                    <div className="absolute inset-0 blur-lg bg-orange-500/30 rounded-full" />
-                    <Flame className="relative h-7 w-7 text-orange-500" />
+                    <div className="absolute inset-0 blur-lg bg-gradient-to-r from-[#E1306C]/30 to-[#833AB4]/30 rounded-full" />
+                    <Camera className="relative h-7 w-7 text-[#E1306C]" />
                   </div>
                   <h1 className="text-2xl font-bold text-white tracking-tight">
-                    TOP TWEETLER
+                    TOP INSTAGRAM POSTLARI
                   </h1>
-                  <div className="px-3 py-1 bg-[#00D1B2]/10 border border-[#00D1B2]/30 rounded-full">
-                    <span className="text-xs font-mono text-[#00D1B2]">SINYAL ANALIZI</span>
+                  <div className="px-3 py-1 bg-[#E1306C]/10 border border-[#E1306C]/30 rounded-full">
+                    <span className="text-xs font-mono text-[#E1306C]">ICERIK ANALIZI</span>
                   </div>
                 </div>
                 <p className="text-gray-400 text-sm font-mono">
-                  En cok etkilesim alan tweetler // yuksek etkilesim sinyalleri
+                  En cok etkilesim alan Instagram postlari // gorsel icerik sinyalleri
                 </p>
               </div>
 
@@ -162,7 +156,7 @@ export default function TweetsPage() {
                   onClick={() => setActiveTab("party")}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all ${
                     activeTab === "party"
-                      ? "bg-orange-600 text-white"
+                      ? "bg-gradient-to-r from-[#E1306C] to-[#833AB4] text-white"
                       : "text-gray-400 hover:text-white"
                   }`}
                 >
@@ -173,7 +167,7 @@ export default function TweetsPage() {
                   onClick={() => setActiveTab("user")}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all ${
                     activeTab === "user"
-                      ? "bg-orange-600 text-white"
+                      ? "bg-gradient-to-r from-[#E1306C] to-[#833AB4] text-white"
                       : "text-gray-400 hover:text-white"
                   }`}
                 >
@@ -192,10 +186,10 @@ export default function TweetsPage() {
                   <select
                     value={selectedParty}
                     onChange={(e) => setSelectedParty(e.target.value)}
-                    className="px-4 py-2.5 bg-[#0B0B0B] border border-[#4DA3FF]/30 rounded-lg
+                    className="px-4 py-2.5 bg-[#0B0B0B] border border-[#E1306C]/30 rounded-lg
                              text-white font-mono text-sm min-w-[180px]
-                             focus:ring-2 focus:ring-[#4DA3FF]/50 focus:border-[#4DA3FF]
-                             hover:border-[#4DA3FF]/50 transition-all cursor-pointer"
+                             focus:ring-2 focus:ring-[#E1306C]/50 focus:border-[#E1306C]
+                             hover:border-[#E1306C]/50 transition-all cursor-pointer"
                   >
                     {parties.map((party) => (
                       <option key={party} value={party}>
@@ -211,10 +205,10 @@ export default function TweetsPage() {
                     value={selectedUser}
                     onChange={(e) => setSelectedUser(e.target.value)}
                     disabled={usersLoading}
-                    className="px-4 py-2.5 bg-[#0B0B0B] border border-[#4DA3FF]/30 rounded-lg
+                    className="px-4 py-2.5 bg-[#0B0B0B] border border-[#E1306C]/30 rounded-lg
                              text-white font-mono text-sm min-w-[180px]
-                             focus:ring-2 focus:ring-[#4DA3FF]/50 focus:border-[#4DA3FF]
-                             hover:border-[#4DA3FF]/50 transition-all
+                             focus:ring-2 focus:ring-[#E1306C]/50 focus:border-[#E1306C]
+                             hover:border-[#E1306C]/50 transition-all
                              disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {usersLoading ? (
@@ -232,15 +226,15 @@ export default function TweetsPage() {
 
               {/* Limit Selector */}
               <div className="relative">
-                <label className="block text-xs text-gray-500 font-mono mb-1">TWEET SAYISI</label>
+                <label className="block text-xs text-gray-500 font-mono mb-1">POST SAYISI</label>
                 <div className="flex items-center gap-2">
                   <select
                     value={limit}
                     onChange={(e) => setLimit(Number(e.target.value))}
-                    className="px-4 py-2.5 bg-[#0B0B0B] border border-[#4DA3FF]/30 rounded-lg
+                    className="px-4 py-2.5 bg-[#0B0B0B] border border-[#E1306C]/30 rounded-lg
                              text-white font-mono text-sm
-                             focus:ring-2 focus:ring-[#4DA3FF]/50 focus:border-[#4DA3FF]
-                             hover:border-[#4DA3FF]/50 transition-all cursor-pointer"
+                             focus:ring-2 focus:ring-[#E1306C]/50 focus:border-[#E1306C]
+                             hover:border-[#E1306C]/50 transition-all cursor-pointer"
                   >
                     <option value={5}>Top 5</option>
                     <option value={10}>Top 10</option>
@@ -266,7 +260,7 @@ export default function TweetsPage() {
                 <span className="text-white font-mono text-sm">
                   {activeTab === "party" ? selectedParty : `@${selectedUser}`}
                 </span>
-                <span className="text-gray-500 text-xs">({tweets.length} tweet)</span>
+                <span className="text-gray-500 text-xs">({posts.length} post)</span>
               </div>
             </div>
           </div>
@@ -274,45 +268,45 @@ export default function TweetsPage() {
       </div>
 
       {/* Error state */}
-      {tweetsError && (
+      {postsError && (
         <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg flex items-center gap-3 backdrop-blur-sm">
           <AlertCircle className="h-5 w-5 flex-shrink-0" />
-          <span className="font-mono text-sm">TWEETLER YUKLENEMEDI</span>
+          <span className="font-mono text-sm">POSTLAR YUKLENEMEDI</span>
         </div>
       )}
 
       {/* Loading state */}
-      {tweetsLoading ? (
+      {postsLoading ? (
         <div className="flex flex-col items-center justify-center h-64">
           <div className="relative">
-            <div className="absolute inset-0 blur-xl bg-[#4DA3FF]/20 rounded-full animate-pulse" />
-            <div className="relative animate-spin rounded-full h-12 w-12 border-2 border-transparent border-t-[#4DA3FF] border-r-[#00D1B2]" />
+            <div className="absolute inset-0 blur-xl bg-[#E1306C]/20 rounded-full animate-pulse" />
+            <div className="relative animate-spin rounded-full h-12 w-12 border-2 border-transparent border-t-[#E1306C] border-r-[#833AB4]" />
           </div>
-          <p className="mt-4 text-gray-500 font-mono text-sm">SINYALLER ANALIZ EDILIYOR...</p>
+          <p className="mt-4 text-gray-500 font-mono text-sm">ICERIK ANALIZ EDILIYOR...</p>
         </div>
-      ) : tweets.length === 0 ? (
+      ) : posts.length === 0 ? (
         <div className="text-center py-12">
           <div className="relative inline-block mb-4">
             <div className="absolute inset-0 blur-2xl bg-gray-500/10 rounded-full" />
-            <Flame className="relative h-12 w-12 mx-auto text-gray-600" />
+            <Camera className="relative h-12 w-12 mx-auto text-gray-600" />
           </div>
-          <p className="text-gray-500 font-mono">SINYAL BULUNAMADI</p>
+          <p className="text-gray-500 font-mono">POST BULUNAMADI</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {tweets.map((tweet, index) => {
-            const engagementLevel = getEngagementLevel(tweet.engagement || 0);
+          {posts.map((post, index) => {
+            const engagementLevel = getEngagementLevel(post.engagement || 0);
 
             return (
               <div
-                key={tweet.id || index}
-                className="group relative bg-[#1A1A1A] border border-[#4DA3FF]/10 rounded-lg p-5
-                         hover:border-[#4DA3FF]/30 hover:bg-[#1A1A1A]/80
+                key={post.id || index}
+                className="group relative bg-[#1A1A1A] border border-[#E1306C]/10 rounded-lg p-5
+                         hover:border-[#E1306C]/30 hover:bg-[#1A1A1A]/80
                          transition-all duration-300"
               >
                 {/* Hover glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#4DA3FF]/0 to-[#00D1B2]/0
-                              group-hover:from-[#4DA3FF]/5 group-hover:to-[#00D1B2]/5
+                <div className="absolute inset-0 bg-gradient-to-br from-[#E1306C]/0 to-[#833AB4]/0
+                              group-hover:from-[#E1306C]/5 group-hover:to-[#833AB4]/5
                               rounded-lg transition-all duration-300 pointer-events-none" />
 
                 {/* Content */}
@@ -325,8 +319,8 @@ export default function TweetsPage() {
                         <div className={`
                           px-3 py-1 rounded border font-mono text-sm font-bold
                           ${index === 0 ? 'bg-[#00D1B2]/10 border-[#00D1B2]/40 text-[#00D1B2]' :
-                            index === 1 ? 'bg-[#4DA3FF]/10 border-[#4DA3FF]/40 text-[#4DA3FF]' :
-                            index === 2 ? 'bg-orange-500/10 border-orange-500/40 text-orange-500' :
+                            index === 1 ? 'bg-[#E1306C]/10 border-[#E1306C]/40 text-[#E1306C]' :
+                            index === 2 ? 'bg-[#833AB4]/10 border-[#833AB4]/40 text-[#833AB4]' :
                             'bg-gray-500/10 border-gray-500/30 text-gray-500'}
                         `}>
                           #{index + 1}
@@ -335,106 +329,102 @@ export default function TweetsPage() {
 
                       {/* Username & Party */}
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-[#4DA3FF] font-medium">
-                          @{tweet.username}
+                        <span className="font-mono text-[#E1306C] font-medium">
+                          @{post.username}
                         </span>
                         {activeTab === "party" && (
                           <>
                             <span className="text-xs text-gray-600">|</span>
-                            <span className="text-xs text-gray-400">{tweet.name}</span>
+                            <span className="text-xs text-gray-400">{post.name}</span>
                           </>
                         )}
                         <span
                           className="px-2 py-0.5 text-xs rounded-full"
                           style={{
-                            backgroundColor: getPartyColor(tweet.party) + "30",
-                            color: getPartyColor(tweet.party),
+                            backgroundColor: getPartyColor(post.party) + "30",
+                            color: getPartyColor(post.party),
                           }}
                         >
-                          {tweet.party}
+                          {post.party}
                         </span>
+
+                        {/* Media type badge */}
+                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
+                          post.is_video
+                            ? 'bg-purple-500/20 text-purple-400'
+                            : 'bg-blue-500/20 text-blue-400'
+                        }`}>
+                          {post.is_video ? <Video className="w-3 h-3" /> : <ImageIcon className="w-3 h-3" />}
+                          {post.is_video ? 'Video' : 'Foto'}
+                        </div>
+
                         <div className="w-1 h-1 rounded-full bg-gray-600" />
                         <span className="text-xs text-gray-500 font-mono flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          {tweet.tweet_date?.split("T")[0] || "-"}
+                          {post.post_date?.split("T")[0] || "-"}
                         </span>
                       </div>
                     </div>
 
-                    {/* Engagement badge */}
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0B0B0B] border border-[#4DA3FF]/20 rounded-lg">
-                      <Zap className={`h-3.5 w-3.5 ${engagementLevel.color}`} />
-                      <span className={`text-xs font-mono font-bold ${engagementLevel.color}`}>
-                        {engagementLevel.label}
-                      </span>
+                    {/* Engagement badge + Link */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0B0B0B] border border-[#E1306C]/20 rounded-lg">
+                        <Zap className={`h-3.5 w-3.5 ${engagementLevel.color}`} />
+                        <span className={`text-xs font-mono font-bold ${engagementLevel.color}`}>
+                          {engagementLevel.label}
+                        </span>
+                      </div>
+                      {post.post_url && (
+                        <a
+                          href={post.post_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 bg-[#0B0B0B] border border-white/10 rounded-lg hover:border-[#E1306C]/30 transition-colors"
+                        >
+                          <ExternalLink className="w-4 h-4 text-gray-400 hover:text-[#E1306C]" />
+                        </a>
+                      )}
                     </div>
                   </div>
 
-                  {/* Tweet text */}
+                  {/* Caption */}
                   <div className="mb-4 pl-1">
                     <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-[15px]">
-                      {tweet.tweet_text}
+                      {post.caption || "(Aciklama yok)"}
                     </p>
                   </div>
 
                   {/* Metrics */}
                   <div className="flex items-center gap-6 text-sm flex-wrap">
                     {/* Like */}
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0B0B0B]/50 rounded-md border border-gray-800 hover:border-pink-500/30 transition-colors group/metric">
-                      <ThumbsUp className="h-4 w-4 text-gray-500 group-hover/metric:text-pink-500 transition-colors" />
-                      <span className="font-mono text-gray-400 group-hover/metric:text-pink-500 transition-colors">
-                        {formatNumber(tweet.likes)}
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0B0B0B]/50 rounded-md border border-gray-800 hover:border-[#E1306C]/30 transition-colors group/metric">
+                      <Heart className="h-4 w-4 text-gray-500 group-hover/metric:text-[#E1306C] transition-colors" />
+                      <span className="font-mono text-gray-400 group-hover/metric:text-[#E1306C] transition-colors">
+                        {formatNumber(post.likes)}
                       </span>
                     </div>
 
-                    {/* Reply */}
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0B0B0B]/50 rounded-md border border-gray-800 hover:border-blue-500/30 transition-colors group/metric">
-                      <MessageCircle className="h-4 w-4 text-gray-500 group-hover/metric:text-blue-500 transition-colors" />
-                      <span className="font-mono text-gray-400 group-hover/metric:text-blue-500 transition-colors">
-                        {formatNumber(tweet.replies)}
-                      </span>
-                    </div>
-
-                    {/* Retweet */}
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0B0B0B]/50 rounded-md border border-gray-800 hover:border-green-500/30 transition-colors group/metric">
-                      <Repeat2 className="h-4 w-4 text-gray-500 group-hover/metric:text-green-500 transition-colors" />
-                      <span className="font-mono text-gray-400 group-hover/metric:text-green-500 transition-colors">
-                        {formatNumber(tweet.retweets)}
-                      </span>
-                    </div>
-
-                    {/* Views */}
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0B0B0B]/50 rounded-md border border-gray-800 hover:border-purple-500/30 transition-colors group/metric">
-                      <Eye className="h-4 w-4 text-gray-500 group-hover/metric:text-purple-500 transition-colors" />
-                      <span className="font-mono text-gray-400 group-hover/metric:text-purple-500 transition-colors">
-                        {formatNumber(tweet.views)}
+                    {/* Comments */}
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0B0B0B]/50 rounded-md border border-gray-800 hover:border-[#833AB4]/30 transition-colors group/metric">
+                      <MessageCircle className="h-4 w-4 text-gray-500 group-hover/metric:text-[#833AB4] transition-colors" />
+                      <span className="font-mono text-gray-400 group-hover/metric:text-[#833AB4] transition-colors">
+                        {formatNumber(post.comments)}
                       </span>
                     </div>
 
                     {/* Total engagement */}
-                    <div className="ml-auto flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-[#4DA3FF]/10 to-[#00D1B2]/10 rounded-md border border-[#4DA3FF]/20">
-                      <Activity className="h-4 w-4 text-[#00D1B2]" />
+                    <div className="ml-auto flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-[#E1306C]/10 to-[#833AB4]/10 rounded-md border border-[#E1306C]/20">
+                      <Activity className="h-4 w-4 text-[#E1306C]" />
                       <span className="font-mono text-white font-bold text-sm">
-                        {formatNumber(tweet.engagement || 0)}
+                        {formatNumber(post.engagement || 0)}
                       </span>
                       <span className="text-xs text-gray-500 font-mono">ETK</span>
                     </div>
-
-                    {/* View on X button */}
-                    <a
-                      href={`https://x.com/${tweet.username}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 bg-[#0B0B0B] border border-white/10 rounded-lg hover:border-blue-500/30 transition-colors"
-                      title="X'de Gor"
-                    >
-                      <ExternalLink className="w-4 h-4 text-gray-400 hover:text-blue-400" />
-                    </a>
                   </div>
                 </div>
 
                 {/* Bottom accent line */}
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#4DA3FF]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#E1306C]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             );
           })}

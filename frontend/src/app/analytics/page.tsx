@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, Platform } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { BarChart3, Users, TrendingUp, MapPin, AlertCircle } from "lucide-react";
+import { BarChart3, Users, TrendingUp, MapPin, AlertCircle, Camera } from "lucide-react";
 import { PartyBarChart } from "@/components/charts/party-bar-chart";
 import { EngagementPieChart } from "@/components/charts/engagement-pie-chart";
 import {
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Badge, PartyBadge } from "@/components/ui/badge";
 import { SkeletonTable, SkeletonCard } from "@/components/ui/skeleton";
+import { PlatformSelector, PlatformBadge } from "@/components/ui/platform-selector";
 
 type Tab = "followers" | "parties" | "engagement" | "districts";
 
@@ -35,15 +36,19 @@ const tabs: TabConfig[] = [
 
 export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("followers");
+  const [platform, setPlatform] = useState<Platform>("twitter");
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <BarChart3 className="h-6 w-6 text-[#4DA3FF]" />
-          Grafikler
-        </h1>
-        <p className="text-white/60">Analitik veriler ve gorsellestirmeler</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <BarChart3 className="h-6 w-6 text-[#4DA3FF]" />
+            Grafikler
+          </h1>
+          <p className="text-white/60">Analitik veriler ve gorsellestirmeler</p>
+        </div>
+        <PlatformSelector value={platform} onChange={setPlatform} />
       </div>
 
       {/* Tabs */}
@@ -69,28 +74,32 @@ export default function AnalyticsPage() {
 
       {/* Tab Content */}
       <div className="bg-[#1A1A1A]/80 backdrop-blur-xl rounded-lg border border-white/10 p-6">
-        {activeTab === "followers" && <FollowersTab />}
+        {activeTab === "followers" && <FollowersTab platform={platform} />}
         {activeTab === "parties" && <PartiesTab />}
-        {activeTab === "engagement" && <EngagementTab />}
+        {activeTab === "engagement" && <EngagementTab platform={platform} />}
         {activeTab === "districts" && <DistrictsTab />}
       </div>
     </div>
   );
 }
 
-function FollowersTab() {
+function FollowersTab({ platform }: { platform: Platform }) {
   const { data, isLoading, error } = useQuery({
-    queryKey: ["analytics-followers"],
-    queryFn: () => api.get<any[]>("/analytics/followers?limit=20"),
+    queryKey: ["analytics-followers", platform],
+    queryFn: () => api.get<any[]>(`/analytics/followers?limit=20&platform=${platform}`),
   });
 
   if (isLoading) return <SkeletonTable rows={10} cols={4} />;
   if (error) return <ErrorState message="Takipci verileri yuklenemedi" />;
 
+  const platformLabel = platform === "instagram" ? "Instagram" : platform === "both" ? "Tum Platformlar" : "X (Twitter)";
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">Top 20 - Takipci Sayisina Gore</h3>
+        <h3 className="text-lg font-semibold text-white">
+          Top 20 - Takipci Sayisina Gore ({platformLabel})
+        </h3>
         <Badge variant="info">{data?.length || 0} kullanici</Badge>
       </div>
 
@@ -101,12 +110,13 @@ function FollowersTab() {
               <TableHead className="w-12 text-white/60">#</TableHead>
               <TableHead className="text-white/60">Isim</TableHead>
               <TableHead className="text-white/60">Parti</TableHead>
+              {platform === "both" && <TableHead className="text-white/60">Platform</TableHead>}
               <TableHead className="text-right text-white/60">Takipci</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data?.map((user: any, index: number) => (
-              <TableRow key={user.username} className="border-white/5 hover:bg-white/5">
+              <TableRow key={`${user.username}-${user.platform || 'default'}`} className="border-white/5 hover:bg-white/5">
                 <TableCell className="font-medium text-white/40">
                   {index + 1}
                 </TableCell>
@@ -119,6 +129,11 @@ function FollowersTab() {
                 <TableCell>
                   <PartyBadge party={user.party || "BAGIMSIZ"} />
                 </TableCell>
+                {platform === "both" && (
+                  <TableCell>
+                    <PlatformBadge platform={user.platform || "twitter"} />
+                  </TableCell>
+                )}
                 <TableCell className="text-right font-semibold text-[#4DA3FF]">
                   {user.followers_count?.toLocaleString("tr-TR")}
                 </TableCell>
@@ -203,35 +218,51 @@ function PartiesTab() {
   );
 }
 
-function EngagementTab() {
+function EngagementTab({ platform }: { platform: Platform }) {
   const { data, isLoading, error } = useQuery({
-    queryKey: ["analytics-engagement"],
-    queryFn: () => api.get<any[]>("/analytics/engagement?limit=15"),
+    queryKey: ["analytics-engagement", platform],
+    queryFn: () => api.get<any[]>(`/analytics/engagement?limit=15&platform=${platform}`),
   });
 
   if (isLoading) return <SkeletonTable rows={10} cols={5} />;
   if (error) return <ErrorState message="Etkilesim verileri yuklenemedi" />;
 
-  // Calculate totals for pie chart
+  // Calculate totals for pie chart based on platform
   const totals = data?.reduce(
     (acc: any, user: any) => ({
       likes: acc.likes + (user.total_likes || 0),
       retweets: acc.retweets + (user.total_retweets || 0),
       replies: acc.replies + (user.total_replies || 0),
+      comments: acc.comments + (user.total_comments || 0),
     }),
-    { likes: 0, retweets: 0, replies: 0 }
-  ) || { likes: 0, retweets: 0, replies: 0 };
+    { likes: 0, retweets: 0, replies: 0, comments: 0 }
+  ) || { likes: 0, retweets: 0, replies: 0, comments: 0 };
 
-  const pieData = [
-    { name: "Begeniler", value: totals.likes },
-    { name: "Retweetler", value: totals.retweets },
-    { name: "Yorumlar", value: totals.replies },
-  ];
+  const pieData = platform === "instagram"
+    ? [
+        { name: "Begeniler", value: totals.likes },
+        { name: "Yorumlar", value: totals.comments },
+      ]
+    : platform === "both"
+    ? [
+        { name: "Begeniler", value: totals.likes },
+        { name: "Retweetler", value: totals.retweets },
+        { name: "Yorumlar", value: totals.replies + totals.comments },
+      ]
+    : [
+        { name: "Begeniler", value: totals.likes },
+        { name: "Retweetler", value: totals.retweets },
+        { name: "Yorumlar", value: totals.replies },
+      ];
+
+  const platformLabel = platform === "instagram" ? "Instagram" : platform === "both" ? "Tum Platformlar" : "X (Twitter)";
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">Top 15 - Etkilesim</h3>
+        <h3 className="text-lg font-semibold text-white">
+          Top 15 - Etkilesim ({platformLabel})
+        </h3>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -241,31 +272,42 @@ function EngagementTab() {
             <TableHeader>
               <TableRow className="border-white/10 hover:bg-transparent">
                 <TableHead className="text-white/60">Isim</TableHead>
-                <TableHead className="text-right text-white/60">Tweet</TableHead>
+                <TableHead className="text-right text-white/60">
+                  {platform === "instagram" ? "Post" : platform === "both" ? "Icerik" : "Tweet"}
+                </TableHead>
                 <TableHead className="text-right text-white/60">Like</TableHead>
-                <TableHead className="text-right text-white/60">RT</TableHead>
+                <TableHead className="text-right text-white/60">
+                  {platform === "instagram" ? "Yorum" : "RT"}
+                </TableHead>
                 <TableHead className="text-right text-white/60">Toplam</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data?.map((user: any) => (
-                <TableRow key={user.username} className="border-white/5 hover:bg-white/5">
+                <TableRow key={`${user.username}-${user.platform || 'default'}`} className="border-white/5 hover:bg-white/5">
                   <TableCell>
                     <div>
-                      <div className="font-medium text-white">{user.name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-white">{user.name}</span>
+                        {platform === "both" && user.platform && (
+                          <PlatformBadge platform={user.platform} />
+                        )}
+                      </div>
                       <div className="text-xs mt-1">
                         <PartyBadge party={user.party || "BAGIMSIZ"} />
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-right text-white/60">
-                    {user.tweet_count}
+                    {user.tweet_count || user.post_count || user.content_count || 0}
                   </TableCell>
                   <TableCell className="text-right text-white/60">
                     {user.total_likes?.toLocaleString("tr-TR")}
                   </TableCell>
                   <TableCell className="text-right text-white/60">
-                    {user.total_retweets?.toLocaleString("tr-TR")}
+                    {platform === "instagram"
+                      ? user.total_comments?.toLocaleString("tr-TR")
+                      : user.total_retweets?.toLocaleString("tr-TR") || "0"}
                   </TableCell>
                   <TableCell className="text-right font-semibold text-[#4DA3FF]">
                     {user.total_engagement?.toLocaleString("tr-TR")}

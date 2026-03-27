@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { api, User, ReportResponse, PartyReportResponse, PaginatedResponse } from "@/lib/api";
+import { api, User, ReportResponse, PartyReportResponse, PaginatedResponse, Platform } from "@/lib/api";
 import { useToast } from "@/components/ui/toast";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import {
@@ -19,8 +19,10 @@ import {
   Activity,
   Lock,
   TrendingUp,
-  Search
+  Search,
+  Camera
 } from "lucide-react";
+import { PlatformSelector } from "@/components/ui/platform-selector";
 
 type ReportMode = "user" | "party" | "multi";
 
@@ -33,6 +35,7 @@ export default function ReportsPage() {
   const [useLLM, setUseLLM] = useState<boolean>(true);
   const [partyLLM, setPartyLLM] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [platform, setPlatform] = useState<Platform>("twitter");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
@@ -125,11 +128,12 @@ export default function ReportsPage() {
 
   // User report mutation
   const userReportMutation = useMutation({
-    mutationFn: (data: { username: string; use_llm: boolean }) =>
+    mutationFn: (data: { username: string; use_llm: boolean; platform: Platform }) =>
       api.post<ReportResponse>("/reports/generate", {
         username: data.username,
         use_llm: data.use_llm,
         force_refresh: true,
+        platform: data.platform,
       }),
     onSuccess: (data) => {
       setReport(data.content || data.report || "");
@@ -142,10 +146,11 @@ export default function ReportsPage() {
 
   // Party report mutation
   const partyReportMutation = useMutation({
-    mutationFn: (data: { party: string; use_llm: boolean }) =>
+    mutationFn: (data: { party: string; use_llm: boolean; platform: Platform }) =>
       api.post<PartyReportResponse>("/reports/party", {
         party: data.party,
         use_llm: data.use_llm,
+        platform: data.platform,
       }),
     onSuccess: (data) => {
       setReport(data.content);
@@ -158,7 +163,7 @@ export default function ReportsPage() {
 
   // Multi-user report mutation
   const multiUserReportMutation = useMutation({
-    mutationFn: (data: { usernames: string[]; use_llm: boolean }) =>
+    mutationFn: (data: { usernames: string[]; use_llm: boolean; platform: Platform }) =>
       api.post<{ usernames: string[]; content: string; member_count: number }>("/reports/multi", data),
     onSuccess: (data) => {
       setReport(data.content);
@@ -175,13 +180,13 @@ export default function ReportsPage() {
   const handleGenerateUserReport = () => {
     if (!selectedUser) return;
     setReport("");
-    userReportMutation.mutate({ username: selectedUser, use_llm: useLLM });
+    userReportMutation.mutate({ username: selectedUser, use_llm: useLLM, platform });
   };
 
   const handleGeneratePartyReport = () => {
     if (!selectedParty) return;
     setReport("");
-    partyReportMutation.mutate({ party: selectedParty, use_llm: partyLLM });
+    partyReportMutation.mutate({ party: selectedParty, use_llm: partyLLM, platform });
   };
 
   const handleGenerateMultiUserReport = () => {
@@ -190,7 +195,7 @@ export default function ReportsPage() {
       return;
     }
     setReport("");
-    multiUserReportMutation.mutate({ usernames: selectedUsers, use_llm: useLLM });
+    multiUserReportMutation.mutate({ usernames: selectedUsers, use_llm: useLLM, platform });
   };
 
   const toggleUserSelection = (username: string) => {
@@ -351,6 +356,15 @@ export default function ReportsPage() {
             <Users className={`h-4 w-4 transition-transform ${mode === "multi" ? "rotate-0" : "group-hover:rotate-12"}`} />
             <span>Coklu Kullanici</span>
           </button>
+        </div>
+
+        {/* Platform Selector */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Camera className="h-5 w-5 text-gray-400" />
+            <span className="text-sm font-medium text-gray-400 font-mono uppercase tracking-wider">Platform</span>
+          </div>
+          <PlatformSelector value={platform} onChange={setPlatform} />
         </div>
 
         {/* Controls - Dark Intelligence Card */}

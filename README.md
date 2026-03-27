@@ -18,7 +18,7 @@
 
 <img src="https://raw.githubusercontent.com/barancanercan/MeclisIstihbaratSistemi/main/docs/logo.png" alt="M.I.S Logo" width="300"/>
 
-**Turkiye'nin Belediye Meclis uyelerinin sosyal medya aktivitelerini analiz eden,**
+**Turkiye'nin Belediye Meclis uyelerinin sosyal medya aktivitelerini (Twitter + Instagram) analiz eden,**
 **profesyonel istihbarat raporlari ureten modern SaaS platformu.**
 
 [Canli Demo](https://meclis-istihbarat-sistemi.vercel.app) · [API Dokumantasyonu](https://meclisistihbaratsistemi.onrender.com/docs) · [Hata Bildir](https://github.com/barancanercan/MeclisIstihbaratSistemi/issues)
@@ -76,10 +76,11 @@
 </td>
 <td width="50%">
 
-**Coklu LLM Destegi**
+**Coklu Platform & LLM Destegi**
+- Twitter + Instagram analizi
+- Platform-aware LLM routing
 - OpenAI GPT-3.5/4 (Onerilir)
 - Ollama (Yerel & Ucretsiz)
-- Otomatik fallback sistemi
 
 </td>
 </tr>
@@ -541,12 +542,14 @@ MeclisIstihbaratSistemi/
 │   │   │   ├── analytics/    # Charts
 │   │   │   ├── reports/      # Reports
 │   │   │   ├── comparison/   # Comparison
+│   │   │   ├── tweets/       # Tweet search
+│   │   │   ├── instagram/    # Instagram posts (NEW)
 │   │   │   ├── users/        # User management
 │   │   │   └── system/       # System status
 │   │   ├── components/
 │   │   │   ├── charts/       # Recharts
 │   │   │   ├── layout/       # Sidebar, nav
-│   │   │   └── ui/           # UI components
+│   │   │   └── ui/           # UI (platform-selector, instagram-card)
 │   │   └── lib/
 │   │       └── api.ts        # API client
 │   ├── package.json
@@ -644,7 +647,7 @@ Bu proje [MIT Lisansi](LICENSE) altinda lisanslanmistir.
 
 ---
 
-<sub>M.I.S v3.2 - Yapay Zeka ile Siyasi Analiz</sub>
+<sub>M.I.S v3.3 - Yapay Zeka ile Coklu Platform Siyasi Analiz</sub>
 
 <sub>Made with by Baran Can Ercan</sub>
 

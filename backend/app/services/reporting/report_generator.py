@@ -34,14 +34,16 @@ from app.services.reporting.metrics import (
 class ReportGenerator:
     """Tam rapor olusturucu"""
 
-    def __init__(self, use_cache: bool = True, use_llm: bool = True):
+    def __init__(self, use_cache: bool = True, use_llm: bool = True, platform: str = "twitter"):
         """
         Args:
             use_cache: Cache kullan (default True)
             use_llm: LLM analizi yap (default True, False = sadece metrikler)
+            platform: Platform secimi ('twitter', 'instagram', 'both')
         """
         self.use_cache = use_cache
         self.use_llm = use_llm
+        self.platform = platform
         self.analyzer = None
 
         if use_llm:
@@ -241,7 +243,7 @@ class ReportGenerator:
         return "\n".join(lines)
 
     def _generate_llm_analysis_section(self, username: str) -> str:
-        """Soru 1, 6, 7: LLM analizi (orijinal tweetler + retweetler)"""
+        """Soru 1, 6, 7: LLM analizi - Platform'a gore icerik secimi"""
         if not self.analyzer:
             return "\n## LLM Analizi\n*LLM kullanilabilir degil*\n"
 
@@ -253,70 +255,135 @@ class ReportGenerator:
         cursor = conn.cursor()
 
         # Parti bilgisini al ve normalize et
-        cursor.execute("SELECT party FROM councilors WHERE username = ?", (username,))
-        party_row = cursor.fetchone()
-        party = normalize_party_name(party_row[0]) if party_row else "Bağımsız"
+        cursor.execute("SELECT party, instagram_username FROM councilors WHERE username = ?", (username,))
+        row = cursor.fetchone()
+        party = normalize_party_name(row[0]) if row else "Bağımsız"
+        instagram_username = row[1] if row else None
 
-        # Orijinal tweetleri al - Metriklerle birlikte
-        cursor.execute("""
-            SELECT tweet_text, tweet_date, likes, views
-            FROM tweets
-            WHERE username = ? AND is_retweet = 0
-            ORDER BY tweet_date DESC
-        """, (username,))
-        original_rows = cursor.fetchall()
+        tweets = []
+        retweets = []
+        instagram_posts = []
 
-        # Retweetleri al
-        cursor.execute("""
-            SELECT tweet_text, tweet_date, retweet_from
-            FROM tweets
-            WHERE username = ? AND is_retweet = 1
-            ORDER BY tweet_date DESC
-        """, (username,))
-        retweet_rows = cursor.fetchall()
+        # Twitter icerigini al (twitter veya both platformu icin)
+        if self.platform in ('twitter', 'both'):
+            cursor.execute("""
+                SELECT tweet_text, tweet_date, likes, views
+                FROM tweets
+                WHERE username = ? AND is_retweet = 0
+                ORDER BY tweet_date DESC
+                LIMIT 25
+            """, (username,))
+            original_rows = cursor.fetchall()
+
+            cursor.execute("""
+                SELECT tweet_text, tweet_date, retweet_from
+                FROM tweets
+                WHERE username = ? AND is_retweet = 1
+                ORDER BY tweet_date DESC
+            """, (username,))
+            retweet_rows = cursor.fetchall()
+
+            tweets = [
+                {
+                    'tweet_text': row[0],
+                    'tweet_date': row[1],
+                    'likes': row[2] or 0,
+                    'views': row[3] or 0
+                } for row in original_rows
+            ]
+
+            retweets = [
+                {
+                    'tweet_text': row[0],
+                    'tweet_date': row[1],
+                    'retweet_from': row[2] or 'bilinmiyor'
+                } for row in retweet_rows
+            ]
+
+        # Instagram icerigini al (instagram veya both platformu icin)
+        if self.platform in ('instagram', 'both') and instagram_username:
+            cursor.execute("""
+                SELECT caption, post_date, likes, comments, is_video, post_url
+                FROM instagram_posts
+                WHERE username = ?
+                ORDER BY post_date DESC
+                LIMIT 25
+            """, (instagram_username,))
+            ig_rows = cursor.fetchall()
+
+            instagram_posts = [
+                {
+                    'caption': row[0] or '',
+                    'post_date': row[1],
+                    'likes': row[2] or 0,
+                    'comments': row[3] or 0,
+                    'is_video': bool(row[4]),
+                    'post_url': row[5]
+                } for row in ig_rows
+            ]
+
         conn.close()
 
-        if not original_rows and not retweet_rows:
-            return "\n## Profesyonel Istihbarat Analizi\n*Analiz icin tweet bulunamadi*\n"
+        # Icerik kontrolu
+        has_twitter = bool(tweets or retweets)
+        has_instagram = bool(instagram_posts)
 
-        tweets = [
-            {
-                'tweet_text': row[0],
-                'tweet_date': row[1],
-                'likes': row[2] or 0,
-                'views': row[3] or 0
-            } for row in original_rows
-        ]
-
-        retweets = [
-            {
-                'tweet_text': row[0],
-                'tweet_date': row[1],
-                'retweet_from': row[2] or 'bilinmiyor'
-            } for row in retweet_rows
-        ]
+        if not has_twitter and not has_instagram:
+            return "\n## Profesyonel Istihbarat Analizi\n*Analiz icin icerik bulunamadi*\n"
 
         # Tarih araligi
-        all_dates = [t['tweet_date'] for t in tweets if t['tweet_date']] + \
-                    [t['tweet_date'] for t in retweets if t['tweet_date']]
+        all_dates = []
+        if tweets:
+            all_dates.extend([t['tweet_date'] for t in tweets if t.get('tweet_date')])
+        if retweets:
+            all_dates.extend([t['tweet_date'] for t in retweets if t.get('tweet_date')])
+        if instagram_posts:
+            all_dates.extend([p['post_date'] for p in instagram_posts if p.get('post_date')])
         period = f"{min(all_dates)[:10]} - {max(all_dates)[:10]}" if all_dates else "Bilinmiyor"
 
-        # Profesyonel İstihbarat Analizi Yap
+        # Platform'a gore dogru analyzer metodunu cagir - NO FALLBACK
         try:
-            print(f"[DEBUG] analyze_intelligence cagiriliyor, {len(tweets)} tweet + {len(retweets)} RT, parti: {party}...")
-            result = self.analyzer.analyze_intelligence(tweets, username, period=period, party=party, retweets=retweets)
+            result = None
 
-            if not result.get('validated') or not result.get('analysis'):
-                # LLM calismiyor veya JSON parse edilemedi
-                error_msg = result.get('error', 'Bilinmeyen hata')
+            if self.platform == 'both' and has_twitter and has_instagram:
+                # Her iki platform icin multi-platform analiz
+                print(f"[DEBUG] analyze_multi_platform cagiriliyor, {len(tweets)} tweet + {len(instagram_posts)} Instagram post, parti: {party}...")
+                result = self.analyzer.analyze_multi_platform(
+                    tweets, instagram_posts, username, party=party
+                )
+            elif self.platform == 'instagram':
+                # Sadece Instagram analizi
+                if has_instagram:
+                    print(f"[DEBUG] analyze_instagram cagiriliyor, {len(instagram_posts)} post, parti: {party}...")
+                    result = self.analyzer.analyze_instagram(
+                        instagram_posts, instagram_username or username, party=party
+                    )
+                else:
+                    return "\n## Profesyonel Istihbarat Analizi\n*Instagram icerigi bulunamadi*\n"
+            elif self.platform == 'twitter':
+                # Sadece Twitter analizi
+                if has_twitter:
+                    print(f"[DEBUG] analyze_intelligence cagiriliyor, {len(tweets)} tweet + {len(retweets)} RT, parti: {party}...")
+                    result = self.analyzer.analyze_intelligence(
+                        tweets, username, period=period, party=party, retweets=retweets
+                    )
+                else:
+                    return "\n## Profesyonel Istihbarat Analizi\n*Twitter icerigi bulunamadi*\n"
+            else:
+                return "\n## Profesyonel Istihbarat Analizi\n*Secilen platform icin icerik bulunamadi*\n"
+
+            if not result or not result.get('validated') or not result.get('analysis'):
+                error_msg = result.get('error', 'Bilinmeyen hata') if result else 'Sonuc alinamadi'
+                platform_label = "Twitter" if self.platform == "twitter" else "Instagram" if self.platform == "instagram" else "Twitter + Instagram"
                 return f"""
 ## Istihbarat Analizi
 
 > LLM analizi yapilamadi. Hata: {error_msg[:200]}
 
 **Parti:** {party}
-**Orijinal Tweet Sayisi:** {len(tweets)}
-**Retweet Sayisi:** {len(retweets)}
+**Platform:** {platform_label}
+**Tweet Sayisi:** {len(tweets)}
+**Instagram Post Sayisi:** {len(instagram_posts)}
 **Donem:** {period}
 
 *LLM Provider: {self.analyzer.provider} | Model: {self.analyzer.model}*
@@ -324,26 +391,38 @@ class ReportGenerator:
 
             analysis = result['analysis']
 
-            # Markdown oluşturma
+            # Markdown olusturma
             report = []
-            report.append("\n## Profesyonel Istihbarat Analizi")
+            platform_label = "Twitter" if self.platform == "twitter" else "Instagram" if self.platform == "instagram" else "Coklu Platform"
+            report.append(f"\n## Profesyonel Istihbarat Analizi ({platform_label})")
+
             confidence = getattr(analysis, 'confidence_score', 0.7)
             confidence_label = "Yuksek" if confidence >= 0.8 else "Orta" if confidence >= 0.6 else "Dusuk"
             report.append(f"\n**Analiz Guveni:** {confidence_label} ({confidence:.0%})")
-            report.append(f"\n**Kapsam:** {len(tweets)} orijinal tweet + {len(retweets)} retweet analiz edildi")
+
+            # Kapsam bilgisi
+            scope_parts = []
+            if tweets:
+                scope_parts.append(f"{len(tweets)} tweet")
+            if retweets:
+                scope_parts.append(f"{len(retweets)} RT")
+            if instagram_posts:
+                scope_parts.append(f"{len(instagram_posts)} Instagram post")
+            report.append(f"\n**Kapsam:** {' + '.join(scope_parts)} analiz edildi")
+
             report.append(f"\n> {analysis.executive_summary}")
 
-            # 1. Yeşil Takım
+            # 1. Yesil Takim
             report.append("\n### Yesil Takim (Parti Temsili ve Sadakat)")
             report.append(f"**Sadakat Duzeyi:** {analysis.loyalty_level}")
             report.append(f"\n**Analiz:** {analysis.green_summary}")
 
-            # 2. Kırmızı Takım
+            # 2. Kirmizi Takim
             report.append("\n### Kirmizi Takim (Rakip Analizi ve Elestiri)")
             report.append(f"**Elestiri Duzeyi:** {analysis.criticism_level}")
             report.append(f"\n**Analiz:** {analysis.red_summary}")
 
-            # 3. Gri Takım
+            # 3. Gri Takim
             report.append("\n### Gri Takim (Bagimsiz Alan)")
             report.append(f"\n**Analiz:** {analysis.grey_summary}")
 
@@ -352,19 +431,20 @@ class ReportGenerator:
                 for topic in analysis.independent_topics:
                     report.append(f"- {topic}")
 
-            # 4. Retweet Analizi
-            retweet_summary = getattr(analysis, 'retweet_summary', '')
-            retweet_sources = getattr(analysis, 'retweet_sources', [])
+            # 4. Retweet Analizi (sadece Twitter platformu icin)
+            if self.platform in ('twitter', 'both') and retweets:
+                retweet_summary = getattr(analysis, 'retweet_summary', '')
+                retweet_sources = getattr(analysis, 'retweet_sources', [])
 
-            if retweet_summary or retweet_sources:
-                report.append("\n### Retweet Analizi")
-                report.append(f"**RT Sayisi:** {len(retweets)} tweet")
-                if retweet_summary:
-                    report.append(f"\n**Analiz:** {retweet_summary}")
-                if retweet_sources:
-                    report.append("\n**Sik RT Edilen Kaynaklar:**")
-                    for source in retweet_sources[:10]:
-                        report.append(f"- @{source}")
+                if retweet_summary or retweet_sources:
+                    report.append("\n### Retweet Analizi")
+                    report.append(f"**RT Sayisi:** {len(retweets)} tweet")
+                    if retweet_summary:
+                        report.append(f"\n**Analiz:** {retweet_summary}")
+                    if retweet_sources:
+                        report.append("\n**Sik RT Edilen Kaynaklar:**")
+                        for source in retweet_sources[:10]:
+                            report.append(f"- @{source}")
 
             return "\n".join(report) + "\n"
 
