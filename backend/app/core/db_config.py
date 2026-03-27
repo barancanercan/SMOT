@@ -91,20 +91,36 @@ def _run_migrations():
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
             return cursor.fetchone() is not None
 
-        # Add missing columns to councilors
-        if table_exists("councilors"):
-            if not column_exists("councilors", "instagram_username"):
-                cursor.execute("ALTER TABLE councilors ADD COLUMN instagram_username VARCHAR(100)")
-                logger.info("Added instagram_username to councilors")
-            if not column_exists("councilors", "instagram_updated_at"):
-                cursor.execute("ALTER TABLE councilors ADD COLUMN instagram_updated_at DATETIME")
-                logger.info("Added instagram_updated_at to councilors")
+        def add_column_if_missing(table, column, col_type):
+            if table_exists(table) and not column_exists(table, column):
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+                logger.info(f"Added {column} to {table}")
 
-        # Add listed_count to profile_history
-        if table_exists("profile_history"):
-            if not column_exists("profile_history", "listed_count"):
-                cursor.execute("ALTER TABLE profile_history ADD COLUMN listed_count INTEGER DEFAULT 0")
-                logger.info("Added listed_count to profile_history")
+        # =====================================================
+        # Councilors table - all possible missing columns
+        # =====================================================
+        add_column_if_missing("councilors", "bio", "TEXT")
+        add_column_if_missing("councilors", "location", "VARCHAR(200)")
+        add_column_if_missing("councilors", "website", "VARCHAR(500)")
+        add_column_if_missing("councilors", "verified", "BOOLEAN DEFAULT 0")
+        add_column_if_missing("councilors", "profile_image_url", "VARCHAR(500)")
+        add_column_if_missing("councilors", "join_date", "VARCHAR(50)")
+        add_column_if_missing("councilors", "profile_updated_at", "DATETIME")
+        add_column_if_missing("councilors", "instagram_username", "VARCHAR(100)")
+        add_column_if_missing("councilors", "instagram_updated_at", "DATETIME")
+        add_column_if_missing("councilors", "created_at", "DATETIME")
+
+        # =====================================================
+        # Profile history table
+        # =====================================================
+        add_column_if_missing("profile_history", "listed_count", "INTEGER DEFAULT 0")
+        add_column_if_missing("profile_history", "created_at", "DATETIME")
+
+        # =====================================================
+        # Tweets table
+        # =====================================================
+        add_column_if_missing("tweets", "views", "INTEGER DEFAULT 0")
+        add_column_if_missing("tweets", "created_at", "DATETIME")
 
         conn.commit()
         conn.close()
