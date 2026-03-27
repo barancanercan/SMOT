@@ -721,11 +721,17 @@ async def generate_party_report(
                 ).order_by(Tweet.tweet_date.desc()).limit(15).all()
 
                 if member_tweets:
+                    # Get top tweets by engagement
+                    top_tweets = db.query(Tweet).filter(
+                        Tweet.username == member.username,
+                        Tweet.is_retweet == False
+                    ).order_by(Tweet.likes.desc()).limit(3).all()
+
                     report_lines.append("")
-                    report_lines.append("**Son Tweetler:**")
-                    for t in member_tweets[:3]:
-                        tweet_preview = t.tweet_text[:100] + "..." if len(t.tweet_text) > 100 else t.tweet_text
-                        report_lines.append(f"  - \"{tweet_preview}\" ({t.likes} like)")
+                    report_lines.append("**En Cok Etkilesim Alan Tweetler:**")
+                    for t in top_tweets:
+                        report_lines.append(f"  - ({t.likes:,} like, {t.retweets} RT)")
+                        report_lines.append(f"    \"{t.tweet_text}\"")
 
                     # Format tweets for LLM
                     for t in member_tweets:
@@ -763,12 +769,18 @@ async def generate_party_report(
                 ).order_by(InstagramPost.post_date.desc()).limit(10).all()
 
                 if member_ig_posts:
+                    # Get top posts by engagement
+                    top_ig_posts = db.query(InstagramPost).filter(
+                        InstagramPost.username == member.instagram_username
+                    ).order_by(InstagramPost.likes.desc()).limit(3).all()
+
                     report_lines.append("")
-                    report_lines.append("**Son Instagram Postlari:**")
-                    for p in member_ig_posts[:3]:
+                    report_lines.append("**En Cok Etkilesim Alan Instagram Postlari:**")
+                    for p in top_ig_posts:
                         media_type = "Video" if p.is_video else "Foto"
-                        caption_preview = (p.caption[:80] + "...") if p.caption and len(p.caption) > 80 else (p.caption or "(aciklama yok)")
-                        report_lines.append(f"  - [{media_type}] \"{caption_preview}\" ({p.likes} like)")
+                        caption_full = p.caption or "(aciklama yok)"
+                        report_lines.append(f"  - [{media_type}] ({p.likes:,} like, {p.comments} yorum)")
+                        report_lines.append(f"    \"{caption_full}\"")
 
                     # Format for LLM
                     for p in member_ig_posts:
