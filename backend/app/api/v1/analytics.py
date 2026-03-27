@@ -112,7 +112,7 @@ async def get_followers_ranking(
             return result
     except Exception as e:
         logger.error(f"Followers ranking error: {e}")
-        return []
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
 @router.get("/parties")

@@ -106,15 +106,9 @@ async def get_all_users(
             "has_prev": page > 1,
         }
     except Exception as e:
-        return {
-            "items": [],
-            "total": 0,
-            "page": page,
-            "page_size": page_size,
-            "total_pages": 0,
-            "has_next": False,
-            "has_prev": False,
-        }
+        import logging
+        logging.getLogger("Users").error(f"Error listing users: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
 @router.get("/list")
