@@ -85,6 +85,18 @@
 
 </td>
 </tr>
+<tr>
+<td colspan="2">
+
+**Chat with Tweets v6 - Modern RAG**
+- Turkce dogal dil ile tweet arama
+- Semantic search (sentence-transformers)
+- Ensemble intent detection (Keywords %50, Rules %30, LLM %20)
+- Topic-first retrieval (ekonomi ≠ elestiri)
+- Oturum yonetimi ve cache (30 dk)
+
+</td>
+</tr>
 </table>
 
 ### Raporlama Modulleri
@@ -415,6 +427,29 @@ POST /api/v1/reports/multi
 </details>
 
 <details>
+<summary><b>Chat with Tweets</b></summary>
+
+| Method | Endpoint | Aciklama |
+|--------|----------|----------|
+| `POST` | `/api/v1/chat/query` | Dogal dil ile arama |
+| `POST` | `/api/v1/chat/cache/clear` | Cache temizle |
+| `GET` | `/api/v1/chat/sessions` | Oturum listesi |
+| `POST` | `/api/v1/chat/sessions` | Yeni oturum |
+| `GET` | `/api/v1/chat/sessions/{id}` | Oturum detayi |
+
+**Chat Sorgusu:**
+```json
+POST /api/v1/chat/query
+{
+  "query": "CHP elestirisi iceren tweetler",
+  "party_filter": "AK Parti",
+  "platform": "twitter"
+}
+```
+
+</details>
+
+<details>
 <summary><b>Export</b></summary>
 
 | Method | Endpoint | Aciklama |
@@ -676,7 +711,7 @@ Bu proje [MIT Lisansi](LICENSE) altinda lisanslanmistir.
 
 ---
 
-<sub>M.I.S v3.4 - Yapay Zeka ile Coklu Platform Siyasi Analiz</sub>
+<sub>M.I.S v6.0 - Modern RAG ile Semantic Arama ve Siyasi Analiz</sub>
 
 <sub>Made with by Baran Can Ercan</sub>
 

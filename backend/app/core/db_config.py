@@ -131,7 +131,11 @@ def _run_migrations():
 
 def init_db():
     """Initialize database tables using ORM models"""
-    from app.core.models import Base
+    # Import all models to ensure they're registered with Base.metadata
+    from app.core.models import (
+        Base, Councilor, Tweet, ProfileHistory, ReportCache,
+        InstagramPost, InstagramProfile, ChatSession, ChatMessage
+    )
 
     logger.info("Creating database tables with SQLAlchemy ORM...")
     Base.metadata.create_all(bind=engine)

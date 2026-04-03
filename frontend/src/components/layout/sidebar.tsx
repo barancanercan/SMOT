@@ -12,6 +12,7 @@ import {
   Users,
   GitCompare,
   Camera,
+  MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,7 @@ const navItems = [
   { href: "/dashboard", label: "Genel Bakis", icon: LayoutDashboard },
   { href: "/analytics", label: "Grafikler", icon: BarChart3 },
   { href: "/reports", label: "Raporlar", icon: FileText },
+  { href: "/chat", label: "Sosyal Medya Sohbet", icon: MessageCircle },
   { href: "/comparison", label: "Karsilastirma", icon: GitCompare },
   { href: "/users", label: "Kullanicilar", icon: Users },
   { href: "/tweets", label: "Top Tweetler", icon: Flame },

@@ -22,6 +22,7 @@ import {
   Globe,
   Lock,
   Cpu,
+  MessageCircle,
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -272,6 +273,21 @@ export default function LandingPage() {
                 <p className="text-gray-400 text-sm leading-relaxed">
                   Like, retweet, yorum ve goruntulenme metrikleri.
                   En aktif kullanicilar ve trend analizleri.
+                </p>
+              </div>
+            </div>
+
+            {/* Feature 7 - Sosyal Medya ile Sohbet */}
+            <div className="group relative p-8 rounded-2xl bg-gradient-to-br from-white/[0.05] to-transparent border border-white/10 hover:border-emerald-500/30 transition-all duration-300">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-emerald-500/0 group-hover:from-emerald-500/5 group-hover:to-transparent rounded-2xl transition-all" />
+              <div className="relative">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <MessageCircle className="h-7 w-7 text-emerald-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-3">Sosyal Medya ile Sohbet</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">
+                  GPT-4o destekli Turkce NLP ile icerik arama. Dogal dil sorulariyla
+                  tweet ve post'larda akilli arama yapin.
                 </p>
               </div>
             </div>

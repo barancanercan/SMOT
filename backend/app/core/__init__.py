@@ -2,7 +2,7 @@
 Core Module - Database, Models, Configuration
 """
 from .config import settings, DB_PATH, CSV_PATH, MAX_TWEETS_PER_USER, DAYS_BACK
-from .models import Base, Councilor, Tweet, ProfileHistory, ReportCache
+from .models import Base, Councilor, Tweet, ProfileHistory, ReportCache, InstagramPost, InstagramProfile, ChatSession, ChatMessage
 from .database import (
     init_database,
     save_tweet,
@@ -32,6 +32,10 @@ __all__ = [
     "Tweet",
     "ProfileHistory",
     "ReportCache",
+    "InstagramPost",
+    "InstagramProfile",
+    "ChatSession",
+    "ChatMessage",
     # Database
     "init_database",
     "save_tweet",

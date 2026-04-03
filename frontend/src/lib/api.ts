@@ -498,3 +498,186 @@ export interface FollowersRankingItem {
   posts_count?: number;
   platform?: string;
 }
+
+// ============================================================================
+// Chat with Tweets Types
+// ============================================================================
+
+export interface ChatQueryRequest {
+  query: string;
+  max_results?: number;
+  include_summary?: boolean;
+  platform?: Platform;
+  party_filter?: string;  // Filter tweets by party (e.g., "CHP", "AK Parti")
+}
+
+export interface ChatTweetResult {
+  id: number;
+  username: string;
+  name?: string;
+  party?: string;
+  tweet_text: string;
+  tweet_date?: string;
+  likes: number;
+  retweets: number;
+  replies: number;
+  views: number;
+  relevance_score: number;
+  // Classification fields (for criticism search)
+  criticism_topic?: string;
+  criticism_explanation?: string;
+}
+
+export interface ChatSummary {
+  total_found: number;
+  top_topics: string[];
+  sentiment: "olumlu" | "olumsuz" | "notr";
+  most_active_users: string[];
+  date_range?: string;
+}
+
+export interface ChatQueryResponse {
+  query: string;
+  answer: string;
+  summary: ChatSummary;
+  tweets: ChatTweetResult[];
+  filters_applied: Record<string, unknown>;
+  confidence_score: number;
+  execution_time_ms: number;
+  cached: boolean;
+  intent_type: string;
+}
+
+export interface ChatSuggestionsResponse {
+  suggestions: string[];
+}
+
+export interface ChatHealthResponse {
+  status: "healthy" | "degraded";
+  llm_available: boolean;
+  services: {
+    intent_parser: string;
+    response_generator: string;
+  };
+  error?: string;
+}
+
+// =============================================================================
+// Chat Session Types (v5.0)
+// =============================================================================
+
+export interface CreateSessionRequest {
+  platform?: Platform;
+  party_filter?: string;
+  title?: string;
+}
+
+export interface ChatSession {
+  id: string;
+  title: string;
+  platform: string;
+  party_filter?: string;
+  created_at: string;
+  updated_at?: string;
+  message_count: number;
+}
+
+export interface ChatMessage {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface SessionDetailResponse extends ChatSession {
+  messages: ChatMessage[];
+}
+
+export interface SessionListResponse {
+  sessions: ChatSession[];
+  total: number;
+}
+
+export interface UpdateSessionRequest {
+  title?: string;
+  platform?: Platform;
+  party_filter?: string;
+}
+
+export interface AddMessageRequest {
+  role: "user" | "assistant";
+  content: string;
+  metadata?: Record<string, unknown>;
+}
+
+// ============================================================================
+// Chat API Functions
+// ============================================================================
+
+export const chatApi = {
+  /**
+   * Send a natural language query to search tweets
+   */
+  query: (data: ChatQueryRequest): Promise<ChatQueryResponse> =>
+    api.post<ChatQueryResponse>("/chat/query", data),
+
+  /**
+   * Get suggested questions for the chat interface
+   * @param platform - Platform filter (twitter, instagram, both)
+   * @param party - Party filter for context-aware suggestions
+   */
+  getSuggestions: (platform?: Platform, party?: string): Promise<ChatSuggestionsResponse> => {
+    const params = new URLSearchParams();
+    if (platform) params.append("platform", platform);
+    if (party) params.append("party", party);
+    const queryString = params.toString();
+    return api.get<ChatSuggestionsResponse>(`/chat/suggestions${queryString ? `?${queryString}` : ""}`);
+  },
+
+  /**
+   * Check chat service health
+   */
+  health: (): Promise<ChatHealthResponse> =>
+    api.get<ChatHealthResponse>("/chat/health"),
+
+  // ==========================================================================
+  // Session Management (v5.0)
+  // ==========================================================================
+
+  /**
+   * Create a new chat session
+   */
+  createSession: (data?: CreateSessionRequest): Promise<ChatSession> =>
+    api.post<ChatSession>("/chat/sessions", data || {}),
+
+  /**
+   * List all chat sessions
+   */
+  listSessions: (limit?: number, offset?: number): Promise<SessionListResponse> =>
+    api.get<SessionListResponse>(`/chat/sessions?limit=${limit || 20}&offset=${offset || 0}`),
+
+  /**
+   * Get a session with messages
+   */
+  getSession: (sessionId: string): Promise<SessionDetailResponse> =>
+    api.get<SessionDetailResponse>(`/chat/sessions/${sessionId}`),
+
+  /**
+   * Delete a chat session
+   */
+  deleteSession: (sessionId: string): Promise<{ success: boolean; message: string }> =>
+    api.delete<{ success: boolean; message: string }>(`/chat/sessions/${sessionId}`),
+
+  /**
+   * Update a chat session
+   */
+  updateSession: (sessionId: string, data: UpdateSessionRequest): Promise<ChatSession> =>
+    api.put<ChatSession>(`/chat/sessions/${sessionId}`, data),
+
+  /**
+   * Add a message to a session
+   */
+  addMessage: (sessionId: string, data: AddMessageRequest): Promise<ChatMessage> =>
+    api.post<ChatMessage>(`/chat/sessions/${sessionId}/messages`, data),
+};

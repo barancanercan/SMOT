@@ -99,3 +99,125 @@ class DashboardStatsResponse(BaseModel):
     instagram_active_users: Optional[int] = None
     # Platform indicator
     platform: str = "twitter"
+
+
+# =============================================================================
+# Chat with Tweets Models
+# =============================================================================
+
+from typing import Any, Dict
+
+class ChatQueryRequest(BaseModel):
+    """Request model for chat query"""
+    query: str
+    max_results: int = 20
+    include_summary: bool = True
+    platform: Platform = Platform.TWITTER
+    party_filter: Optional[str] = None  # Filter tweets by party (e.g., "CHP", "AK Parti")
+
+
+class ChatTweetResult(BaseModel):
+    """Tweet result in chat response"""
+    id: int
+    username: str
+    name: Optional[str] = None
+    party: Optional[str] = None
+    tweet_text: str
+    tweet_date: Optional[str] = None
+    likes: int = 0
+    retweets: int = 0
+    replies: int = 0
+    views: int = 0
+    relevance_score: float = 0.0
+    # Classification fields (for criticism search)
+    criticism_topic: Optional[str] = None
+    criticism_explanation: Optional[str] = None
+
+
+class ChatSummary(BaseModel):
+    """Summary section of chat response"""
+    total_found: int = 0
+    top_topics: List[str] = []
+    sentiment: str = "notr"  # olumlu, olumsuz, notr
+    most_active_users: List[str] = []
+    date_range: Optional[str] = None
+
+
+class ChatQueryResponse(BaseModel):
+    """Response model for chat query"""
+    query: str
+    answer: str
+    summary: ChatSummary
+    tweets: List[ChatTweetResult] = []
+    filters_applied: Dict[str, Any] = {}
+    confidence_score: float = 0.0
+    execution_time_ms: float = 0.0
+    cached: bool = False
+    intent_type: str = "search_topic"
+
+
+class ChatSuggestionsResponse(BaseModel):
+    """Response model for suggested questions"""
+    suggestions: List[str] = []
+
+
+# =============================================================================
+# Chat Session Models (v5.0)
+# =============================================================================
+
+class CreateSessionRequest(BaseModel):
+    """Request model for creating a new chat session"""
+    platform: Platform = Platform.TWITTER
+    party_filter: Optional[str] = None
+    title: Optional[str] = None
+
+
+class CreateSessionResponse(BaseModel):
+    """Response model for created session"""
+    id: str
+    title: str
+    platform: str
+    party_filter: Optional[str]
+    created_at: str
+    message_count: int = 0
+
+
+class ChatMessageResponse(BaseModel):
+    """Response model for a single chat message"""
+    id: int
+    role: str
+    content: str
+    metadata: Optional[Dict[str, Any]] = None
+    created_at: str
+
+
+class SessionDetailResponse(BaseModel):
+    """Response model for session with messages"""
+    id: str
+    title: str
+    platform: str
+    party_filter: Optional[str]
+    created_at: str
+    updated_at: Optional[str]
+    message_count: int
+    messages: List[ChatMessageResponse] = []
+
+
+class SessionListResponse(BaseModel):
+    """Response model for list of sessions"""
+    sessions: List[CreateSessionResponse]
+    total: int
+
+
+class UpdateSessionRequest(BaseModel):
+    """Request model for updating a session"""
+    title: Optional[str] = None
+    platform: Optional[Platform] = None
+    party_filter: Optional[str] = None
+
+
+class AddMessageRequest(BaseModel):
+    """Request model for adding a message to a session"""
+    role: str  # "user" or "assistant"
+    content: str
+    metadata: Optional[Dict[str, Any]] = None

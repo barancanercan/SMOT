@@ -86,6 +86,7 @@ class Settings(BaseSettings):
     # OpenAI LLM
     openai_api_key: str = Field(default="", description="OpenAI API key")
     openai_model: str = Field(default="gpt-3.5-turbo", description="OpenAI model (gpt-3.5-turbo recommended for speed/cost)")
+    openai_chat_model: str = Field(default="gpt-4o", description="OpenAI model for chat classification (gpt-4o recommended)")
     openai_timeout: int = Field(default=60, description="OpenAI request timeout in seconds")
 
     # Ollama LLM (fallback)

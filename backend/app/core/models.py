@@ -1,9 +1,13 @@
 """
-SQLAlchemy ORM Models - Database Schema v4.1
+SQLAlchemy ORM Models - Database Schema v5.0
 Replaces raw SQL with type-safe ORM models
+
+v5.0 additions:
+- ChatSession: Persistent chat sessions
+- ChatMessage: Chat message history
 """
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Date
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Date, ForeignKey, JSON
+from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 
 Base = declarative_base()
@@ -122,3 +126,59 @@ class InstagramProfile(Base):
 
     def __repr__(self):
         return f"<InstagramProfile(username='{self.username}', date={self.scrape_date})>"
+
+
+# =============================================================================
+# Chat Session Models (v5.0)
+# =============================================================================
+
+class ChatSession(Base):
+    """
+    Chat session for persistent conversation history.
+
+    Each session represents a single chat conversation that can be:
+    - Resumed after page refresh
+    - Switched between multiple sessions
+    - Filtered by platform and party
+    """
+    __tablename__ = 'chat_sessions'
+
+    id = Column(String(36), primary_key=True)  # UUID
+    title = Column(String(200))  # Auto-generated from first message
+    platform = Column(String(20), default="twitter")  # twitter, instagram, both
+    party_filter = Column(String(100), nullable=True)  # Optional party filter
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    # Relationship to messages
+    messages = relationship(
+        "ChatMessage",
+        back_populates="session",
+        cascade="all, delete-orphan",
+        order_by="ChatMessage.created_at"
+    )
+
+    def __repr__(self):
+        return f"<ChatSession(id='{self.id}', title='{self.title}')>"
+
+
+class ChatMessage(Base):
+    """
+    Individual message in a chat session.
+
+    Stores both user queries and assistant responses with metadata.
+    """
+    __tablename__ = 'chat_messages'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(36), ForeignKey('chat_sessions.id', ondelete='CASCADE'), nullable=False, index=True)
+    role = Column(String(20), nullable=False)  # "user" or "assistant"
+    content = Column(Text, nullable=False)
+    message_metadata = Column(JSON, nullable=True)  # Store filters, summary, execution time, etc.
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+
+    # Relationship back to session
+    session = relationship("ChatSession", back_populates="messages")
+
+    def __repr__(self):
+        return f"<ChatMessage(id={self.id}, role='{self.role}', session='{self.session_id}')>"
