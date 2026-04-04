@@ -76,7 +76,7 @@ def save_tweets_batch(tweets: List[Dict], username: str) -> Tuple[int, int]:
                     duplicate_count += 1
                     continue
 
-                # Insert new tweet
+                # Insert new tweet with all metadata
                 try:
                     tweet = Tweet(
                         username=username,
@@ -87,7 +87,13 @@ def save_tweets_batch(tweets: List[Dict], username: str) -> Tuple[int, int]:
                         likes=tweet_data.get("likes", 0),
                         replies=tweet_data.get("replies", 0),
                         retweets=tweet_data.get("retweets", 0),
-                        views=tweet_data.get("views", 0)
+                        views=tweet_data.get("views", 0),
+                        tweet_id=tweet_data.get("tweet_id"),
+                        tweet_url=tweet_data.get("tweet_url"),
+                        quotes=tweet_data.get("quotes", 0),
+                        bookmarks=tweet_data.get("bookmarks", 0),
+                        media_type=tweet_data.get("media_type"),
+                        language=tweet_data.get("language"),
                     )
                     session.add(tweet)
                     saved_count += 1

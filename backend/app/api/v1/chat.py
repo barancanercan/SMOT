@@ -1,13 +1,10 @@
 """
-Chat API Routes - Chat with Tweets functionality v5.0
+Chat API Routes - Chat with Tweets functionality v7.0
 
-Allows users to query tweets using natural language.
-
-v5.0 additions:
-- Session management endpoints
-- Persistent chat history
-- Multi-session support
+Allows users to query social media content using natural language.
+Hybrid RAG: BM25 + Dense Embeddings + RRF + Cross-Encoder Reranking.
 """
+import asyncio
 import logging
 from typing import List, Optional
 
@@ -99,12 +96,15 @@ async def chat_query(
         logger.info(f"Party filter: '{body.party_filter}', Platform: '{body.platform}'")
 
         handler = ChatHandler(db)
-        result = handler.process_query(
+
+        # Run blocking ML operations in thread pool to avoid blocking event loop
+        result = await asyncio.to_thread(
+            handler.process_query,
             query=query_text,
             max_results=body.max_results,
             include_summary=body.include_summary,
             party_filter=body.party_filter,
-            platform=body.platform.value if body.platform else "twitter"
+            platform=body.platform.value if body.platform else "twitter",
         )
 
         # Convert tweets to response model
@@ -182,12 +182,14 @@ async def get_suggestions(
 
     Rate limit: 30 requests per minute
     """
-    handler = ChatHandler(db)
-    suggestions = handler.get_suggested_questions(
-        platform=platform or "twitter",
-        party_filter=party
-    )
+    def _get_suggestions():
+        h = ChatHandler(db)
+        return h.get_suggested_questions(
+            platform=platform or "twitter",
+            party_filter=party
+        )
 
+    suggestions = await asyncio.to_thread(_get_suggestions)
     return ChatSuggestionsResponse(suggestions=suggestions)
 
 

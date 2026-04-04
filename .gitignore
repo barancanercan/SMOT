@@ -64,9 +64,13 @@ frontend/node_modules/
 # Scraping
 x_cookies.pkl
 x_cookies.json
+x_session.json
+ig_session.json
 *.pkl
 .credentials
 .secrets
+.webui_secret_key
+data/politicians.db
 
 # ChromaDB (local vector db)
 chroma_db/

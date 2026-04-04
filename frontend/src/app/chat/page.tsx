@@ -524,7 +524,7 @@ export default function ChatPage() {
                   Sosyal Medya ile Sohbet
                 </h1>
                 <p className="text-xs text-gray-500 font-mono">
-                  GPT-4o destekli içerik arama
+                  Hibrit RAG - BM25 + Semantik Arama + Reranking
                 </p>
               </div>
             </div>
@@ -722,7 +722,7 @@ export default function ChatPage() {
                           <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
                           <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                         </div>
-                        <span className="text-sm text-gray-500">GPT-4o ile analiz ediliyor...</span>
+                        <span className="text-sm text-gray-500">Hibrit arama ve analiz yapılıyor...</span>
                       </div>
                     </div>
                   </div>
@@ -762,12 +762,16 @@ export default function ChatPage() {
 
             <div className="flex items-center justify-center gap-4 mt-3 text-xs text-gray-600">
               <div className="flex items-center gap-1">
-                <Sparkles className="h-3 w-3" />
-                <span>GPT-4o ile analiz</span>
+                <Zap className="h-3 w-3" />
+                <span>BM25 + Semantik Arama</span>
               </div>
               <div className="flex items-center gap-1">
-                <Zap className="h-3 w-3" />
-                <span>Türkçe dil desteği</span>
+                <Sparkles className="h-3 w-3" />
+                <span>Cross-Encoder Reranking</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" />
+                <span>GPT-4o Analiz</span>
               </div>
             </div>
           </div>
@@ -801,11 +805,8 @@ function AssistantMessage({
   content: string;
   data?: ChatQueryResponse;
 }) {
-  const [showAllTweets, setShowAllTweets] = useState(false);
-
   const tweets = data?.tweets || [];
   const summary = data?.summary;
-  const displayTweets = showAllTweets ? tweets : tweets.slice(0, 3);
 
   return (
     <div className="flex justify-start">
@@ -817,18 +818,29 @@ function AssistantMessage({
         <div className="flex-1 space-y-3">
           {/* Main answer with markdown */}
           <div className="bg-[#1A1A1A] rounded-2xl rounded-tl-sm px-4 py-3 border border-white/10">
-            <div className="prose prose-invert prose-sm max-w-none prose-headings:text-white prose-headings:font-semibold prose-h2:text-base prose-h2:mt-4 prose-h2:mb-2 prose-h3:text-sm prose-h3:mt-3 prose-h3:mb-1 prose-p:text-gray-300 prose-p:my-1 prose-li:text-gray-300 prose-li:my-0.5 prose-strong:text-white prose-blockquote:border-l-blue-500 prose-blockquote:text-gray-400 prose-blockquote:italic prose-em:text-gray-400">
+            <div className="chat-markdown">
               <ReactMarkdown>{content}</ReactMarkdown>
             </div>
 
             {data?.execution_time_ms && (
-              <div className="flex items-center gap-1 mt-3 pt-2 border-t border-white/5 text-xs text-gray-600">
+              <div className="flex items-center gap-2 mt-3 pt-2 border-t border-white/5 text-xs text-gray-600">
                 <Clock className="h-3 w-3" />
                 <span>{(data.execution_time_ms / 1000).toFixed(1)}s</span>
                 {data.confidence_score > 0 && (
                   <>
                     <span className="mx-1">|</span>
-                    <span>Güven: {(data.confidence_score * 100).toFixed(0)}%</span>
+                    <span className={`font-medium ${
+                      data.confidence_score >= 0.7 ? "text-emerald-500" :
+                      data.confidence_score >= 0.4 ? "text-amber-500" : "text-red-400"
+                    }`}>
+                      Güven: %{(data.confidence_score * 100).toFixed(0)}
+                    </span>
+                  </>
+                )}
+                {data.cached && (
+                  <>
+                    <span className="mx-1">|</span>
+                    <span className="text-blue-500">Önbellek</span>
                   </>
                 )}
               </div>
@@ -899,20 +911,9 @@ function AssistantMessage({
           {/* Tweet results */}
           {tweets.length > 0 && (
             <div className="space-y-2">
-              {displayTweets.map((tweet) => (
+              {tweets.map((tweet) => (
                 <TweetCard key={tweet.id} tweet={tweet} />
               ))}
-
-              {tweets.length > 3 && (
-                <button
-                  onClick={() => setShowAllTweets(!showAllTweets)}
-                  className="w-full py-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  {showAllTweets
-                    ? "Daha az göster"
-                    : `+${tweets.length - 3} daha göster`}
-                </button>
-              )}
             </div>
           )}
         </div>
@@ -923,9 +924,6 @@ function AssistantMessage({
 
 // Tweet card
 function TweetCard({ tweet }: { tweet: ChatTweetResult }) {
-  const [expanded, setExpanded] = useState(false);
-  const isLongTweet = tweet.tweet_text.length > 280;
-
   return (
     <div className="bg-[#1A1A1A]/70 rounded-xl px-4 py-3 border border-white/5 hover:border-white/10 transition-all">
       <div className="flex items-start gap-3">
@@ -954,19 +952,8 @@ function TweetCard({ tweet }: { tweet: ChatTweetResult }) {
           </div>
 
           <p className="text-gray-300 mt-2 text-sm leading-relaxed whitespace-pre-wrap">
-            {expanded || !isLongTweet
-              ? tweet.tweet_text
-              : tweet.tweet_text.substring(0, 280) + "..."}
+            {tweet.tweet_text}
           </p>
-
-          {isLongTweet && (
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="text-blue-400 text-xs mt-1 hover:text-blue-300"
-            >
-              {expanded ? "Daha az göster" : "Devamını göster"}
-            </button>
-          )}
 
           {tweet.criticism_explanation && (
             <div className="mt-2 px-3 py-2 bg-red-500/5 border-l-2 border-red-500/30 rounded-r">

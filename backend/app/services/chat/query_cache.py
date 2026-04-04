@@ -204,34 +204,49 @@ def generate_cache_key(prefix: str, query: str, filters: Optional[Dict] = None) 
     return f"{prefix}:{hash_value}"
 
 
-def get_intent_cache(query: str) -> Optional[Dict]:
+def get_intent_cache(
+    query: str,
+    party_filter: Optional[str] = None,
+    platform: str = "twitter"
+) -> Optional[Dict]:
     """
-    Get cached intent for query.
+    Get cached intent for query with filters.
 
     Args:
         query: User query
+        party_filter: Party filter
+        platform: Platform
 
     Returns:
         Cached intent dict or None
     """
-    key = generate_cache_key("intent", query)
+    key = generate_cache_key("intent", query, {"party": party_filter, "platform": platform})
     cached = _cache.get(key)
 
     if cached:
         logger.info(f"Intent cache HIT: {query[:30]}...")
+    else:
+        logger.debug(f"Intent cache MISS: {query[:30]}...")
 
     return cached
 
 
-def set_intent_cache(query: str, intent: Dict) -> None:
+def set_intent_cache(
+    query: str,
+    intent: Dict,
+    party_filter: Optional[str] = None,
+    platform: str = "twitter"
+) -> None:
     """
-    Cache intent for query.
+    Cache intent for query with filters.
 
     Args:
         query: User query
         intent: Intent dict to cache
+        party_filter: Party filter
+        platform: Platform
     """
-    key = generate_cache_key("intent", query)
+    key = generate_cache_key("intent", query, {"party": party_filter, "platform": platform})
     _cache.set(key, intent, ttl=INTENT_CACHE_TTL)
 
 

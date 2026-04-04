@@ -45,14 +45,20 @@ class Tweet(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(100), nullable=False, index=True)
+    tweet_id = Column(String(50), index=True)  # X/Twitter tweet ID
     tweet_text = Column(Text, nullable=False)
     tweet_date = Column(String(50), index=True)
     is_retweet = Column(Boolean, default=False, index=True)
-    retweet_from = Column(String(100))
+    retweet_from = Column(String(100), index=True)  # Who was retweeted
     likes = Column(Integer, default=0)
     replies = Column(Integer, default=0)
     retweets = Column(Integer, default=0)
     views = Column(Integer, default=0)
+    quotes = Column(Integer, default=0)  # Quote tweet count
+    bookmarks = Column(Integer, default=0)  # Bookmark count
+    tweet_url = Column(String(500))  # Direct URL to tweet
+    media_type = Column(String(50))  # photo, video, gif, poll, none
+    language = Column(String(10))  # Tweet language (tr, en, etc.)
     created_at = Column(DateTime, default=func.now(), nullable=True)
     is_deleted = Column(Boolean, default=False)
 

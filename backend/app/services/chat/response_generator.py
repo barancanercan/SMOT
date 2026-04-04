@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
-Response Generator - Generate AI summaries from found tweets
-Uses LLM to create user-friendly responses from tweet search results
+Response Generator v7 - Clean output with citations and confidence scoring.
+
+Generates user-friendly Turkish responses from retrieved social media content.
+Uses LLM for intelligent summarization with inline citations.
 """
 
 import json
@@ -18,31 +20,112 @@ logger = get_logger("ResponseGenerator")
 
 @dataclass
 class ChatResponse:
-    """Generated chat response"""
+    """Generated chat response."""
     answer: str
     summary: Dict[str, Any] = field(default_factory=dict)
     confidence_score: float = 0.0
     raw_response: str = ""
 
 
-class ResponseGenerator:
-    """
-    Generate AI-powered summaries and responses from tweet search results.
-    Uses platform-aware terminology (tweet vs post vs content).
-    """
+# Platform-specific content names in Turkish
+CONTENT_NAMES = {
+    "twitter": {"singular": "tweet", "plural": "tweetler", "accusative": "tweeti"},
+    "instagram": {"singular": "post", "plural": "postlar", "accusative": "postu"},
+    "both": {"singular": "içerik", "plural": "içerikler", "accusative": "içeriği"},
+}
 
-    # Minimum tweets for AI summary
-    MIN_TWEETS_FOR_SUMMARY = 3
 
-    # Platform-specific content names
-    CONTENT_NAMES = {
-        "twitter": {"singular": "tweet", "plural": "tweetler"},
-        "instagram": {"singular": "post", "plural": "postlar"},
-        "both": {"singular": "içerik", "plural": "içerikler"},
+def _get_content_name(platform: str, form: str = "plural") -> str:
+    """Get platform-aware content name."""
+    names = CONTENT_NAMES.get(platform, CONTENT_NAMES["twitter"])
+    return names.get(form, names["plural"])
+
+
+def _detect_platform_from_tweets(tweets: List[Dict]) -> str:
+    """Detect platform from tweet data."""
+    platforms = set(t.get("platform", "twitter") for t in tweets)
+    if "instagram" in platforms and "twitter" in platforms:
+        return "both"
+    elif "instagram" in platforms:
+        return "instagram"
+    return "twitter"
+
+
+def _extract_stats(tweets: List[Dict]) -> Dict[str, Any]:
+    """Extract statistics from tweet list."""
+    if not tweets:
+        return {"total_found": 0, "top_topics": [], "sentiment": "notr",
+                "most_active_users": [], "date_range": None}
+
+    # Users
+    user_counts: Dict[str, int] = {}
+    for t in tweets:
+        u = t.get("username", "")
+        user_counts[u] = user_counts.get(u, 0) + 1
+    top_users = sorted(user_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+
+    # Date range
+    dates = []
+    for t in tweets:
+        date = t.get("tweet_date", t.get("post_date", t.get("date", "")))
+        if date and len(str(date)) >= 10:
+            dates.append(str(date)[:10])
+    dates.sort()
+    date_range = f"{dates[0]} - {dates[-1]}" if dates else None
+
+    # Topics from common words
+    all_text = " ".join(t.get("tweet_text", t.get("caption", "")) for t in tweets)
+    words = re.findall(r'\b\w+\b', all_text.lower())
+    stopwords = {
+        'bir', 've', 'ile', 'icin', 'için', 'bu', 'su', 'şu', 'o', 'da', 'de',
+        'mi', 'mu', 'ne', 'ya', 'ki', 'ama', 'olan', 'daha', 'en',
+        'rt', 'https', 'http', 'www', 'com', 'tr', 'co', 'ben', 'sen', 'biz',
+    }
+    word_counts: Dict[str, int] = {}
+    for w in words:
+        if len(w) > 3 and w not in stopwords:
+            word_counts[w] = word_counts.get(w, 0) + 1
+    top_words = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+
+    return {
+        "total_found": len(tweets),
+        "top_topics": [w[0] for w in top_words],
+        "sentiment": "notr",
+        "most_active_users": [u[0] for u in top_users],
+        "date_range": date_range,
     }
 
+
+def compute_confidence(retrieval_scores: List[float], num_results: int) -> float:
+    """
+    Compute confidence based on retrieval quality.
+
+    Args:
+        retrieval_scores: Scores from retrieval results
+        num_results: Number of results found
+
+    Returns:
+        Confidence score 0.0-1.0
+    """
+    if num_results == 0:
+        return 0.0
+
+    # Average of top scores
+    top_scores = retrieval_scores[:min(5, len(retrieval_scores))]
+    avg_score = sum(top_scores) / len(top_scores) if top_scores else 0.0
+
+    # Coverage factor
+    coverage = min(1.0, num_results / 5)
+
+    return round(min(1.0, avg_score * 0.6 + coverage * 0.4), 2)
+
+
+class ResponseGenerator:
+    """Generate AI-powered responses from retrieved social media content."""
+
+    MIN_TWEETS_FOR_SUMMARY = 3
+
     def __init__(self):
-        """Initialize the response generator with LLM analyzer"""
         try:
             self.analyzer = TweetAnalyzer()
             self.llm_available = True
@@ -52,328 +135,179 @@ class ResponseGenerator:
             self.analyzer = None
             self.llm_available = False
 
-    def _get_content_name(self, platform: str, plural: bool = True) -> str:
-        """Get platform-aware content name in Turkish."""
-        names = self.CONTENT_NAMES.get(platform, self.CONTENT_NAMES["twitter"])
-        return names["plural"] if plural else names["singular"]
-
     def generate(
         self,
         query: str,
         tweets: List[Dict],
         intent_type: str = "search_topic",
         username: Optional[str] = None,
-        platform: str = "twitter"
+        platform: str = "twitter",
+        is_criticism: bool = False,
     ) -> ChatResponse:
         """
-        Generate a response summarizing the found tweets.
+        Generate response from found content.
 
         Args:
-            query: Original user query
-            tweets: List of found tweets
-            intent_type: Type of intent (from IntentParser)
-            username: Optional username for user-specific queries
+            query: Original query
+            tweets: Retrieved content
+            intent_type: Query intent
+            username: Optional username filter
+            platform: Platform
+            is_criticism: Whether this is a criticism search
 
         Returns:
-            ChatResponse with answer and summary
+            ChatResponse with answer, summary, and confidence
         """
-        tweet_count = len(tweets)
-
-        # No tweets found - use platform-aware terminology
-        content_name = self._get_content_name(platform, plural=False)
-        if tweet_count == 0:
+        if not tweets:
+            content_name = _get_content_name(platform, "accusative")
+            if is_criticism:
+                return ChatResponse(
+                    answer=f"Belirtilen kriterlere uygun eleştiri {content_name} bulunamadı.",
+                    summary={"total_found": 0},
+                    confidence_score=0.0,
+                )
             return ChatResponse(
-                answer=f"Aramaniza uygun {content_name} bulunamadi.",
-                summary={
-                    "total_found": 0,
-                    "top_topics": [],
-                    "sentiment": "notr",
-                    "most_active_users": [],
-                    "date_range": None
-                },
-                confidence_score=1.0
+                answer=f"Aramanıza uygun {content_name} bulunamadı.",
+                summary={"total_found": 0},
+                confidence_score=0.0,
             )
 
-        # Few tweets - no AI needed
-        if tweet_count < self.MIN_TWEETS_FOR_SUMMARY:
-            return self._generate_simple_response(query, tweets, intent_type)
+        # Detect platform from actual content
+        detected_platform = _detect_platform_from_tweets(tweets)
+        if detected_platform != "twitter":
+            platform = detected_platform
 
-        # Use AI for summarization
+        stats = _extract_stats(tweets)
+
+        # Few tweets - simple response
+        if len(tweets) < self.MIN_TWEETS_FOR_SUMMARY:
+            return self._generate_simple(query, tweets, intent_type, platform, stats)
+
+        # LLM summary
         if self.llm_available and self.analyzer:
             try:
-                return self._generate_with_llm(query, tweets, intent_type, username, platform)
+                return self._generate_with_llm(query, tweets, intent_type, username, platform, stats)
             except Exception as e:
-                logger.warning(f"LLM generation failed, falling back to simple: {e}")
+                logger.warning(f"LLM generation failed: {e}")
 
-        # Fallback to simple response
-        return self._generate_simple_response(query, tweets, intent_type)
+        return self._generate_simple(query, tweets, intent_type, platform, stats)
 
     def _generate_with_llm(
         self,
         query: str,
         tweets: List[Dict],
         intent_type: str,
-        username: Optional[str] = None,
-        platform: str = "twitter"
+        username: Optional[str],
+        platform: str,
+        stats: Dict,
     ) -> ChatResponse:
-        """
-        Generate response using LLM for intelligent summarization.
-
-        Args:
-            query: User query
-            tweets: Tweet list
-            intent_type: Intent type
-            username: Optional username
-            platform: Platform (twitter, instagram, both)
-
-        Returns:
-            ChatResponse from LLM
-        """
-        # Check if user wants detailed analysis
+        """Generate response using LLM with citations."""
         query_lower = query.lower()
         wants_detailed = any(kw in query_lower for kw in [
-            'detayli', 'detaylı', 'acikla', 'açıkla', 'analiz et',
-            'incele', 'detayinda', 'detayında', 'kapsamli', 'kapsamlı'
+            'detaylı', 'detayli', 'açıkla', 'acikla', 'analiz et',
+            'incele', 'kapsamlı', 'kapsamli'
         ])
 
-        # Detect platform from tweets if not specified
-        if platform == "twitter":
-            platforms_in_tweets = set(t.get('platform', 'twitter') for t in tweets)
-            if 'instagram' in platforms_in_tweets and 'twitter' in platforms_in_tweets:
-                platform = 'both'
-            elif 'instagram' in platforms_in_tweets:
-                platform = 'instagram'
-
-        logger.info(f"Generating response for platform: {platform}")
-
-        # Choose prompt type based on intent and detail request
+        # Choose prompt
         if intent_type == "analyze_topics" and username:
             prompt = get_chat_prompt(
-                'topic_analysis',
-                username=username,
-                tweets=tweets,
-                tweet_count=len(tweets),
-                platform=platform
+                'topic_analysis', username=username,
+                tweets=tweets, tweet_count=len(tweets), platform=platform
             )
         elif wants_detailed and len(tweets) >= 3:
-            # Use detailed analysis prompt
             prompt = get_chat_prompt(
-                'detailed',
-                query=query,
-                tweets=tweets,
-                tweet_count=len(tweets),
-                platform=platform
+                'detailed', query=query,
+                tweets=tweets, tweet_count=len(tweets), platform=platform
             )
         else:
             prompt = get_chat_prompt(
-                'response',
-                query=query,
-                tweets=tweets,
-                tweet_count=len(tweets),
-                platform=platform
+                'response', query=query,
+                tweets=tweets, tweet_count=len(tweets), platform=platform
             )
 
         # Call LLM
         response = self.analyzer._call_llm(prompt)
-        logger.debug(f"LLM response: {response[:500]}")
+        logger.debug(f"LLM response length: {len(response)}")
 
         # Parse JSON response
         try:
-            # Clean potential markdown code blocks
-            response = response.strip()
-            if response.startswith("```"):
-                response = re.sub(r'^```\w*\n?', '', response)
-                response = re.sub(r'\n?```$', '', response)
+            cleaned = response.strip()
+            if cleaned.startswith("```"):
+                cleaned = re.sub(r'^```\w*\n?', '', cleaned)
+                cleaned = re.sub(r'\n?```$', '', cleaned)
 
-            data = json.loads(response)
+            data = json.loads(cleaned)
+
+            llm_summary = data.get('summary', stats)
+            # Merge LLM summary with our stats
+            for key in stats:
+                if key not in llm_summary or not llm_summary[key]:
+                    llm_summary[key] = stats[key]
 
             return ChatResponse(
-                answer=data.get('answer', 'Analiz tamamlandi.'),
-                summary=data.get('summary', {
-                    "total_found": len(tweets),
-                    "top_topics": [],
-                    "sentiment": "notr",
-                    "most_active_users": [],
-                    "date_range": None
-                }),
-                confidence_score=float(data.get('confidence_score', 0.7)),
-                raw_response=response
+                answer=data.get('answer', 'Analiz tamamlandı.'),
+                summary=llm_summary,
+                confidence_score=float(data.get('confidence_score', 0.75)),
+                raw_response=response,
             )
 
         except json.JSONDecodeError as e:
-            logger.error(f"JSON parse error in LLM response: {e}")
-            # Return fallback
-            return self._generate_simple_response(query, tweets, intent_type)
+            logger.error(f"JSON parse error: {e}")
+            # If we got a non-JSON response, use it as the answer directly
+            if len(response) > 50 and not response.strip().startswith('{'):
+                return ChatResponse(
+                    answer=response.strip(),
+                    summary=stats,
+                    confidence_score=0.6,
+                )
+            return self._generate_simple(query, tweets, intent_type, platform, stats)
 
-    def _generate_simple_response(
+    def _generate_simple(
         self,
         query: str,
         tweets: List[Dict],
-        intent_type: str
+        intent_type: str,
+        platform: str,
+        stats: Dict,
     ) -> ChatResponse:
-        """
-        Generate a simple rule-based response without LLM.
+        """Generate rule-based response without LLM."""
+        count = len(tweets)
+        content_name = _get_content_name(platform)
 
-        Args:
-            query: User query
-            tweets: Tweet list
-            intent_type: Intent type
+        lines = []
+        lines.append(f"## Sonuçlar")
+        lines.append("")
+        lines.append(f"**{count} {content_name}** bulundu.")
+        lines.append("")
 
-        Returns:
-            Simple ChatResponse
-        """
-        tweet_count = len(tweets)
+        # Engagement stats
+        total_likes = sum(t.get("likes", 0) for t in tweets)
+        total_retweets = sum(t.get("retweets", 0) for t in tweets)
+        if total_likes > 0 or total_retweets > 0:
+            lines.append(f"- **Toplam etkileşim:** {total_likes:,} beğeni, {total_retweets:,} paylaşım")
 
-        # Extract basic statistics
-        usernames = [t.get('username', '') for t in tweets]
-        unique_users = list(set(usernames))
+        if stats.get("most_active_users"):
+            users = ", ".join(f"@{u}" for u in stats["most_active_users"][:3])
+            lines.append(f"- **En aktif:** {users}")
 
-        # Count most active users
-        user_counts = {}
-        for u in usernames:
-            user_counts[u] = user_counts.get(u, 0) + 1
-        top_users = sorted(user_counts.items(), key=lambda x: x[1], reverse=True)[:3]
-        most_active = [u[0] for u in top_users]
+        if stats.get("date_range"):
+            lines.append(f"- **Tarih:** {stats['date_range']}")
 
-        # Extract date range
-        dates = []
-        for t in tweets:
-            date = t.get('tweet_date', t.get('date', ''))
-            if date and len(date) >= 10:
-                dates.append(date[:10])
-        dates.sort()
-        date_range = f"{dates[0]} - {dates[-1]}" if dates else None
-
-        # Extract common words for topics (basic)
-        all_text = " ".join([t.get('tweet_text', t.get('text', '')) for t in tweets])
-        words = re.findall(r'\b\w+\b', all_text.lower())
-        word_counts = {}
-        stopwords = {
-            'bir', 've', 'ile', 'icin', 'bu', 'su', 'o', 'da', 'de',
-            'mi', 'mu', 'ne', 'ya', 'ki', 'ama', 'olan', 'daha', 'en',
-            'rt', 'https', 'http', 'www', 'com', 'tr', 'co'
-        }
-        for w in words:
-            if len(w) > 3 and w not in stopwords:
-                word_counts[w] = word_counts.get(w, 0) + 1
-        top_words = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-        top_topics = [w[0] for w in top_words]
-
-        # Generate answer based on intent - use platform-aware terminology
-        # Note: platform is not passed to this method, detect from tweets
-        platforms_in_tweets = set(t.get('platform', 'twitter') for t in tweets)
-        if 'instagram' in platforms_in_tweets and 'twitter' in platforms_in_tweets:
-            detected_platform = 'both'
-        elif 'instagram' in platforms_in_tweets:
-            detected_platform = 'instagram'
-        else:
-            detected_platform = 'twitter'
-
-        content_name = self._get_content_name(detected_platform, plural=False)
-
-        if intent_type == "analyze_topics":
-            answer = f"{tweet_count} {content_name} analiz edildi. One cikan konular: {', '.join(top_topics) if top_topics else 'cesitli konular'}."
-        elif intent_type == "search_user":
-            answer = f"{tweet_count} {content_name} bulundu. En cok etkilesim alan konular: {', '.join(top_topics[:3]) if top_topics else 'cesitli konular'}."
-        elif intent_type == "search_date":
-            answer = f"Belirtilen tarih araliginda {tweet_count} {content_name} bulundu."
-        elif intent_type == "search_criticism":
-            answer = f"Elestiri iceren {tweet_count} {content_name} bulundu."
-        elif intent_type == "search_retweets":
-            if detected_platform == 'twitter':
-                answer = f"{tweet_count} retweet bulundu."
-            else:
-                answer = f"{tweet_count} {content_name} bulundu."
-        else:
-            answer = f"Aramaniza uygun {tweet_count} {content_name} bulundu."
+        # Top content
+        if tweets:
+            lines.append("")
+            lines.append("## Öne Çıkan İçerikler")
+            lines.append("")
+            for i, t in enumerate(tweets[:3], 1):
+                text = t.get("tweet_text", t.get("caption", ""))[:150]
+                text = text.replace('\n', ' ').strip()
+                username = t.get("username", "")
+                likes = t.get("likes", 0)
+                lines.append(f"> @{username}: \"{text}\" [{i}]")
+                lines.append("")
 
         return ChatResponse(
-            answer=answer,
-            summary={
-                "total_found": tweet_count,
-                "top_topics": top_topics,
-                "sentiment": "notr",  # Can't determine without AI
-                "most_active_users": most_active,
-                "date_range": date_range
-            },
-            confidence_score=0.5  # Lower confidence for rule-based
+            answer="\n".join(lines),
+            summary=stats,
+            confidence_score=0.5,
         )
-
-    def should_generate_summary(self, tweet_count: int, intent_type: str) -> bool:
-        """
-        Determine if AI summary should be generated.
-
-        Args:
-            tweet_count: Number of tweets found
-            intent_type: Type of query intent
-
-        Returns:
-            True if summary should be generated
-        """
-        # Always summarize for analysis queries
-        if intent_type in ["analyze_topics", "search_criticism"]:
-            return True
-
-        # 5+ tweets get summary
-        if tweet_count >= 5:
-            return True
-
-        # 10+ always gets summary
-        if tweet_count >= 10:
-            return True
-
-        return False
-
-
-# ============================================================================
-# CLI TEST
-# ============================================================================
-
-if __name__ == "__main__":
-    generator = ResponseGenerator()
-
-    # Test tweets
-    test_tweets = [
-        {
-            "username": "test_user1",
-            "tweet_text": "Belediyemiz yeni parki acti. Halka hayirli olsun!",
-            "tweet_date": "2024-01-15",
-            "likes": 150
-        },
-        {
-            "username": "test_user1",
-            "tweet_text": "Sosyal yardim dagitimlari basliyor. Ihtiyac sahibi vatandaslarimiz basvurabilir.",
-            "tweet_date": "2024-01-20",
-            "likes": 200
-        },
-        {
-            "username": "test_user2",
-            "tweet_text": "Belediye hizmetleri cok iyi calisiyor. Tesekkurler baskanim!",
-            "tweet_date": "2024-01-22",
-            "likes": 75
-        },
-        {
-            "username": "test_user2",
-            "tweet_text": "Yeni yapilan yol cok guzele oldu.",
-            "tweet_date": "2024-02-01",
-            "likes": 50
-        },
-        {
-            "username": "test_user3",
-            "tweet_text": "Belediye otobuslerinde yeni uygulamaya gecildi.",
-            "tweet_date": "2024-02-05",
-            "likes": 30
-        },
-    ]
-
-    print("=== RESPONSE GENERATOR TEST ===\n")
-
-    response = generator.generate(
-        query="Belediye hizmetleriyle ilgili tweetler",
-        tweets=test_tweets,
-        intent_type="search_topic"
-    )
-
-    print(f"Answer: {response.answer}")
-    print(f"Summary: {json.dumps(response.summary, indent=2, ensure_ascii=False)}")
-    print(f"Confidence: {response.confidence_score:.2f}")

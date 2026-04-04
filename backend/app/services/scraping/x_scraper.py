@@ -263,32 +263,70 @@ class XTwitterScraper:
                             break
 
                         try:
-                            # Click "Show more" button if present (for long tweets)
-                            try:
-                                show_more_btn = element.find_element(
-                                    By.XPATH,
-                                    ".//button[@data-testid='tweet-text-show-more-link']"
-                                )
-                                # Scroll element into view first
-                                self.driver.execute_script(
-                                    "arguments[0].scrollIntoView({block: 'center'});",
-                                    show_more_btn
-                                )
-                                time.sleep(0.2)
-                                # Use JavaScript click to bypass intercepted click
-                                self.driver.execute_script("arguments[0].click();", show_more_btn)
-                                time.sleep(0.3)  # Brief wait for expansion
-                            except (NoSuchElementException, StaleElementReferenceException):
-                                pass  # No "Show more" button or element became stale
-                            except Exception:
-                                pass  # Any other click error, continue with truncated text
-
-                            # Get FULL tweet text (after expanding if needed)
+                            # Get tweet text - first try without expansion
                             text_elem = element.find_element(
                                 By.XPATH,
                                 ".//div[@data-testid='tweetText']"
                             )
                             tweet_text = text_elem.text.strip()
+
+                            # If text looks truncated (near 280 char limit),
+                            # try clicking "Show more" to get full text
+                            if len(tweet_text) >= 250:
+                                try:
+                                    # Try multiple selectors for "Show more" button
+                                    show_more_btn = None
+                                    for selector in [
+                                        ".//button[@data-testid='tweet-text-show-more-link']",
+                                        ".//div[@data-testid='tweetText']//a[contains(@href, '/status/')]",
+                                        ".//span[contains(text(), 'Show more') or contains(text(), 'Devamını göster')]/..",
+                                    ]:
+                                        try:
+                                            show_more_btn = element.find_element(By.XPATH, selector)
+                                            break
+                                        except NoSuchElementException:
+                                            continue
+
+                                    if show_more_btn:
+                                        # Scroll into view and click
+                                        self.driver.execute_script(
+                                            "arguments[0].scrollIntoView({block: 'center'});",
+                                            show_more_btn
+                                        )
+                                        time.sleep(0.3)
+                                        self.driver.execute_script(
+                                            "arguments[0].click();", show_more_btn
+                                        )
+                                        time.sleep(0.5)
+
+                                        # Re-read text after expansion
+                                        try:
+                                            text_elem = element.find_element(
+                                                By.XPATH,
+                                                ".//div[@data-testid='tweetText']"
+                                            )
+                                            expanded_text = text_elem.text.strip()
+                                            if len(expanded_text) > len(tweet_text):
+                                                tweet_text = expanded_text
+                                                logger.debug(
+                                                    f"Expanded tweet: {len(tweet_text)} chars"
+                                                )
+                                        except (NoSuchElementException, StaleElementReferenceException):
+                                            pass
+
+                                        # If we navigated to tweet detail page, go back
+                                        if '/status/' in self.driver.current_url:
+                                            self.driver.back()
+                                            time.sleep(1)
+
+                                except (NoSuchElementException, StaleElementReferenceException):
+                                    pass
+                                except Exception as e:
+                                    logger.debug(f"Show more click failed: {e}")
+                                    # If we accidentally navigated away, go back
+                                    if '/status/' in self.driver.current_url:
+                                        self.driver.back()
+                                        time.sleep(1)
 
                             # Get timestamp
                             tweet_date = None
@@ -400,7 +438,85 @@ class XTwitterScraper:
                             except (NoSuchElementException, StaleElementReferenceException):
                                 pass
 
-                            # Save tweet (full text, no character limit)
+                            # ==========================================
+                            # EXTRA METADATA
+                            # ==========================================
+                            tweet_id = None
+                            tweet_url = None
+                            quotes = 0
+                            bookmarks = 0
+                            media_type = "none"
+                            language = None
+
+                            # Extract tweet ID and URL from status link
+                            try:
+                                status_links = element.find_elements(
+                                    By.XPATH,
+                                    ".//a[contains(@href, '/status/')]"
+                                )
+                                for link in status_links:
+                                    href = link.get_attribute("href") or ""
+                                    if "/status/" in href:
+                                        parts = href.split("/status/")
+                                        if len(parts) > 1:
+                                            tid = parts[1].split("/")[0].split("?")[0]
+                                            if tid.isdigit():
+                                                tweet_id = tid
+                                                tweet_url = f"https://x.com/{username}/status/{tid}"
+                                                break
+                            except Exception:
+                                pass
+
+                            # Detect media type
+                            try:
+                                if element.find_elements(By.XPATH, ".//div[@data-testid='videoPlayer']"):
+                                    media_type = "video"
+                                elif element.find_elements(By.XPATH, ".//div[@data-testid='tweetPhoto']"):
+                                    media_type = "photo"
+                                elif element.find_elements(By.XPATH, ".//div[@data-testid='card.wrapper']"):
+                                    media_type = "card"
+                                elif element.find_elements(By.XPATH, ".//div[contains(@data-testid, 'poll')]"):
+                                    media_type = "poll"
+                            except Exception:
+                                pass
+
+                            # Detect language from tweet text
+                            try:
+                                lang_elem = element.find_element(
+                                    By.XPATH,
+                                    ".//div[@data-testid='tweetText']"
+                                )
+                                language = lang_elem.get_attribute("lang") or "tr"
+                            except Exception:
+                                language = "tr"
+
+                            # Quotes (if available in aria-label)
+                            try:
+                                quote_btn = element.find_element(
+                                    By.XPATH,
+                                    ".//button[@aria-label and (contains(@aria-label, 'Quote') or contains(@aria-label, 'Alıntı'))]"
+                                )
+                                q_aria = quote_btn.get_attribute("aria-label") or ""
+                                q_parts = q_aria.split()
+                                if q_parts:
+                                    quotes = self._parse_metric(q_parts[0])
+                            except (NoSuchElementException, StaleElementReferenceException):
+                                pass
+
+                            # Bookmarks (if available)
+                            try:
+                                bm_btn = element.find_element(
+                                    By.XPATH,
+                                    ".//button[@aria-label and (contains(@aria-label, 'Bookmark') or contains(@aria-label, 'Yer İşareti') or contains(@aria-label, 'Kaydet'))]"
+                                )
+                                bm_aria = bm_btn.get_attribute("aria-label") or ""
+                                bm_parts = bm_aria.split()
+                                if bm_parts:
+                                    bookmarks = self._parse_metric(bm_parts[0])
+                            except (NoSuchElementException, StaleElementReferenceException):
+                                pass
+
+                            # Save tweet with full metadata
                             tweets.append({
                                 "text": tweet_text,
                                 "timestamp": tweet_date.isoformat() if tweet_date else None,
@@ -411,6 +527,12 @@ class XTwitterScraper:
                                 "replies": replies,
                                 "retweets": retweets_count,
                                 "views": views,
+                                "tweet_id": tweet_id,
+                                "tweet_url": tweet_url,
+                                "quotes": quotes,
+                                "bookmarks": bookmarks,
+                                "media_type": media_type,
+                                "language": language,
                             })
                             seen_tweets.add(tweet_text)
 
