@@ -109,6 +109,7 @@ class CDPBrowser:
             ]
         else:  # Linux
             candidates = [
+                "/home/openclaw-bot-pc/.local/chrome-install/opt/google/chrome/chrome",
                 "google-chrome",
                 "google-chrome-stable",
                 "chromium",

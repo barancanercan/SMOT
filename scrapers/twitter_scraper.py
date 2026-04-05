@@ -442,8 +442,10 @@ class TwitterCDPScraper:
         url = f"https://x.com/{username}"
         logger.info(f"Scraping: @{username} (max={max_tweets}, days={days_back})")
 
-        self.browser.navigate(url)
-        time.sleep(random.uniform(3, 5))
+        # evaluate ile git (SPA için navigate() Page.loadEventFired'da donabiliyor)
+        safe_url = url.replace("'", "\\'")
+        self.browser.evaluate(f"window.location.href = '{safe_url}'")
+        time.sleep(random.uniform(4, 6))
 
         # Check profile exists
         exists = self.browser.evaluate(
