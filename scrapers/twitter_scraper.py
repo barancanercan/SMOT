@@ -149,10 +149,34 @@ TWEET_EXTRACT_JS = """
             const langEl = article.querySelector('[data-testid="tweetText"]');
             const language = langEl ? (langEl.getAttribute('lang') || 'tr') : 'tr';
 
+            // Hashtags
+            const hashtagEls = article.querySelectorAll('a[href*="/hashtag/"]');
+            const hashtags = Array.from(hashtagEls).map(el => el.innerText.replace('#','').trim()).filter(Boolean);
+
+            // Mentions
+            const mentionEls = Array.from(article.querySelectorAll('[data-testid="tweetText"] a')).filter(el => el.innerText.startsWith('@'));
+            const mentions = mentionEls.map(el => el.innerText.replace('@','').trim()).filter(Boolean);
+
+            // Media URLs
+            const mediaImgs = article.querySelectorAll('img[src*="twimg.com/media"]');
+            const mediaUrls = Array.from(mediaImgs).map(el => el.src).filter(Boolean);
+            const mediaCount = mediaUrls.length;
+
+            // Bookmarks
+            let bookmarks = 0;
+            const bkBtn = article.querySelector('[data-testid="bookmark"]');
+            if (bkBtn) { const bkAria = bkBtn.getAttribute('aria-label') || ''; const bm = bkAria.match(/([0-9][0-9,.KMB]*)/i); if (bm) bookmarks = bm[1]; }
+
+            // Quote tweet ID (second status link)
+            let quoteTweetId = null;
+            const statusLinks2 = article.querySelectorAll('a[href*="/status/"]');
+            if (statusLinks2.length > 1) { const qh = statusLinks2[1].getAttribute('href') || ''; const qm = qh.match(/status\/([0-9]+)/); if (qm && qm[1] !== tweetId) quoteTweetId = qm[1]; }
+
             results.push({
                 text, tweetId, tweetUrl, timestamp, author,
                 likes, replies, retweets, views,
-                mediaType, language
+                mediaType, language,
+                hashtags, mentions, mediaUrls, mediaCount, bookmarks, quoteTweetId
             });
         } catch (e) {
             // Skip malformed tweets

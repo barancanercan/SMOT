@@ -25,6 +25,7 @@ import sys
 import time
 import random
 import logging
+import json
 from datetime import datetime, timedelta
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -139,6 +140,25 @@ POST_DETAIL_JS = """
         if (m) { r.comments = m[1]; break; }
     }
 
+    // Hashtags and mentions from caption
+    const cap = r.caption || '';
+    r.hashtags = (cap.match(/#[\\w\\u00C0-\\u024F\\u1E00-\\u1EFF]+/g) || []).slice(0, 30);
+    r.mentions = (cap.match(/@[\\w.]+/g) || []).slice(0, 20);
+
+    // Post type
+    r.postType = window.location.pathname.includes('/reel/') ? 'reel' : (r.isVideo ? 'video' : 'photo');
+
+    // Shortcode
+    const scm = window.location.pathname.match(/\\/(p|reel)\\/([^\\/]+)/);
+    r.shortcode = scm ? scm[2] : '';
+
+    // Video views (reels/videos)
+    r.videoViews = '0';
+    for (const el of document.querySelectorAll('span')) {
+        const t = el.innerText.trim();
+        if (/^[\\d.,]+[KMB]?\\s*(view|izlenme)/i.test(t)) { r.videoViews = t.replace(/[^0-9.,KMB]/gi,''); break; }
+    }
+
     return r;
 })()
 """
@@ -204,17 +224,23 @@ def save_post_to_db(post: dict, ig_username: str) -> bool:
         ).fetchone()
 
         if existing:
-            conn.execute(
-                "UPDATE instagram_posts SET likes=?, comments=? WHERE id=?",
-                (post.get("likes", 0), post.get("comments", 0), existing[0])
-            )
+            conn.execute("""
+                UPDATE instagram_posts
+                SET likes=?, comments=?, video_views=?, post_type=?
+                WHERE id=?
+            """, (
+                post.get("likes", 0), post.get("comments", 0),
+                post.get("video_views", 0), post.get("post_type", "photo"),
+                existing[0]
+            ))
             conn.commit()
             return False  # Updated, not new
         else:
             conn.execute("""
                 INSERT INTO instagram_posts
-                (username, caption, post_date, post_url, likes, comments, is_video, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                (username, caption, post_date, post_url, likes, comments, is_video,
+                 video_views, hashtags, mentions, post_type, shortcode, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """, (
                 ig_username,
                 post.get("caption", ""),
@@ -223,6 +249,11 @@ def save_post_to_db(post: dict, ig_username: str) -> bool:
                 post.get("likes", 0),
                 post.get("comments", 0),
                 1 if post.get("is_video") else 0,
+                post.get("video_views", 0),
+                json.dumps(post.get("hashtags", []), ensure_ascii=False),
+                json.dumps(post.get("mentions", []), ensure_ascii=False),
+                post.get("post_type", "photo"),
+                post.get("shortcode", ""),
             ))
             conn.commit()
             return True  # New
@@ -320,13 +351,18 @@ def scrape_user_posts(browser: CDPBrowser, ig_username: str, max_posts: int, day
                 break  # Eski post'a ulastik
 
             posts.append({
-                "post_id": raw.get("postId", ""),
-                "post_url": full_url,
-                "caption": raw.get("caption", ""),
-                "likes": parse_ig_metric(raw.get("likes", 0)),
-                "comments": parse_ig_metric(raw.get("comments", 0)),
-                "post_date": post_date.isoformat() if post_date else "",
-                "is_video": raw.get("isVideo", False),
+                "post_id":     raw.get("postId", ""),
+                "post_url":    full_url,
+                "caption":     raw.get("caption", ""),
+                "likes":       parse_ig_metric(raw.get("likes", 0)),
+                "comments":    parse_ig_metric(raw.get("comments", 0)),
+                "post_date":   post_date.isoformat() if post_date else "",
+                "is_video":    raw.get("isVideo", False),
+                "video_views": parse_ig_metric(raw.get("videoViews", 0)),
+                "hashtags":    raw.get("hashtags", []),
+                "mentions":    raw.get("mentions", []),
+                "post_type":   raw.get("postType", "photo"),
+                "shortcode":   raw.get("shortcode", ""),
             })
 
         except Exception as e:

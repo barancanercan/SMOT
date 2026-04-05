@@ -13,6 +13,7 @@ import sys
 import time
 import random
 import logging
+import json
 from datetime import datetime
 
 # Add project root to path
@@ -57,21 +58,24 @@ def save_tweets_to_meclis_db(tweets: list, username: str) -> int:
             ).fetchone()
 
             if existing:
-                # Update engagement
+                # Update engagement + new fields
                 conn.execute("""
-                    UPDATE tweets SET likes=?, replies=?, retweets=?, views=?
+                    UPDATE tweets SET likes=?, replies=?, retweets=?, views=?, bookmarks=?
                     WHERE id=?
                 """, (
                     t.get("likes", 0), t.get("replies", 0),
-                    t.get("retweets", 0), t.get("views", 0), existing[0]
+                    t.get("retweets", 0), t.get("views", 0),
+                    t.get("bookmarks", 0), existing[0]
                 ))
             else:
                 conn.execute("""
                     INSERT INTO tweets
                     (username, tweet_text, tweet_date, is_retweet, retweet_from,
                      likes, replies, retweets, views, tweet_id, tweet_url,
-                     quotes, bookmarks, media_type, language, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                     quotes, bookmarks, media_type, language,
+                     hashtags, mentions, media_urls, media_count, quote_tweet_id,
+                     created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 """, (
                     username,
                     t.get("text", ""),
@@ -85,9 +89,14 @@ def save_tweets_to_meclis_db(tweets: list, username: str) -> int:
                     tweet_id,
                     t.get("tweet_url", ""),
                     0,  # quotes
-                    0,  # bookmarks
+                    t.get("bookmarks", 0),
                     t.get("media_type", "none"),
                     t.get("language", "tr"),
+                    json.dumps(t.get("hashtags", []), ensure_ascii=False),
+                    json.dumps(t.get("mentions", []), ensure_ascii=False),
+                    json.dumps(t.get("media_urls", []), ensure_ascii=False),
+                    t.get("media_count", 0),
+                    t.get("quote_tweet_id"),
                 ))
                 saved += 1
 
