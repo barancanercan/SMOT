@@ -17,12 +17,12 @@ import {
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard", label: "Genel Bakis", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Genel Bakış", icon: LayoutDashboard },
   { href: "/analytics", label: "Grafikler", icon: BarChart3 },
   { href: "/reports", label: "Raporlar", icon: FileText },
   { href: "/chat", label: "Sosyal Medya Sohbet", icon: MessageCircle },
-  { href: "/comparison", label: "Karsilastirma", icon: GitCompare },
-  { href: "/users", label: "Kullanicilar", icon: Users },
+  { href: "/comparison", label: "Karşılaştırma", icon: GitCompare },
+  { href: "/users", label: "Kullanıcılar", icon: Users },
   { href: "/tweets", label: "Top Tweetler", icon: Flame },
   { href: "/instagram", label: "Top Postlar", icon: Camera },
   { href: "/system", label: "Sistem", icon: Settings },
@@ -53,7 +53,7 @@ export function Sidebar() {
               <div className="h-4 w-px bg-gradient-to-b from-transparent via-[#4DA3FF]/50 to-transparent" />
               <span className="text-[10px] font-medium text-[#4DA3FF] uppercase tracking-widest">v3.2</span>
             </div>
-            <p className="text-xs text-gray-500 mt-0.5">Sosyal Medya Gozlem Araci</p>
+            <p className="text-xs text-gray-500 mt-0.5">Sosyal Medya Gözlem Aracı</p>
           </div>
         </div>
       </div>

@@ -70,17 +70,17 @@ export default function LandingPage() {
                   SMOT
                 </h1>
                 <p className="text-[10px] text-gray-500 tracking-widest uppercase">
-                  Sosyal Medya Gozlem Araci
+                  Sosyal Medya Gözlem Aracı
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-6">
               <a href="#ozellikler" className="text-sm text-gray-400 hover:text-white transition-colors">
-                Ozellikler
+                Özellikler
               </a>
               <a href="#hakkimizda" className="text-sm text-gray-400 hover:text-white transition-colors">
-                Hakkimizda
+                Hakkımızda
               </a>
               <a href="#teknoloji" className="text-sm text-gray-400 hover:text-white transition-colors">
                 Teknoloji
@@ -89,7 +89,7 @@ export default function LandingPage() {
                 href="/dashboard"
                 className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#4DA3FF] to-[#00D1B2] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-all shadow-lg shadow-[#4DA3FF]/25"
               >
-                Panele Giris
+                Panele Giriş
                 <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </div>
@@ -104,7 +104,7 @@ export default function LandingPage() {
             {/* Badge */}
             <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#4DA3FF]/10 border border-[#4DA3FF]/20 mb-8 transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               <Sparkles className="h-4 w-4 text-[#4DA3FF]" />
-              <span className="text-sm text-[#4DA3FF]">Sosyal Medya Gozlem Platformu</span>
+              <span className="text-sm text-[#4DA3FF]">Sosyal Medya Gözlem Platformu</span>
             </div>
 
             {/* Main Title */}
@@ -114,14 +114,14 @@ export default function LandingPage() {
               </span>
               <br />
               <span className="bg-gradient-to-r from-[#4DA3FF] via-[#00D1B2] to-[#4DA3FF] bg-clip-text text-transparent">
-                Gozlem Araci
+                Gözlem Aracı
               </span>
             </h1>
 
             {/* Subtitle */}
             <p className={`text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed transition-all duration-1000 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               Sosyal medya aktivitelerini takip eden ve
-              analiz eden, profesyonel gozlem raporlari ureten
+              analiz eden, profesyonel gözlem raporlari üreten
               <span className="text-white font-medium"> modern SaaS platformu</span>.
             </p>
 
@@ -132,7 +132,7 @@ export default function LandingPage() {
                 className="group flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#4DA3FF] to-[#00D1B2] text-white font-semibold rounded-xl hover:opacity-90 transition-all shadow-2xl shadow-[#4DA3FF]/30 hover:shadow-[#4DA3FF]/50"
               >
                 <Shield className="h-5 w-5" />
-                Gozlem Paneline Giris
+                Gözlem Paneline Giris
                 <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Link>
               <a
@@ -140,7 +140,7 @@ export default function LandingPage() {
                 className="flex items-center gap-2 px-8 py-4 bg-white/5 border border-white/10 text-white font-medium rounded-xl hover:bg-white/10 transition-all"
               >
                 <Eye className="h-5 w-5" />
-                Ozellikleri Incele
+                Özellikleri Incele
               </a>
             </div>
 
@@ -148,7 +148,7 @@ export default function LandingPage() {
             <div className={`grid grid-cols-3 gap-8 mt-20 max-w-3xl mx-auto transition-all duration-1000 delay-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               <div className="text-center p-6 rounded-2xl bg-white/[0.02] border border-white/5">
                 <p className="text-4xl font-bold bg-gradient-to-r from-[#4DA3FF] to-[#00D1B2] bg-clip-text text-transparent">
-                  Gercek Zamanli
+                  Gerçek Zamanlı
                 </p>
                 <p className="text-sm text-gray-500 mt-1">Veri Takibi</p>
               </div>
@@ -156,7 +156,7 @@ export default function LandingPage() {
                 <p className="text-4xl font-bold bg-gradient-to-r from-[#4DA3FF] to-[#00D1B2] bg-clip-text text-transparent">
                   Derin Analiz
                 </p>
-                <p className="text-sm text-gray-500 mt-1">Tweet Inceleme</p>
+                <p className="text-sm text-gray-500 mt-1">Tweet İnceleme</p>
               </div>
               <div className="text-center p-6 rounded-2xl bg-white/[0.02] border border-white/5">
                 <p className="text-4xl font-bold bg-gradient-to-r from-[#4DA3FF] to-[#00D1B2] bg-clip-text text-transparent">
@@ -175,14 +175,14 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 mb-6">
               <Zap className="h-4 w-4 text-purple-400" />
-              <span className="text-sm text-purple-400">Platform Ozellikleri</span>
+              <span className="text-sm text-purple-400">Platform Özellikleri</span>
             </div>
             <h2 className="text-4xl font-bold text-white mb-4">
-              Guclu Analiz Araclari
+              Güçlü Analiz Araçları
             </h2>
             <p className="text-gray-400 max-w-2xl mx-auto">
-              Detayli analizlerden kapsamli raporlara, tum ihtiyaclariniz icin
-              guclu cozumler sunuyoruz.
+              Detaylı analizlerden kapsamlı raporlara, tüm ihtiyaçlarınız için
+              güçlü çözümler sunuyoruz.
             </p>
           </div>
 
@@ -194,10 +194,10 @@ export default function LandingPage() {
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#4DA3FF]/20 to-[#4DA3FF]/5 border border-[#4DA3FF]/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Brain className="h-7 w-7 text-[#4DA3FF]" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-3">Akilli Icerik Analizi</h3>
+                <h3 className="text-xl font-semibold text-white mb-3">Akıllı İçerik Analizi</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  Derin icerik analizi. Yesil/Kirmizi/Gri Takim framework'u
-                  ile parti sadakati ve muhalefet egilimlerini tespit.
+                  Derin içerik analizi. Yeşil/Kırmızı/Gri Takım framework'ü
+                  ile parti sadakati ve muhalefet eğilimlerini tespit.
                 </p>
               </div>
             </div>
@@ -209,10 +209,10 @@ export default function LandingPage() {
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#00D1B2]/20 to-[#00D1B2]/5 border border-[#00D1B2]/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <FileText className="h-7 w-7 text-[#00D1B2]" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-3">Detayli Raporlama</h3>
+                <h3 className="text-xl font-semibold text-white mb-3">Detaylı Raporlama</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">
                   Kullanici, parti ve coklu kullanici raporlari. Bireysel ve toplu
-                  analizler ile profesyonel gozlem ciktilari.
+                  analizler ile profesyonel gözlem ciktilari.
                 </p>
               </div>
             </div>
@@ -224,10 +224,10 @@ export default function LandingPage() {
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 border border-purple-500/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <GitCompare className="h-7 w-7 text-purple-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-3">Karsilastirma Modulu</h3>
+                <h3 className="text-xl font-semibold text-white mb-3">Karşılaştırma Modülü</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  2-10 kullaniciyi yan yana karsilastirin. Metrik kartlari, grafikler ve
-                  otomatik karsilastirma ozeti.
+                  2-10 kullanıcıyı yan yana karşılaştırın. Metrik kartları, grafikler ve
+                  otomatik karşılaştırma özeti.
                 </p>
               </div>
             </div>
@@ -239,10 +239,10 @@ export default function LandingPage() {
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-orange-500/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <BarChart3 className="h-7 w-7 text-orange-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-3">Gelismis Grafikler</h3>
+                <h3 className="text-xl font-semibold text-white mb-3">Gelişmiş Grafikler</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  Parti dagilimi, takipci siralamalari, etkilesim analizleri.
-                  Interaktif bar ve radar chartlar ile gorsel analiz.
+                  Parti dağılımı, takipçi sıralamaları, etkileşim analizleri.
+                  İnteraktif bar ve radar chartlar ile görsel analiz.
                 </p>
               </div>
             </div>
@@ -254,10 +254,10 @@ export default function LandingPage() {
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-pink-500/20 to-pink-500/5 border border-pink-500/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Users className="h-7 w-7 text-pink-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-3">Kullanici Yonetimi</h3>
+                <h3 className="text-xl font-semibold text-white mb-3">Kullanıcı Yönetimi</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  Tekli ve toplu kullanici ekleme. CSV import destegi, cascade delete
-                  ile tam veri yonetimi.
+                  Tekli ve toplu kullanıcı ekleme. CSV import desteği, cascade delete
+                  ile tam veri yönetimi.
                 </p>
               </div>
             </div>
@@ -269,10 +269,10 @@ export default function LandingPage() {
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 border border-cyan-500/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <TrendingUp className="h-7 w-7 text-cyan-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-3">Etkilesim Analizi</h3>
+                <h3 className="text-xl font-semibold text-white mb-3">Etkileşim Analizi</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  Like, retweet, yorum ve goruntulenme metrikleri.
-                  En aktif kullanicilar ve trend analizleri.
+                  Like, retweet, yorum ve görüntülenme metrikleri.
+                  En aktif kullanıcılar ve trend analizleri.
                 </p>
               </div>
             </div>
@@ -286,8 +286,8 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-3">Sosyal Medya ile Sohbet</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  Turkce NLP ile icerik arama. Dogal dil sorulariyla
-                  tweet ve post'larda akilli arama yapin.
+                  Türkçe NLP ile içerik arama. Doğal dil sorularıyla
+                  tweet ve post'larda akıllı arama yapın.
                 </p>
               </div>
             </div>
@@ -302,44 +302,44 @@ export default function LandingPage() {
             <div>
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#00D1B2]/10 border border-[#00D1B2]/20 mb-6">
                 <Target className="h-4 w-4 text-[#00D1B2]" />
-                <span className="text-sm text-[#00D1B2]">Hakkimizda</span>
+                <span className="text-sm text-[#00D1B2]">Hakkımızda</span>
               </div>
               <h2 className="text-4xl font-bold text-white mb-6">
-                Sosyal Medya Gozlemi Icin
+                Sosyal Medya Gözlemi İçin
                 <br />
                 <span className="bg-gradient-to-r from-[#4DA3FF] to-[#00D1B2] bg-clip-text text-transparent">
                   Yeni Nesil Platform
                 </span>
               </h2>
               <p className="text-gray-400 mb-6 leading-relaxed">
-                SMOT (Sosyal Medya Gozlem Araci), sosyal medya aktivitelerini
-                takip eden ve analiz eden kapsamli
-                bir gozlem platformudur.
+                SMOT (Sosyal Medya Gözlem Aracı), sosyal medya aktivitelerini
+                takip eden ve analiz eden kapsamlı
+                bir gözlem platformudur.
               </p>
               <p className="text-gray-400 mb-8 leading-relaxed">
-                Analiz motorumuz, her kullanicinin paylasimlarina
-                <span className="text-white font-medium"> Yesil Takim </span> (parti sadakati),
-                <span className="text-white font-medium"> Kirmizi Takim </span> (muhalefet elestirisi) ve
-                <span className="text-white font-medium"> Gri Takim </span> (bagimsiz gundem)
-                cercevesinde derinlemesine analiz uygular.
+                Analiz motorumuz, her kullanıcının paylaşımlarına
+                <span className="text-white font-medium"> Yeşil Takım </span> (parti sadakati),
+                <span className="text-white font-medium"> Kırmızı Takım </span> (muhalefet eleştirisi) ve
+                <span className="text-white font-medium"> Gri Takım </span> (bağımsız gündem)
+                çerçevesinde derinlemesine analiz uygular.
               </p>
 
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-[#00D1B2] mt-0.5 flex-shrink-0" />
-                  <p className="text-gray-300 text-sm">Gercek zamanli sosyal medya takibi ve veri toplama</p>
+                  <p className="text-gray-300 text-sm">Gerçek zamanlı sosyal medya takibi ve veri toplama</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-[#00D1B2] mt-0.5 flex-shrink-0" />
-                  <p className="text-gray-300 text-sm">Otomatik icerik analizi ve siniflandirma</p>
+                  <p className="text-gray-300 text-sm">Otomatik içerik analizi ve sınıflandırma</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-[#00D1B2] mt-0.5 flex-shrink-0" />
-                  <p className="text-gray-300 text-sm">Profesyonel gozlem raporlari ve karsilastirma modulleri</p>
+                  <p className="text-gray-300 text-sm">Profesyonel gözlem raporları ve karşılaştırma modülleri</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-[#00D1B2] mt-0.5 flex-shrink-0" />
-                  <p className="text-gray-300 text-sm">Tam Turkce arayuz ve yerel veri isleyici destegi</p>
+                  <p className="text-gray-300 text-sm">Tam Türkçe arayüz ve yerel veri işleyici desteği</p>
                 </div>
               </div>
             </div>
@@ -350,37 +350,37 @@ export default function LandingPage() {
                 {/* Analysis Framework Visual */}
                 <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
                   <Activity className="h-5 w-5 text-[#4DA3FF]" />
-                  Analiz Framework'u
+                  Analiz Framework'ü
                 </h3>
 
                 <div className="space-y-4">
                   <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                     <div className="flex items-center gap-3 mb-2">
                       <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                      <span className="font-semibold text-emerald-400">Yesil Takim</span>
+                      <span className="font-semibold text-emerald-400">Yeşil Takım</span>
                     </div>
                     <p className="text-sm text-gray-400 pl-6">
-                      Parti sadakati, liderlik destegi, parti etkinlikleri, basarilari one cikarma
+                      Parti sadakati, liderlik desteği, parti etkinlikleri, başarıları öne çıkarma
                     </p>
                   </div>
 
                   <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
                     <div className="flex items-center gap-3 mb-2">
                       <div className="w-3 h-3 rounded-full bg-red-500" />
-                      <span className="font-semibold text-red-400">Kirmizi Takim</span>
+                      <span className="font-semibold text-red-400">Kırmızı Takım</span>
                     </div>
                     <p className="text-sm text-gray-400 pl-6">
-                      Rakip parti elestirisi, hukumet politikalari, siyasi polemik
+                      Rakip parti eleştirisi, hükümet politikaları, siyasi polemik
                     </p>
                   </div>
 
                   <div className="p-4 rounded-xl bg-gray-500/10 border border-gray-500/20">
                     <div className="flex items-center gap-3 mb-2">
                       <div className="w-3 h-3 rounded-full bg-gray-500" />
-                      <span className="font-semibold text-gray-400">Gri Takim</span>
+                      <span className="font-semibold text-gray-400">Gri Takım</span>
                     </div>
                     <p className="text-sm text-gray-400 pl-6">
-                      Yerel hizmetler, kisisel paylasimlar, apolitik icerik
+                      Yerel hizmetler, kişisel paylaşımlar, apolitik içerik
                     </p>
                   </div>
                 </div>
@@ -396,14 +396,14 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/20 mb-6">
               <Cpu className="h-4 w-4 text-cyan-400" />
-              <span className="text-sm text-cyan-400">Teknoloji Yigini</span>
+              <span className="text-sm text-cyan-400">Teknoloji Yığını</span>
             </div>
             <h2 className="text-4xl font-bold text-white mb-4">
-              Modern Teknoloji Altyapisi
+              Modern Teknoloji Altyapısı
             </h2>
             <p className="text-gray-400 max-w-2xl mx-auto">
-              En guncel ve guvenilir teknolojilerle insa edilmis, olceklenebilir ve
-              yuksek performansli bir platform.
+              En güncel ve güvenilir teknolojilerle inşa edilmiş, ölçeklenebilir ve
+              yüksek performanslı bir platform.
             </p>
           </div>
 
@@ -422,30 +422,30 @@ export default function LandingPage() {
             </div>
             <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 text-center hover:border-white/10 transition-all">
               <div className="text-3xl font-bold text-purple-400 mb-2">PostgreSQL</div>
-              <p className="text-sm text-gray-500">Veritabani</p>
+              <p className="text-sm text-gray-500">Veritabanı</p>
             </div>
           </div>
 
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="p-6 rounded-2xl bg-gradient-to-br from-[#4DA3FF]/10 to-transparent border border-[#4DA3FF]/20">
               <Globe className="h-8 w-8 text-[#4DA3FF] mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">Tam Turkce Destek</h3>
+              <h3 className="text-lg font-semibold text-white mb-2">Tam Türkçe Destek</h3>
               <p className="text-sm text-gray-400">
-                Arayuzden raporlara, tum sistem Turkce dil destegi ile calisir.
+                Arayüzden raporlara, tüm sistem Türkçe dil desteği ile çalışır.
               </p>
             </div>
             <div className="p-6 rounded-2xl bg-gradient-to-br from-[#00D1B2]/10 to-transparent border border-[#00D1B2]/20">
               <Lock className="h-8 w-8 text-[#00D1B2] mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">Guvenli Altyapi</h3>
+              <h3 className="text-lg font-semibold text-white mb-2">Güvenli Altyapı</h3>
               <p className="text-sm text-gray-400">
-                Modern guvenlik standartlari ve sifreleme protokolleri ile korunur.
+                Modern güvenlik standartları ve şifreleme protokolleri ile korunur.
               </p>
             </div>
             <div className="p-6 rounded-2xl bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20">
               <Zap className="h-8 w-8 text-purple-400 mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">Yuksek Performans</h3>
+              <h3 className="text-lg font-semibold text-white mb-2">Yüksek Performans</h3>
               <p className="text-sm text-gray-400">
-                Optimize edilmis sorgular ve onbellekleme ile hizli cevap sureleri.
+                Optimize edilmiş sorgular ve önbellekleme ile hızlı cevap süreleri.
               </p>
             </div>
           </div>
@@ -459,18 +459,18 @@ export default function LandingPage() {
             <div className="absolute inset-0 bg-gradient-to-r from-[#4DA3FF]/20 via-purple-500/20 to-[#00D1B2]/20 blur-3xl rounded-full" />
             <div className="relative bg-[#0A0A0A] border border-white/10 rounded-3xl p-12">
               <h2 className="text-4xl font-bold text-white mb-4">
-                Sosyal Medya Analizine Baslayin
+                Sosyal Medya Analizine Başlayın
               </h2>
               <p className="text-gray-400 mb-8 max-w-xl mx-auto">
-                Sosyal medya aktivitelerini analiz etmeye hemen baslayabilirsiniz.
-                Detayli raporlar sizi bekliyor.
+                Sosyal medya aktivitelerini analiz etmeye hemen başlayabilirsiniz.
+                Detaylı raporlar sizi bekliyor.
               </p>
               <Link
                 href="/dashboard"
                 className="group inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-[#4DA3FF] to-[#00D1B2] text-white font-semibold rounded-xl hover:opacity-90 transition-all shadow-2xl shadow-[#4DA3FF]/30 hover:shadow-[#4DA3FF]/50 text-lg"
               >
                 <Shield className="h-6 w-6" />
-                Panele Giris Yap
+                Panele Giriş Yap
                 <ChevronRight className="h-6 w-6 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
@@ -495,7 +495,7 @@ export default function LandingPage() {
               </div>
             </div>
             <p className="text-gray-500 text-sm">
-              SMOT - Sosyal Medya Gozlem Araci
+              SMOT - Sosyal Medya Gözlem Aracı
             </p>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <div className="w-2 h-2 rounded-full bg-[#00D1B2] animate-pulse" />
@@ -506,7 +506,7 @@ export default function LandingPage() {
           {/* Creator Credit */}
           <div className="pt-6 border-t border-white/5 text-center">
             <p className="text-gray-600 text-sm">
-              Tasarim ve Gelistirme
+              Tasarım ve Geliştirme
             </p>
             <p className="text-white font-semibold mt-1 bg-gradient-to-r from-[#4DA3FF] to-[#00D1B2] bg-clip-text text-transparent">
               Baran Can Ercan

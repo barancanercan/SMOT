@@ -103,10 +103,10 @@ export default function DashboardPage() {
                   </h1>
                 </div>
                 <div className="h-8 w-px bg-gradient-to-b from-transparent via-[#4DA3FF]/50 to-transparent mx-2" />
-                <span className="text-xl font-semibold text-white/90">Gozlem Paneli</span>
+                <span className="text-xl font-semibold text-white/90">Gözlem Paneli</span>
               </div>
               <p className="text-gray-400 mt-1">
-                Gercek zamanli sosyal medya gozlem sistemi
+                Gerçek zamanlı sosyal medya gözlem sistemi
               </p>
             </div>
           </div>
