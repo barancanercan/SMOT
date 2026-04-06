@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """
-Batch Twitter Scraper - Tum meclis uyelerinin tweet'lerini ceker.
-1 Ocak 2026'dan itibaren tum verileri toplar.
-
-Kullanim:
-    python -m scrapers.batch_twitter
+Batch Twitter Scraper — Tüm meclis üyelerinin tweet'lerini çeker.
+1 Ocak 2026'dan itibaren tüm verileri toplar.
 """
 
 import sqlite3
@@ -16,7 +13,6 @@ import logging
 import json
 from datetime import datetime
 
-# Add project root to path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
@@ -29,55 +25,59 @@ logging.basicConfig(
 logger = logging.getLogger("BatchTwitter")
 
 DB_PATH = os.path.join(PROJECT_ROOT, "data", "meclis.db")
+X_SESSION = os.path.join(PROJECT_ROOT, "x_session.json")
 
-# 1 Ocak 2026'dan bugun = kac gun
 START_DATE = datetime(2026, 1, 1)
 DAYS_BACK = (datetime.now() - START_DATE).days + 1
 MAX_TWEETS_PER_USER = 1000
 
 
-def save_tweets_to_meclis_db(tweets: list, username: str) -> int:
-    """Tweet'leri meclis.db'nin mevcut tweets tablosuna kaydet"""
+def save_tweets(tweets: list, username: str) -> tuple:
+    """Tweet'leri kaydet. (saved, updated) döndür."""
     if not tweets:
-        return 0
+        return 0, 0
 
     conn = sqlite3.connect(DB_PATH)
-    try:
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA synchronous=OFF")
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
 
-        saved = 0
+    saved = updated = 0
+    try:
         for t in tweets:
             tweet_id = t.get("tweet_id")
             if not tweet_id:
                 continue
 
-            # Dedup by tweet_id
             existing = conn.execute(
                 "SELECT id FROM tweets WHERE tweet_id = ?", (tweet_id,)
             ).fetchone()
 
             if existing:
-                # Update engagement + new fields
                 conn.execute("""
-                    UPDATE tweets SET likes=?, replies=?, retweets=?, views=?, bookmarks=?
+                    UPDATE tweets
+                    SET likes=?, replies=?, retweets=?, views=?, bookmarks=?
                     WHERE id=?
                 """, (
                     t.get("likes", 0), t.get("replies", 0),
                     t.get("retweets", 0), t.get("views", 0),
                     t.get("bookmarks", 0), existing[0]
                 ))
+                updated += 1
             else:
                 conn.execute("""
-                    INSERT INTO tweets
-                    (username, tweet_text, tweet_date, is_retweet, retweet_from,
-                     likes, replies, retweets, views, tweet_id, tweet_url,
-                     quotes, bookmarks, media_type, language,
-                     hashtags, mentions, media_urls, media_count, quote_tweet_id,
-                     created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    INSERT INTO tweets (
+                        username, tweet_id, tweet_url,
+                        tweet_text, tweet_date,
+                        is_retweet, retweet_from,
+                        likes, replies, retweets, views, bookmarks,
+                        media_type, media_urls, media_count,
+                        hashtags, mentions,
+                        language, quote_tweet_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     username,
+                    tweet_id,
+                    t.get("tweet_url", ""),
                     t.get("text", ""),
                     t.get("timestamp", ""),
                     1 if t.get("is_retweet") else 0,
@@ -86,28 +86,25 @@ def save_tweets_to_meclis_db(tweets: list, username: str) -> int:
                     t.get("replies", 0),
                     t.get("retweets", 0),
                     t.get("views", 0),
-                    tweet_id,
-                    t.get("tweet_url", ""),
-                    0,  # quotes
                     t.get("bookmarks", 0),
                     t.get("media_type", "none"),
-                    t.get("language", "tr"),
-                    json.dumps(t.get("hashtags", []), ensure_ascii=False),
-                    json.dumps(t.get("mentions", []), ensure_ascii=False),
                     json.dumps(t.get("media_urls", []), ensure_ascii=False),
                     t.get("media_count", 0),
+                    json.dumps(t.get("hashtags", []), ensure_ascii=False),
+                    json.dumps(t.get("mentions", []), ensure_ascii=False),
+                    t.get("language", "tr"),
                     t.get("quote_tweet_id"),
                 ))
                 saved += 1
 
         conn.commit()
-        return saved
     finally:
         conn.close()
 
+    return saved, updated
 
-def get_all_twitter_users() -> list:
-    """DB'den tum Twitter kullanicilarini cek"""
+
+def get_all_users() -> list:
     conn = sqlite3.connect(DB_PATH)
     rows = conn.execute(
         "SELECT id, username, name FROM councilors "
@@ -118,66 +115,56 @@ def get_all_twitter_users() -> list:
 
 
 def main():
-    users = get_all_twitter_users()
+    users = get_all_users()
     logger.info(f"{'='*60}")
     logger.info(f"BATCH TWITTER SCRAPER")
-    logger.info(f"Profil sayisi: {len(users)}")
-    logger.info(f"Tarih araligi: {START_DATE.strftime('%Y-%m-%d')} -> bugun ({DAYS_BACK} gun)")
-    logger.info(f"Max tweet/kullanici: {MAX_TWEETS_PER_USER}")
+    logger.info(f"Profil: {len(users)} | Tarih: {START_DATE.date()} → bugün ({DAYS_BACK} gün)")
     logger.info(f"{'='*60}")
 
     scraper = TwitterCDPScraper(mock=False)
-    total_tweets = 0
-    success_count = 0
-    fail_count = 0
-    skip_count = 0
+    total_saved = total_updated = total_tweets = 0
+    success = fail = skip = 0
 
     try:
         for i, (pid, username, name) in enumerate(users, 1):
             logger.info(f"\n[{i}/{len(users)}] @{username} ({name})")
-
             try:
                 tweets = scraper.scrape_tweets(
                     username=username,
                     max_tweets=MAX_TWEETS_PER_USER,
                     days_back=DAYS_BACK,
                 )
-
                 if tweets:
-                    saved = save_tweets_to_meclis_db(tweets, username=username)
+                    saved, updated = save_tweets(tweets, username)
+                    total_saved += saved
+                    total_updated += updated
                     total_tweets += len(tweets)
-                    success_count += 1
+                    success += 1
                     logger.info(
-                        f"  OK: {len(tweets)} tweet ({saved} yeni) | "
-                        f"{tweets[-1].get('timestamp', '?')[:10]} -> {tweets[0].get('timestamp', '?')[:10]}"
+                        f"  ✅ {len(tweets)} tweet | {saved} yeni + {updated} güncellendi"
+                        f" | {tweets[-1].get('timestamp','?')[:10]} → {tweets[0].get('timestamp','?')[:10]}"
                     )
                 else:
-                    skip_count += 1
-                    logger.warning(f"  SKIP: 0 tweet (profil bulunamadi veya bos)")
+                    skip += 1
+                    logger.warning(f"  ⚠️ 0 tweet (profil yok veya boş)")
 
-                # Kullanicilar arasi bekleme (bot detection onleme)
                 if i < len(users):
-                    delay = random.uniform(3, 6)
-                    time.sleep(delay)
+                    time.sleep(random.uniform(3, 6))
 
             except KeyboardInterrupt:
-                logger.info("\nKullanici tarafindan durduruldu (Ctrl+C)")
+                logger.info("\nDurduruldu (Ctrl+C)")
                 break
             except Exception as e:
-                fail_count += 1
-                logger.error(f"  HATA: {str(e)[:80]}")
-                time.sleep(5)  # Hata sonrasi ekstra bekleme
-
+                fail += 1
+                logger.error(f"  ❌ HATA: {e}")
+                time.sleep(5)
     finally:
         scraper.close()
 
-    # Ozet
     logger.info(f"\n{'='*60}")
-    logger.info(f"BATCH TAMAMLANDI")
-    logger.info(f"  Basarili: {success_count}/{len(users)}")
-    logger.info(f"  Bos/Skip: {skip_count}")
-    logger.info(f"  Hata: {fail_count}")
-    logger.info(f"  Toplam tweet: {total_tweets:,}")
+    logger.info(f"TAMAMLANDI")
+    logger.info(f"  Başarılı: {success}/{len(users)} | Boş: {skip} | Hata: {fail}")
+    logger.info(f"  Toplam: {total_tweets} tweet | {total_saved} yeni | {total_updated} güncellendi")
     logger.info(f"{'='*60}")
 
 

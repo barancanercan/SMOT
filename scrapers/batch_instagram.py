@@ -26,7 +26,7 @@ import time
 import random
 import logging
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
@@ -47,7 +47,7 @@ DAYS_BACK = (datetime.now() - START_DATE).days + 1
 MAX_POSTS_PER_USER = 500
 
 # Instagram CDP port (Twitter uses 9222)
-IG_CDP_PORT = 9223
+IG_CDP_PORT = 9226
 
 
 # JS: Extract post links from profile grid
@@ -310,7 +310,7 @@ def scrape_user_posts(browser: CDPBrowser, ig_username: str, max_posts: int, day
 
     # Her posta git, detay cek
     posts = []
-    cutoff = datetime.now() - timedelta(days=days_back)
+    cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days_back)
 
     for link in all_links[:max_posts]:
         if len(posts) >= max_posts:
@@ -344,11 +344,14 @@ def scrape_user_posts(browser: CDPBrowser, ig_username: str, max_posts: int, day
                     if ts.endswith("Z"):
                         ts = ts[:-1] + "+00:00"
                     post_date = datetime.fromisoformat(ts)
+                    # Ensure timezone-aware for comparison with UTC cutoff
+                    if post_date.tzinfo is None:
+                        post_date = post_date.replace(tzinfo=timezone.utc)
                 except:
                     pass
 
             if post_date and post_date < cutoff:
-                break  # Eski post'a ulastik
+                continue  # Eski post, atla ama devam et (grid sırası kronolojik değil)
 
             posts.append({
                 "post_id":     raw.get("postId", ""),
