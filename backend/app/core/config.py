@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     api_port: int = Field(default=8000, description="API port")
     api_prefix: str = Field(default="/api/v1", description="API prefix")
     cors_origins: str = Field(
-        default="http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,https://smot.vercel.app,https://smot-vwin.onrender.com",
+        default="http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,https://smot.vercel.app,https://smot-omega.vercel.app,https://smot-vwin.onrender.com",
         description="Allowed CORS origins (comma separated) - NO WILDCARDS in production"
     )
 
