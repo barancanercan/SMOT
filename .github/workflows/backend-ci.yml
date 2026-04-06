@@ -56,6 +56,6 @@ jobs:
         with:
           context: ./backend
           push: false
-          tags: meclis-backend:latest
+          tags: smot-backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max

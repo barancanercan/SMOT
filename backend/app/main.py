@@ -1,5 +1,5 @@
 """
-Meclis Istihbarat Sistemi - FastAPI Backend
+SMOT - Sosyal Medya Gozlem Araci - FastAPI Backend
 """
 import logging
 import time
@@ -37,8 +37,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Meclis Istihbarat Sistemi API",
-    description="Siyasi istihbarat analiz platformu - REST API",
+    title="SMOT API",
+    description="Sosyal Medya Gozlem Araci - REST API",
     version="3.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -115,7 +115,7 @@ async def test_endpoint():
 async def root():
     """Root endpoint"""
     return {
-        "name": "Meclis Istihbarat Sistemi API",
+        "name": "SMOT API",
         "version": "3.1.0",
         "docs": "/docs",
         "auth": "/api/v1/auth/token"

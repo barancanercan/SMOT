@@ -1,9 +1,9 @@
-# Render Blueprint - Meclis Istihbarat Sistemi
+# Render Blueprint - SMOT (Sosyal Medya Gozlem Araci)
 # https://render.com/docs/blueprint-spec
 
 services:
   - type: web
-    name: meclis-api
+    name: smot-api
     runtime: python
     region: frankfurt  # EU region for Turkey
     plan: free
@@ -22,6 +22,6 @@ services:
       - key: OPENAI_API_KEY
         sync: false  # User must set this manually in Render dashboard
       - key: DATABASE_URL
-        value: sqlite:///./data/meclis.db
+        value: sqlite:///./data/smot.db
     healthCheckPath: /health
     autoDeploy: true

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MeclisIstihbaratSistemi - Otomatik Scrape Scheduler
+SMOT - Otomatik Scrape Scheduler
 Her sabah 10:00 (Europe/Istanbul) tüm Twitter + Instagram verilerini çeker.
 
 Kullanım:
@@ -94,7 +94,7 @@ def main():
         run_daily_scrape,
         CronTrigger(hour=10, minute=0, timezone="Europe/Istanbul"),
         id="daily_scrape",
-        name="MeclisIstihbaratSistemi Günlük Scrape",
+        name="SMOT Günlük Scrape",
         misfire_grace_time=3600,  # 1 saat içinde kaçırılmış iş yeniden çalışır
     )
 

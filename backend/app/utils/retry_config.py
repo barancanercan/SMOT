@@ -13,7 +13,7 @@ from tenacity import (
 import logging
 import sqlite3
 
-logger = logging.getLogger("MeclisIstihbarat")
+logger = logging.getLogger("SMOT")
 
 # Try to import selenium (optional - only needed for scraping)
 try:

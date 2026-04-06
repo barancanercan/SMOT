@@ -13,7 +13,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Project paths
 BACKEND_DIR = Path(__file__).parent.parent.parent  # backend/
-ROOT_DIR = BACKEND_DIR.parent  # meclis-istihbarat/
+ROOT_DIR = BACKEND_DIR.parent  # smot/
 
 # Data directory - use environment variable or default to relative path
 _data_dir_env = os.environ.get("DATA_DIR")
@@ -49,25 +49,25 @@ class Settings(BaseSettings):
     api_port: int = Field(default=8000, description="API port")
     api_prefix: str = Field(default="/api/v1", description="API prefix")
     cors_origins: str = Field(
-        default="http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,https://meclis-istihbarat-sistemi.vercel.app",
+        default="http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,https://smot.vercel.app",
         description="Allowed CORS origins (comma separated) - NO WILDCARDS in production"
     )
 
     # Security
     secret_key: str = Field(
-        default="meclis-istihbarat-dev-secret-key-change-in-production",
+        default="smot-dev-secret-key-change-in-production",
         description="Secret key for JWT encoding - MUST change in production"
     )
     access_token_expire_minutes: int = Field(default=30, description="JWT token expiration time")
 
     # Database
     database_url: str = Field(
-        default=f"sqlite:///{DATA_DIR}/meclis.db",
+        default=f"sqlite:///{DATA_DIR}/smot.db",
         description="Database connection URL"
     )
 
     # Legacy SQLite path (for backward compatibility)
-    db_path: str = Field(default=str(DATA_DIR / "meclis.db"), description="SQLite database path")
+    db_path: str = Field(default=str(DATA_DIR / "smot.db"), description="SQLite database path")
 
     # CSV Data
     csv_path: str = Field(default=str(DATA_DIR / "data.csv"), description="CSV data file path")

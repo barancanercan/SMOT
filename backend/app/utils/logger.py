@@ -15,7 +15,7 @@ class CustomLogger:
     _instance = None
     
     @staticmethod
-    def get_logger(name: str = "MeclisIstihbarat"):
+    def get_logger(name: str = "SMOT"):
         """
         Get a configured logger instance.
         If a logger with the given name already exists, it returns it.
@@ -48,5 +48,5 @@ class CustomLogger:
         return logger
 
 # Global accessor
-def get_logger(name: str = "MeclisIstihbarat"):
+def get_logger(name: str = "SMOT"):
     return CustomLogger.get_logger(name)

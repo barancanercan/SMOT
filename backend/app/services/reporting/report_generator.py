@@ -456,7 +456,7 @@ class ReportGenerator:
         return """
 ---
 
-*Bu rapor Meclis Istihbarat Sistemi tarafindan otomatik olusturulmustur.*
+*Bu rapor SMOT (Sosyal Medya Gozlem Araci) tarafindan otomatik olusturulmustur.*
 *Rapor suresi: 1 hafta gecerlidir.*
 """
 
@@ -719,7 +719,7 @@ def export_engagement_excel(usernames: Optional[List[str]] = None) -> Optional[s
         for row in rows
     ]
 
-    filename = f"meclis_rapor_{datetime.now().strftime('%Y%m%d_%H%M')}"
+    filename = f"smot_rapor_{datetime.now().strftime('%Y%m%d_%H%M')}"
     return export_to_excel(data, filename)
 
 

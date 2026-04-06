@@ -43,8 +43,8 @@ mcp_server.log
 *.db.bak
 *.db.old
 !data/.gitkeep
-!data/meclis.db
-!backend/data/meclis.db
+!data/smot.db
+!backend/data/smot.db
 
 # Cache
 .cache/

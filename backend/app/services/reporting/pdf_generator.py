@@ -35,7 +35,7 @@ class DarkPDF(FPDF):
         self.set_xy(0, 2)
         self.set_font('Helvetica', 'B', 8)
         self.set_text_color(156, 163, 175)
-        self.cell(210, 8, 'MECLIS ISTIHBARAT SISTEMI', align='C')
+        self.cell(210, 8, 'SMOT - SOSYAL MEDYA GOZLEM ARACI', align='C')
 
     def footer(self):
         """Called automatically on every page"""
@@ -273,7 +273,7 @@ class IntelligencePDFGenerator:
         self.pdf.set_xy(20, 270)
         self.pdf.set_font('Helvetica', '', 8)
         self._set_color('text_dim')
-        self.pdf.cell(0, 5, 'Meclis Istihbarat Sistemi v3.1 | Powered by OpenAI GPT')
+        self.pdf.cell(0, 5, 'SMOT v3.1 | Powered by OpenAI GPT')
 
     def _draw_info_card(self, x: float, y: float, w: float, h: float,
                         items: List[tuple]):
@@ -316,7 +316,7 @@ class IntelligencePDFGenerator:
         self.pdf.set_xy(0, 3)
         self.pdf.set_font('Helvetica', 'B', 8)
         self._set_color('text_muted')
-        self.pdf.cell(210, 8, 'MECLIS ISTIHBARAT SISTEMI', align='C')
+        self.pdf.cell(210, 8, 'SMOT - SOSYAL MEDYA GOZLEM ARACI', align='C')
 
         self.pdf.set_y(20)
 
@@ -610,7 +610,7 @@ class IntelligencePDFGenerator:
         self.pdf.set_xy(15, 250)
         self.pdf.set_font('Helvetica', 'B', 11)
         self._set_color('secondary')
-        self.pdf.cell(0, 6, 'MECLIS ISTIHBARAT SISTEMI')
+        self.pdf.cell(0, 6, 'SMOT - SOSYAL MEDYA GOZLEM ARACI')
 
         self.pdf.set_xy(15, 258)
         self.pdf.set_font('Helvetica', '', 9)

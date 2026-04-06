@@ -1,11 +1,11 @@
 <div align="center">
 
-# M.I.S - Meclis Istihbarat Sistemi
+# SMOT - Social Media Observation Tool
 
-### Yapay Zeka Destekli Siyasi Istihbarat Analiz Platformu
+### Yapay Zeka Destekli Sosyal Medya Gozlem ve Analiz Platformu
 
-[![Live Demo](https://img.shields.io/badge/Demo-Live-success?style=for-the-badge&logo=vercel)](https://meclis-istihbarat-sistemi.vercel.app)
-[![API](https://img.shields.io/badge/API-Online-success?style=for-the-badge&logo=fastapi)](https://meclisistihbaratsistemi.onrender.com/docs)
+[![Live Demo](https://img.shields.io/badge/Demo-Live-success?style=for-the-badge&logo=vercel)](https://smot.vercel.app)
+[![API](https://img.shields.io/badge/API-Online-success?style=for-the-badge&logo=fastapi)](https://smot-api.onrender.com/docs)
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -16,12 +16,12 @@
 
 <br/>
 
-<img src="https://raw.githubusercontent.com/barancanercan/MeclisIstihbaratSistemi/main/docs/logo.png" alt="M.I.S Logo" width="300"/>
+<img src="docs/logo.png" alt="SMOT Logo" width="300"/>
 
-**Turkiye'nin Belediye Meclis uyelerinin sosyal medya aktivitelerini (Twitter + Instagram) analiz eden,**
-**profesyonel istihbarat raporlari ureten modern SaaS platformu.**
+**Sosyal medya aktivitelerini (Twitter + Instagram) analiz eden,**
+**profesyonel gozlem raporlari ureten modern SaaS platformu.**
 
-[Canli Demo](https://meclis-istihbarat-sistemi.vercel.app) · [API Dokumantasyonu](https://meclisistihbaratsistemi.onrender.com/docs) · [Hata Bildir](https://github.com/barancanercan/MeclisIstihbaratSistemi/issues)
+[Canli Demo](https://smot.vercel.app) · [API Dokumantasyonu](https://smot-api.onrender.com/docs) · [Hata Bildir](https://github.com/barancanercan/SMOT/issues)
 
 </div>
 
@@ -130,16 +130,16 @@
 <div align="center">
 
 ### Ana Sayfa
-<img src="https://raw.githubusercontent.com/barancanercan/MeclisIstihbaratSistemi/main/docs/screenshots/landing.png" alt="Landing Page" width="700"/>
+<img src="docs/screenshots/landing.png" alt="Landing Page" width="700"/>
 
 ### Dashboard
-<img src="https://raw.githubusercontent.com/barancanercan/MeclisIstihbaratSistemi/main/docs/screenshots/dashboard.png" alt="Dashboard" width="700"/>
+<img src="docs/screenshots/dashboard.png" alt="Dashboard" width="700"/>
 
 ### Rapor Olusturma
-<img src="https://raw.githubusercontent.com/barancanercan/MeclisIstihbaratSistemi/main/docs/screenshots/reports.png" alt="Reports" width="700"/>
+<img src="docs/screenshots/reports.png" alt="Reports" width="700"/>
 
 ### Karsilastirma
-<img src="https://raw.githubusercontent.com/barancanercan/MeclisIstihbaratSistemi/main/docs/screenshots/comparison.png" alt="Comparison" width="700"/>
+<img src="docs/screenshots/comparison.png" alt="Comparison" width="700"/>
 
 </div>
 
@@ -189,8 +189,8 @@
 
 ```bash
 # 1. Klonla
-git clone https://github.com/barancanercan/MeclisIstihbaratSistemi.git
-cd MeclisIstihbaratSistemi
+git clone https://github.com/barancanercan/SMOT.git
+cd SMOT
 
 # 2. Backend
 cd backend
@@ -252,7 +252,7 @@ OLLAMA_MODEL=qwen2.5:3b
 # ============================================
 # VERITABANI
 # ============================================
-DATABASE_URL=sqlite:///./data/meclis.db
+DATABASE_URL=sqlite:///./data/smot.db
 
 # ============================================
 # API AYARLARI
@@ -306,7 +306,7 @@ npm run build && npm start
 
 | Ortam | URL |
 |-------|-----|
-| Production | `https://meclisistihbaratsistemi.onrender.com` |
+| Production | `https://smot-api.onrender.com` |
 | Development | `http://localhost:8000` |
 
 ### Endpoints
@@ -462,7 +462,7 @@ POST /api/v1/chat/query
 
 ## Analiz Framework'u
 
-M.I.S, siyasi icerik analizinde **Yesil-Kirmizi-Gri Takim** framework'unu kullanir:
+SMOT, siyasi icerik analizinde **Yesil-Kirmizi-Gri Takim** framework'unu kullanir:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -547,7 +547,7 @@ cd backend && docker build -t mis-backend . && docker run -p 8000:8000 mis-backe
 ## Proje Yapisi
 
 ```
-MeclisIstihbaratSistemi/
+SMOT/
 ├── backend/
 │   ├── app/
 │   │   ├── api/v1/           # REST endpoints
@@ -711,7 +711,7 @@ Bu proje [MIT Lisansi](LICENSE) altinda lisanslanmistir.
 
 ---
 
-<sub>M.I.S v6.0 - Modern RAG ile Semantic Arama ve Siyasi Analiz</sub>
+<sub>SMOT v6.0 - Modern RAG ile Semantic Arama ve Siyasi Analiz</sub>
 
 <sub>Made with by Baran Can Ercan</sub>
 

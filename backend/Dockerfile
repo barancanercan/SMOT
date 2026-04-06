@@ -1,4 +1,4 @@
-# Meclis Istihbarat Sistemi - Backend Dockerfile (Render-optimized)
+# SMOT - Sosyal Medya Gozlem Araci - Backend Dockerfile (Render-optimized)
 FROM python:3.11-slim
 
 # Set environment variables

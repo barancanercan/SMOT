@@ -1,5 +1,5 @@
 #!/bin/bash
-# Render Build Script for Meclis Istihbarat Sistemi
+# Render Build Script for SMOT - Sosyal Medya Gozlem Araci
 
 set -e
 
@@ -10,8 +10,8 @@ echo "Creating data directory inside backend..."
 mkdir -p ./data
 
 echo "Copying database if exists..."
-if [ -f "../data/meclis.db" ]; then
-    cp ../data/meclis.db ./data/
+if [ -f "../data/smot.db" ]; then
+    cp ../data/smot.db ./data/
     echo "Database copied to backend/data/"
 fi
 

@@ -88,7 +88,7 @@ export default function DashboardPage() {
               <div className="absolute inset-0 bg-[#4DA3FF]/20 rounded-xl blur-xl" />
               <Image
                 src="/transparan_logo.png"
-                alt="M.I.S Logo"
+                alt="SMOT Logo"
                 width={80}
                 height={80}
                 className="relative z-10"
@@ -99,14 +99,14 @@ export default function DashboardPage() {
                 <Shield className="h-8 w-8 text-[#4DA3FF]" />
                 <div>
                   <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-blue-100 to-[#4DA3FF] bg-clip-text text-transparent">
-                    M.I.S
+                    SMOT
                   </h1>
                 </div>
                 <div className="h-8 w-px bg-gradient-to-b from-transparent via-[#4DA3FF]/50 to-transparent mx-2" />
-                <span className="text-xl font-semibold text-white/90">Istihbarat Paneli</span>
+                <span className="text-xl font-semibold text-white/90">Gozlem Paneli</span>
               </div>
               <p className="text-gray-400 mt-1">
-                Gercek zamanli meclis istihbarat izleme sistemi
+                Gercek zamanli sosyal medya gozlem sistemi
               </p>
             </div>
           </div>

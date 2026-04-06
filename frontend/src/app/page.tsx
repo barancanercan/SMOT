@@ -59,7 +59,7 @@ export default function LandingPage() {
                 <div className="absolute inset-0 bg-[#4DA3FF]/30 rounded-xl blur-xl" />
                 <Image
                   src="/transparan_logo.png"
-                  alt="M.I.S Logo"
+                  alt="SMOT Logo"
                   width={48}
                   height={48}
                   className="relative z-10"
@@ -67,10 +67,10 @@ export default function LandingPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-black bg-gradient-to-r from-white via-blue-200 to-[#4DA3FF] bg-clip-text text-transparent">
-                  M.I.S
+                  SMOT
                 </h1>
                 <p className="text-[10px] text-gray-500 tracking-widest uppercase">
-                  Meclis Istihbarat Sistemi
+                  Sosyal Medya Gozlem Araci
                 </p>
               </div>
             </div>
@@ -104,24 +104,24 @@ export default function LandingPage() {
             {/* Badge */}
             <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#4DA3FF]/10 border border-[#4DA3FF]/20 mb-8 transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               <Sparkles className="h-4 w-4 text-[#4DA3FF]" />
-              <span className="text-sm text-[#4DA3FF]">Yapay Zeka Destekli Istihbarat Platformu</span>
+              <span className="text-sm text-[#4DA3FF]">Sosyal Medya Gozlem Platformu</span>
             </div>
 
             {/* Main Title */}
             <h1 className={`text-5xl md:text-7xl font-black mb-6 leading-tight transition-all duration-1000 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               <span className="bg-gradient-to-r from-white via-white to-gray-400 bg-clip-text text-transparent">
-                Meclis Istihbarat
+                Sosyal Medya
               </span>
               <br />
               <span className="bg-gradient-to-r from-[#4DA3FF] via-[#00D1B2] to-[#4DA3FF] bg-clip-text text-transparent">
-                Sistemi
+                Gozlem Araci
               </span>
             </h1>
 
             {/* Subtitle */}
             <p className={`text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed transition-all duration-1000 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-              Turkiye'nin Belediye Meclis uyelerinin sosyal medya aktivitelerini
-              analiz eden, yapay zeka destekli profesyonel istihbarat raporlari ureten
+              Sosyal medya aktivitelerini takip eden ve
+              analiz eden, profesyonel gozlem raporlari ureten
               <span className="text-white font-medium"> modern SaaS platformu</span>.
             </p>
 
@@ -132,7 +132,7 @@ export default function LandingPage() {
                 className="group flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#4DA3FF] to-[#00D1B2] text-white font-semibold rounded-xl hover:opacity-90 transition-all shadow-2xl shadow-[#4DA3FF]/30 hover:shadow-[#4DA3FF]/50"
               >
                 <Shield className="h-5 w-5" />
-                Istihbarat Paneline Giris
+                Gozlem Paneline Giris
                 <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Link>
               <a
@@ -181,8 +181,8 @@ export default function LandingPage() {
               Guclu Analiz Araclari
             </h2>
             <p className="text-gray-400 max-w-2xl mx-auto">
-              Yapay zeka destekli analizlerden detayli raporlara, tum ihtiyaclariniz icin
-              kapsamli cozumler sunuyoruz.
+              Detayli analizlerden kapsamli raporlara, tum ihtiyaclariniz icin
+              guclu cozumler sunuyoruz.
             </p>
           </div>
 
@@ -194,9 +194,9 @@ export default function LandingPage() {
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#4DA3FF]/20 to-[#4DA3FF]/5 border border-[#4DA3FF]/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Brain className="h-7 w-7 text-[#4DA3FF]" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-3">Yapay Zeka Analizi</h3>
+                <h3 className="text-xl font-semibold text-white mb-3">Akilli Icerik Analizi</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  OpenAI GPT destekli derin icerik analizi. Yesil/Kirmizi/Gri Takim framework'u
+                  Derin icerik analizi. Yesil/Kirmizi/Gri Takim framework'u
                   ile parti sadakati ve muhalefet egilimlerini tespit.
                 </p>
               </div>
@@ -211,8 +211,8 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-3">Detayli Raporlama</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  Kullanici, parti ve coklu kullanici raporlari. Bireysel ve toplu LLM
-                  analizleri ile profesyonel istihbarat ciktilari.
+                  Kullanici, parti ve coklu kullanici raporlari. Bireysel ve toplu
+                  analizler ile profesyonel gozlem ciktilari.
                 </p>
               </div>
             </div>
@@ -227,7 +227,7 @@ export default function LandingPage() {
                 <h3 className="text-xl font-semibold text-white mb-3">Karsilastirma Modulu</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">
                   2-10 kullaniciyi yan yana karsilastirin. Metrik kartlari, grafikler ve
-                  AI destekli karsilastirma ozeti.
+                  otomatik karsilastirma ozeti.
                 </p>
               </div>
             </div>
@@ -286,7 +286,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-3">Sosyal Medya ile Sohbet</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  GPT-4o destekli Turkce NLP ile icerik arama. Dogal dil sorulariyla
+                  Turkce NLP ile icerik arama. Dogal dil sorulariyla
                   tweet ve post'larda akilli arama yapin.
                 </p>
               </div>
@@ -305,19 +305,19 @@ export default function LandingPage() {
                 <span className="text-sm text-[#00D1B2]">Hakkimizda</span>
               </div>
               <h2 className="text-4xl font-bold text-white mb-6">
-                Siyasi Istihbarat Icin
+                Sosyal Medya Gozlemi Icin
                 <br />
                 <span className="bg-gradient-to-r from-[#4DA3FF] to-[#00D1B2] bg-clip-text text-transparent">
                   Yeni Nesil Platform
                 </span>
               </h2>
               <p className="text-gray-400 mb-6 leading-relaxed">
-                Meclis Istihbarat Sistemi (M.I.S), Turkiye'deki belediye meclisi
-                uyelerinin sosyal medya aktivitelerini takip eden ve analiz eden kapsamli
-                bir istihbarat platformudur.
+                SMOT (Sosyal Medya Gozlem Araci), sosyal medya aktivitelerini
+                takip eden ve analiz eden kapsamli
+                bir gozlem platformudur.
               </p>
               <p className="text-gray-400 mb-8 leading-relaxed">
-                Yapay zeka destekli analiz motorumuz, her kullanicinin paylasimlarina
+                Analiz motorumuz, her kullanicinin paylasimlarina
                 <span className="text-white font-medium"> Yesil Takim </span> (parti sadakati),
                 <span className="text-white font-medium"> Kirmizi Takim </span> (muhalefet elestirisi) ve
                 <span className="text-white font-medium"> Gri Takim </span> (bagimsiz gundem)
@@ -331,11 +331,11 @@ export default function LandingPage() {
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-[#00D1B2] mt-0.5 flex-shrink-0" />
-                  <p className="text-gray-300 text-sm">OpenAI GPT ile otomatik icerik analizi ve siniflandirma</p>
+                  <p className="text-gray-300 text-sm">Otomatik icerik analizi ve siniflandirma</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-[#00D1B2] mt-0.5 flex-shrink-0" />
-                  <p className="text-gray-300 text-sm">Profesyonel istihbarat raporlari ve karsilastirma modulleri</p>
+                  <p className="text-gray-300 text-sm">Profesyonel gozlem raporlari ve karsilastirma modulleri</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-[#00D1B2] mt-0.5 flex-shrink-0" />
@@ -417,8 +417,8 @@ export default function LandingPage() {
               <p className="text-sm text-gray-500">Frontend</p>
             </div>
             <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 text-center hover:border-white/10 transition-all">
-              <div className="text-3xl font-bold text-[#00D1B2] mb-2">OpenAI</div>
-              <p className="text-sm text-gray-500">LLM Provider</p>
+              <div className="text-3xl font-bold text-[#00D1B2] mb-2">AI Engine</div>
+              <p className="text-sm text-gray-500">Analiz Motoru</p>
             </div>
             <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 text-center hover:border-white/10 transition-all">
               <div className="text-3xl font-bold text-purple-400 mb-2">PostgreSQL</div>
@@ -459,11 +459,11 @@ export default function LandingPage() {
             <div className="absolute inset-0 bg-gradient-to-r from-[#4DA3FF]/20 via-purple-500/20 to-[#00D1B2]/20 blur-3xl rounded-full" />
             <div className="relative bg-[#0A0A0A] border border-white/10 rounded-3xl p-12">
               <h2 className="text-4xl font-bold text-white mb-4">
-                Istihbarat Analizine Baslayin
+                Sosyal Medya Analizine Baslayin
               </h2>
               <p className="text-gray-400 mb-8 max-w-xl mx-auto">
-                Meclis uyelerinin sosyal medya aktivitelerini analiz etmeye hemen baslayabilirsiniz.
-                Yapay zeka destekli raporlar sizi bekliyor.
+                Sosyal medya aktivitelerini analiz etmeye hemen baslayabilirsiniz.
+                Detayli raporlar sizi bekliyor.
               </p>
               <Link
                 href="/dashboard"
@@ -485,17 +485,17 @@ export default function LandingPage() {
             <div className="flex items-center gap-3">
               <Image
                 src="/transparan_logo.png"
-                alt="M.I.S Logo"
+                alt="SMOT Logo"
                 width={32}
                 height={32}
               />
               <div className="flex items-center gap-2">
-                <span className="font-bold text-white">M.I.S</span>
+                <span className="font-bold text-white">SMOT</span>
                 <span className="text-[10px] text-[#4DA3FF] font-medium px-1.5 py-0.5 bg-[#4DA3FF]/10 rounded">v3.2</span>
               </div>
             </div>
             <p className="text-gray-500 text-sm">
-              Meclis Istihbarat Sistemi - Yapay Zeka ile Siyasi Analiz
+              SMOT - Sosyal Medya Gozlem Araci
             </p>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <div className="w-2 h-2 rounded-full bg-[#00D1B2] animate-pulse" />

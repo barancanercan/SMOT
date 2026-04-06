@@ -6,8 +6,8 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Meclis Istihbarat Sistemi",
-  description: "Yapay Zeka Destekli Siyasi Istihbarat Analiz Platformu",
+  title: "SMOT - Sosyal Medya Gozlem Araci",
+  description: "Sosyal Medya Gozlem ve Analiz Platformu",
 };
 
 export default function RootLayout({

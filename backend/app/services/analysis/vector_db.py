@@ -43,7 +43,7 @@ def get_collection(name: str = "tweets"):
         client = get_client()
         _collection = client.get_or_create_collection(
             name=name,
-            metadata={"description": "Meclis uyeleri tweet embeddings"}
+            metadata={"description": "SMOT tweet embeddings"}
         )
         print(f"Collection: {name} ({_collection.count()} kayit)")
     return _collection

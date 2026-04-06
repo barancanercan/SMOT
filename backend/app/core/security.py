@@ -17,7 +17,7 @@ from app.core.config import settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT Configuration
-SECRET_KEY = getattr(settings, 'secret_key', 'meclis-istihbarat-secret-key-change-in-production')
+SECRET_KEY = getattr(settings, 'secret_key', 'smot-secret-key-change-in-production')
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

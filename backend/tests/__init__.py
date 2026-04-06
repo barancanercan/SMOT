@@ -1,3 +1,3 @@
 """
-Test Suite for Meclis Istihbarat Sistemi
+Test Suite for SMOT - Sosyal Medya Gozlem Araci
 """
