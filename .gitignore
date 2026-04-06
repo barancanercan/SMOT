@@ -92,5 +92,6 @@ debug_*.py
 *_debug.py
 test.py
 
-# Claude
-.claude/
+# Claude (keep CLAUDE.md tracked)
+.claude/*
+!.claude/CLAUDE.md
