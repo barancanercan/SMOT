@@ -407,7 +407,7 @@ def format_tweets_for_chat(
         likes = t.get('likes', 0)
         retweets = t.get('retweets', 0)
         comments = t.get('comments', t.get('replies', 0))
-        relevance = t.get('relevance_score', 0)
+        t.get('relevance_score', 0)
 
         # Truncate text (but keep more than before)
         if len(text) > max_text_length:

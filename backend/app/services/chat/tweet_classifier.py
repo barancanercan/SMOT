@@ -11,8 +11,8 @@ Tweet Classifier v3 - Dynamic Classification with GPT-4o
 
 import json
 import re
-from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
+from typing import Any
 
 from openai import OpenAI
 
@@ -25,9 +25,9 @@ logger = get_logger("TweetClassifier")
 @dataclass
 class ClassificationQuery:
     """Defines what we're looking for in tweets"""
-    source_party: Optional[str]  # Who is tweeting (e.g., "CHP", "AK Parti")
-    target_party: Optional[str]  # Who is being criticized (e.g., "hükümet", "CHP")
-    topic: Optional[str]  # What topic (e.g., "ekonomi", "eğitim")
+    source_party: str | None  # Who is tweeting (e.g., "CHP", "AK Parti")
+    target_party: str | None  # Who is being criticized (e.g., "hükümet", "CHP")
+    topic: str | None  # What topic (e.g., "ekonomi", "eğitim")
     sentiment: str  # "criticism", "support", "neutral", "any"
 
 
@@ -56,7 +56,6 @@ def _build_criticism_prompt(query: ClassificationQuery, original_question: str) 
     """Build prompt for criticism detection."""
 
     target = query.target_party or "hükümet"
-    source = query.source_party or "muhalefet"
 
     # Dynamic examples based on target
     if target.lower() in ["hükümet", "iktidar", "akp", "ak parti", "erdoğan"]:
@@ -286,13 +285,13 @@ class TweetClassifier:
 
     def classify_tweets(
         self,
-        tweets: List[Dict],
+        tweets: list[dict],
         original_question: str,
-        source_party: Optional[str] = None,
-        target_party: Optional[str] = None,
-        topic: Optional[str] = None,
+        source_party: str | None = None,
+        target_party: str | None = None,
+        topic: str | None = None,
         sentiment: str = "criticism"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Classify tweets based on dynamic query parameters.
 
@@ -356,7 +355,7 @@ class TweetClassifier:
             }
         }
 
-    def _classify_batch(self, tweets: List[Dict], prompt_template: str) -> Dict[str, Any]:
+    def _classify_batch(self, tweets: list[dict], prompt_template: str) -> dict[str, Any]:
         """Classify a batch using GPT-4o."""
 
         # Format tweets
@@ -453,7 +452,7 @@ class TweetClassifier:
 
         return response
 
-    def _regex_fallback(self, tweets: List[Dict], target: Optional[str]) -> Dict[str, Any]:
+    def _regex_fallback(self, tweets: list[dict], target: str | None) -> dict[str, Any]:
         """Fallback regex matching."""
         target = target or "hükümet"
 
@@ -496,7 +495,7 @@ class TweetClassifier:
         }
 
     # Backward compatibility
-    def classify_for_criticism(self, tweets: List[Dict], target: str = "hükümet") -> Dict[str, Any]:
+    def classify_for_criticism(self, tweets: list[dict], target: str = "hükümet") -> dict[str, Any]:
         """Legacy method for backward compatibility."""
         return self.classify_tweets(
             tweets=tweets,

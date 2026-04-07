@@ -3,8 +3,9 @@ LLM Metrics API Routes
 Exposes observability data for monitoring
 """
 from fastapi import APIRouter, Request
+
+from app.core.rate_limit import RateLimits, limiter
 from app.services.analysis.metrics import metrics_collector
-from app.core.rate_limit import limiter, RateLimits
 
 router = APIRouter()
 

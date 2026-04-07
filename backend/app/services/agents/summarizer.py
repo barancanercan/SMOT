@@ -11,10 +11,10 @@ Tools:
 - format_response: Platform-aware response formatting
 """
 
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
 import json
 import re
+from dataclasses import dataclass
+from typing import Any
 
 from app.services.agents.base import BaseAgent, tool
 from app.services.analysis.analyzer import TweetAnalyzer
@@ -72,10 +72,10 @@ class SummarizerAgent(BaseAgent):
     def execute(
         self,
         query: str,
-        contents: List[Dict],
+        contents: list[dict],
         platform: str = "twitter",
-        classification_summary: Dict = None
-    ) -> Dict[str, Any]:
+        classification_summary: dict = None
+    ) -> dict[str, Any]:
         """
         Generate response summary.
 
@@ -117,10 +117,10 @@ class SummarizerAgent(BaseAgent):
     def summarize(
         self,
         query: str,
-        contents: List[Dict],
+        contents: list[dict],
         platform: str = "twitter",
-        classification_summary: Dict = None
-    ) -> Dict[str, Any]:
+        classification_summary: dict = None
+    ) -> dict[str, Any]:
         """
         Generate LLM-powered summary.
 
@@ -169,7 +169,7 @@ class SummarizerAgent(BaseAgent):
             return self.format_response_tool(contents, platform, classification_summary)
 
     @tool(name="extract_topics", description="Extract main topics from content")
-    def extract_topics(self, contents: List[Dict]) -> List[str]:
+    def extract_topics(self, contents: list[dict]) -> list[str]:
         """
         Extract main topics from contents.
 
@@ -204,10 +204,10 @@ class SummarizerAgent(BaseAgent):
     @tool(name="format_response", description="Format response with platform-aware terminology")
     def format_response_tool(
         self,
-        contents: List[Dict],
+        contents: list[dict],
         platform: str = "twitter",
-        classification_summary: Dict = None
-    ) -> Dict[str, Any]:
+        classification_summary: dict = None
+    ) -> dict[str, Any]:
         """
         Format a simple response without LLM.
 
@@ -261,9 +261,9 @@ class SummarizerAgent(BaseAgent):
         names = self.CONTENT_NAMES.get(platform, self.CONTENT_NAMES["twitter"])
         return names["plural"] if plural else names["singular"]
 
-    def _detect_platform(self, contents: List[Dict], default: str) -> str:
+    def _detect_platform(self, contents: list[dict], default: str) -> str:
         """Detect actual platform from contents."""
-        platforms = set(c.get("platform", "twitter") for c in contents)
+        platforms = {c.get("platform", "twitter") for c in contents}
         if "instagram" in platforms and "twitter" in platforms:
             return "both"
         elif "instagram" in platforms:
@@ -272,12 +272,12 @@ class SummarizerAgent(BaseAgent):
             return "twitter"
         return default
 
-    def _generate_simple_answer(self, contents: List[Dict], platform: str) -> str:
+    def _generate_simple_answer(self, contents: list[dict], platform: str) -> str:
         """Generate a simple answer without LLM."""
         content_name = self._get_content_name(platform, plural=False)
         return f"Aramanıza uygun {len(contents)} {content_name} bulundu."
 
-    def _get_most_active_users(self, contents: List[Dict], limit: int = 3) -> List[str]:
+    def _get_most_active_users(self, contents: list[dict], limit: int = 3) -> list[str]:
         """Get most active users from content list."""
         user_counts = {}
         for c in contents:
@@ -286,7 +286,7 @@ class SummarizerAgent(BaseAgent):
         sorted_users = sorted(user_counts.items(), key=lambda x: x[1], reverse=True)
         return [u[0] for u in sorted_users[:limit]]
 
-    def _get_date_range(self, contents: List[Dict]) -> Optional[str]:
+    def _get_date_range(self, contents: list[dict]) -> str | None:
         """Get date range from content list."""
         dates = []
         for c in contents:
@@ -299,7 +299,7 @@ class SummarizerAgent(BaseAgent):
             return f"{dates[0]} - {dates[-1]}"
         return None
 
-    def _parse_json_response(self, response: str) -> Dict:
+    def _parse_json_response(self, response: str) -> dict:
         """Parse JSON from LLM response."""
         response = response.strip()
         if response.startswith("```"):

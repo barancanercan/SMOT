@@ -3,10 +3,10 @@ Utils Module - Logging and Retry Configuration
 """
 from .logger import get_logger
 from .retry_config import (
-    retry_on_scraping_error,
-    retry_on_session_error,
     retry_on_db_error,
     retry_on_network_error,
+    retry_on_scraping_error,
+    retry_on_session_error,
 )
 
 __all__ = [

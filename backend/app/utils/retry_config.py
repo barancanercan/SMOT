@@ -2,27 +2,28 @@
 Retry Configuration - Centralized retry logic using tenacity
 Provides decorators for different operation types with appropriate retry strategies
 """
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception_type,
-    before_sleep_log,
-    after_log
-)
 import logging
 import sqlite3
+
+from tenacity import (
+    after_log,
+    before_sleep_log,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 logger = logging.getLogger("SMOT")
 
 # Try to import selenium (optional - only needed for scraping)
 try:
     from selenium.common.exceptions import (
-        TimeoutException as SeleniumTimeoutException,
         NoSuchElementException,
         StaleElementReferenceException,
-        WebDriverException
+        WebDriverException,
     )
+    from selenium.common.exceptions import TimeoutException as SeleniumTimeoutException
     SELENIUM_AVAILABLE = True
 except ImportError:
     SELENIUM_AVAILABLE = False

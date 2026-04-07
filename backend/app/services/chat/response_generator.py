@@ -8,11 +8,11 @@ Uses LLM for intelligent summarization with inline citations.
 
 import json
 import re
-from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
+from typing import Any
 
-from app.services.analysis.chat_prompts import get_chat_prompt
 from app.services.analysis.analyzer import TweetAnalyzer
+from app.services.analysis.chat_prompts import get_chat_prompt
 from app.utils.logger import get_logger
 
 logger = get_logger("ResponseGenerator")
@@ -22,7 +22,7 @@ logger = get_logger("ResponseGenerator")
 class ChatResponse:
     """Generated chat response."""
     answer: str
-    summary: Dict[str, Any] = field(default_factory=dict)
+    summary: dict[str, Any] = field(default_factory=dict)
     confidence_score: float = 0.0
     raw_response: str = ""
 
@@ -41,9 +41,9 @@ def _get_content_name(platform: str, form: str = "plural") -> str:
     return names.get(form, names["plural"])
 
 
-def _detect_platform_from_tweets(tweets: List[Dict]) -> str:
+def _detect_platform_from_tweets(tweets: list[dict]) -> str:
     """Detect platform from tweet data."""
-    platforms = set(t.get("platform", "twitter") for t in tweets)
+    platforms = {t.get("platform", "twitter") for t in tweets}
     if "instagram" in platforms and "twitter" in platforms:
         return "both"
     elif "instagram" in platforms:
@@ -51,14 +51,14 @@ def _detect_platform_from_tweets(tweets: List[Dict]) -> str:
     return "twitter"
 
 
-def _extract_stats(tweets: List[Dict]) -> Dict[str, Any]:
+def _extract_stats(tweets: list[dict]) -> dict[str, Any]:
     """Extract statistics from tweet list."""
     if not tweets:
         return {"total_found": 0, "top_topics": [], "sentiment": "notr",
                 "most_active_users": [], "date_range": None}
 
     # Users
-    user_counts: Dict[str, int] = {}
+    user_counts: dict[str, int] = {}
     for t in tweets:
         u = t.get("username", "")
         user_counts[u] = user_counts.get(u, 0) + 1
@@ -81,7 +81,7 @@ def _extract_stats(tweets: List[Dict]) -> Dict[str, Any]:
         'mi', 'mu', 'ne', 'ya', 'ki', 'ama', 'olan', 'daha', 'en',
         'rt', 'https', 'http', 'www', 'com', 'tr', 'co', 'ben', 'sen', 'biz',
     }
-    word_counts: Dict[str, int] = {}
+    word_counts: dict[str, int] = {}
     for w in words:
         if len(w) > 3 and w not in stopwords:
             word_counts[w] = word_counts.get(w, 0) + 1
@@ -96,7 +96,7 @@ def _extract_stats(tweets: List[Dict]) -> Dict[str, Any]:
     }
 
 
-def compute_confidence(retrieval_scores: List[float], num_results: int) -> float:
+def compute_confidence(retrieval_scores: list[float], num_results: int) -> float:
     """
     Compute confidence based on retrieval quality.
 
@@ -138,9 +138,9 @@ class ResponseGenerator:
     def generate(
         self,
         query: str,
-        tweets: List[Dict],
+        tweets: list[dict],
         intent_type: str = "search_topic",
-        username: Optional[str] = None,
+        username: str | None = None,
         platform: str = "twitter",
         is_criticism: bool = False,
     ) -> ChatResponse:
@@ -195,11 +195,11 @@ class ResponseGenerator:
     def _generate_with_llm(
         self,
         query: str,
-        tweets: List[Dict],
+        tweets: list[dict],
         intent_type: str,
-        username: Optional[str],
+        username: str | None,
         platform: str,
-        stats: Dict,
+        stats: dict,
     ) -> ChatResponse:
         """Generate response using LLM with citations."""
         query_lower = query.lower()
@@ -265,17 +265,17 @@ class ResponseGenerator:
     def _generate_simple(
         self,
         query: str,
-        tweets: List[Dict],
+        tweets: list[dict],
         intent_type: str,
         platform: str,
-        stats: Dict,
+        stats: dict,
     ) -> ChatResponse:
         """Generate rule-based response without LLM."""
         count = len(tweets)
         content_name = _get_content_name(platform)
 
         lines = []
-        lines.append(f"## Sonuçlar")
+        lines.append("## Sonuçlar")
         lines.append("")
         lines.append(f"**{count} {content_name}** bulundu.")
         lines.append("")
@@ -302,7 +302,7 @@ class ResponseGenerator:
                 text = t.get("tweet_text", t.get("caption", ""))[:150]
                 text = text.replace('\n', ' ').strip()
                 username = t.get("username", "")
-                likes = t.get("likes", 0)
+                t.get("likes", 0)
                 lines.append(f"> @{username}: \"{text}\" [{i}]")
                 lines.append("")
 

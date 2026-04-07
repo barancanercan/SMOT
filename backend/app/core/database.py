@@ -5,13 +5,21 @@ Migrated from raw SQL to ORM for better maintainability
 """
 
 from datetime import datetime, timedelta
-from typing import List, Dict, Tuple, Optional
-from sqlalchemy import func, and_
 
+from sqlalchemy import and_, func
+
+from app.core.db_config import init_db as create_tables
+from app.core.db_config import session_scope
+from app.core.models import (
+    Councilor,
+    InstagramPost,
+    InstagramProfile,
+    ProfileHistory,
+    ReportCache,
+    Tweet,
+)
 from app.utils.logger import get_logger
 from app.utils.retry_config import retry_on_db_error
-from app.core.db_config import session_scope, init_db as create_tables
-from app.core.models import Councilor, Tweet, ProfileHistory, ReportCache, InstagramPost, InstagramProfile
 
 logger = get_logger("Database")
 
@@ -26,9 +34,9 @@ def init_database():
 def save_tweet(
         username: str,
         tweet_text: str,
-        tweet_date: Optional[str] = None,
+        tweet_date: str | None = None,
         is_retweet: bool = False,
-        retweet_from: Optional[str] = None,
+        retweet_from: str | None = None,
         likes: int = 0,
         replies: int = 0,
         retweets: int = 0,
@@ -56,7 +64,7 @@ def save_tweet(
 
 
 @retry_on_db_error
-def save_tweets_batch(tweets: List[Dict], username: str) -> Tuple[int, int]:
+def save_tweets_batch(tweets: list[dict], username: str) -> tuple[int, int]:
     """Save multiple tweets in batch (with deduplication) using ORM"""
     saved_count = 0
     duplicate_count = 0
@@ -106,7 +114,7 @@ def save_tweets_batch(tweets: List[Dict], username: str) -> Tuple[int, int]:
     return saved_count, duplicate_count
 
 
-def get_stats() -> Dict:
+def get_stats() -> dict:
     """Get database statistics using ORM"""
     stats = {}
 
@@ -162,10 +170,9 @@ def save_profile_snapshot(
     following_count: int,
     tweet_count: int = 0,
     listed_count: int = 0,
-    scrape_date: Optional[str] = None
+    scrape_date: str | None = None
 ) -> bool:
     """Save profile snapshot using ORM"""
-    from datetime import date as date_type
 
     # Convert string to date object
     if scrape_date is None:
@@ -209,7 +216,7 @@ def save_profile_snapshot(
         return False
 
 
-def get_latest_profile(username: str) -> Optional[Dict]:
+def get_latest_profile(username: str) -> dict | None:
     """Get most recent profile snapshot using ORM"""
     try:
         with session_scope() as session:
@@ -227,11 +234,11 @@ def get_latest_profile(username: str) -> Optional[Dict]:
                 }
     except Exception as e:
         logger.error(f"Get latest profile error: {e}")
-    
+
     return None
 
 
-def get_profile_change(username: str, date1: str, date2: str) -> Optional[Dict]:
+def get_profile_change(username: str, date1: str, date2: str) -> dict | None:
     """Get profile change between two dates using ORM"""
     try:
         with session_scope() as session:
@@ -267,7 +274,7 @@ def get_profile_change(username: str, date1: str, date2: str) -> Optional[Dict]:
     return None
 
 
-def get_all_profile_history(username: str) -> List[Dict]:
+def get_all_profile_history(username: str) -> list[dict]:
     """Get all profile history for a user using ORM"""
     try:
         with session_scope() as session:
@@ -329,7 +336,7 @@ def update_councilor_profile(
         return False
 
 
-def get_councilor_profile(username: str) -> Optional[Dict]:
+def get_councilor_profile(username: str) -> dict | None:
     """Get councilor's full profile including Twitter details"""
     try:
         with session_scope() as session:
@@ -357,12 +364,12 @@ def get_councilor_profile(username: str) -> Optional[Dict]:
     return None
 
 
-def get_councilors_without_profile() -> List[str]:
+def get_councilors_without_profile() -> list[str]:
     """Get usernames of councilors without profile details"""
     try:
         with session_scope() as session:
             councilors = session.query(Councilor.username).filter(
-                Councilor.profile_updated_at == None
+                Councilor.profile_updated_at is None
             ).all()
             return [c.username for c in councilors]
     except Exception as e:
@@ -402,14 +409,14 @@ def save_report_cache(username: str, report_type: str, content: str, expire_hour
                     expires_at=expires_at
                 )
                 session.add(cache)
-        
+
         return True
     except Exception as e:
         logger.error(f"Cache save error: {e}")
         return False
 
 
-def get_report_cache(username: str, report_type: str) -> Optional[Dict]:
+def get_report_cache(username: str, report_type: str) -> dict | None:
     """Get report from cache (with expiry check) using ORM"""
     try:
         with session_scope() as session:
@@ -433,7 +440,7 @@ def get_report_cache(username: str, report_type: str) -> Optional[Dict]:
     return None
 
 
-def clear_report_cache(username: Optional[str] = None, report_type: Optional[str] = None) -> int:
+def clear_report_cache(username: str | None = None, report_type: str | None = None) -> int:
     """Clear cache (user and/or type based) using ORM"""
     try:
         with session_scope() as session:
@@ -480,7 +487,7 @@ def save_instagram_post(
     username: str,
     caption: str,
     post_url: str,
-    post_date: Optional[str] = None,
+    post_date: str | None = None,
     likes: int = 0,
     comments: int = 0,
     is_video: bool = False,
@@ -516,7 +523,7 @@ def save_instagram_post(
 
 
 @retry_on_db_error
-def save_instagram_posts_batch(posts: List[Dict], username: str) -> Tuple[int, int]:
+def save_instagram_posts_batch(posts: list[dict], username: str) -> tuple[int, int]:
     """Save multiple Instagram posts in batch"""
     saved_count = 0
     duplicate_count = 0
@@ -568,7 +575,7 @@ def save_instagram_profile(
     posts_count: int = 0,
     full_name: str = "",
     bio: str = "",
-    scrape_date: Optional[str] = None
+    scrape_date: str | None = None
 ) -> bool:
     """Save Instagram profile snapshot"""
     # Convert string to date object
@@ -615,7 +622,7 @@ def save_instagram_profile(
         return False
 
 
-def get_instagram_posts(username: str, limit: int = 50) -> List[Dict]:
+def get_instagram_posts(username: str, limit: int = 50) -> list[dict]:
     """Get Instagram posts for a user"""
     try:
         with session_scope() as session:
@@ -641,7 +648,7 @@ def get_instagram_posts(username: str, limit: int = 50) -> List[Dict]:
         return []
 
 
-def get_latest_instagram_profile(username: str) -> Optional[Dict]:
+def get_latest_instagram_profile(username: str) -> dict | None:
     """Get most recent Instagram profile snapshot"""
     try:
         with session_scope() as session:
@@ -669,7 +676,7 @@ def get_latest_instagram_profile(username: str) -> Optional[Dict]:
 # Multi-Platform Query Functions
 # =============================================================================
 
-def get_instagram_stats() -> Dict:
+def get_instagram_stats() -> dict:
     """Get Instagram-specific statistics"""
     stats = {}
 
@@ -710,7 +717,7 @@ def get_instagram_stats() -> Dict:
     return stats
 
 
-def get_content_by_platform(username: str, platform: str, limit: int = 50) -> List[Dict]:
+def get_content_by_platform(username: str, platform: str, limit: int = 50) -> list[dict]:
     """
     Get content (tweets or Instagram posts) based on platform.
 
@@ -776,7 +783,7 @@ def get_content_by_platform(username: str, platform: str, limit: int = 50) -> Li
     return content
 
 
-def get_profile_by_platform(username: str, platform: str) -> Optional[Dict]:
+def get_profile_by_platform(username: str, platform: str) -> dict | None:
     """
     Get profile information based on platform.
 
@@ -829,7 +836,7 @@ def get_profile_by_platform(username: str, platform: str) -> Optional[Dict]:
     return profile if len(profile) > 1 else None
 
 
-def get_engagement_by_platform(username: str, platform: str) -> Dict:
+def get_engagement_by_platform(username: str, platform: str) -> dict:
     """
     Get engagement metrics based on platform.
 
@@ -905,7 +912,7 @@ def get_engagement_by_platform(username: str, platform: str) -> Dict:
     return metrics
 
 
-def get_instagram_followers_ranking(limit: int = 20) -> List[Dict]:
+def get_instagram_followers_ranking(limit: int = 20) -> list[dict]:
     """Get Instagram followers ranking"""
     try:
         with session_scope() as session:
@@ -946,7 +953,7 @@ def get_instagram_followers_ranking(limit: int = 20) -> List[Dict]:
         return []
 
 
-def get_instagram_engagement_ranking(limit: int = 15) -> List[Dict]:
+def get_instagram_engagement_ranking(limit: int = 15) -> list[dict]:
     """Get Instagram engagement ranking"""
     try:
         with session_scope() as session:

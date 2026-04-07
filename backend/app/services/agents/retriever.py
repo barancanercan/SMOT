@@ -15,17 +15,16 @@ Tools:
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
-from datetime import datetime
+from typing import Any
 
-from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
-from app.services.agents.base import BaseAgent, tool
-from app.core.models import Tweet, Councilor, InstagramPost
 from app.core.constants import normalize_party_name
-from app.services.chat.turkish_nlp import expand_keywords, calculate_keyword_score
+from app.core.models import Councilor, InstagramPost, Tweet
+from app.services.agents.base import BaseAgent, tool
 from app.services.chat.semantic_search import semantic_search
+from app.services.chat.turkish_nlp import calculate_keyword_score, expand_keywords
 from app.utils.logger import get_logger
 
 logger = get_logger("RetrieverAgent")
@@ -67,10 +66,10 @@ class RetrieverAgent(BaseAgent):
         self,
         query: str,
         platform: str = "twitter",
-        party_filter: Optional[str] = None,
+        party_filter: str | None = None,
         max_results: int = 50,
-        keywords: List[str] = None
-    ) -> Dict[str, Any]:
+        keywords: list[str] = None
+    ) -> dict[str, Any]:
         """
         Execute content retrieval.
 
@@ -157,11 +156,11 @@ class RetrieverAgent(BaseAgent):
     def keyword_search(
         self,
         query: str,
-        keywords: List[str] = None,
+        keywords: list[str] = None,
         source: str = "twitter",
-        party_usernames: List[str] = None,
+        party_usernames: list[str] = None,
         limit: int = 200
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Search content using keyword matching with Turkish NLP.
 
@@ -183,11 +182,11 @@ class RetrieverAgent(BaseAgent):
     @tool(name="semantic_search", description="Rank content by semantic similarity using TF-IDF")
     def semantic_search_tool(
         self,
-        contents: List[Dict],
+        contents: list[dict],
         query: str,
-        keywords: List[str] = None,
+        keywords: list[str] = None,
         max_results: int = 50
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Rank content by semantic similarity.
 
@@ -213,12 +212,12 @@ class RetrieverAgent(BaseAgent):
     @tool(name="filter_results", description="Apply date, party, or user filters to content")
     def filter_results(
         self,
-        contents: List[Dict],
+        contents: list[dict],
         start_date: str = None,
         end_date: str = None,
         party: str = None,
         username: str = None
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Filter content by metadata.
 
@@ -255,9 +254,9 @@ class RetrieverAgent(BaseAgent):
     @tool(name="chunk_read", description="Read specific content items by their IDs")
     def chunk_read(
         self,
-        content_ids: List[int],
+        content_ids: list[int],
         source: str = "twitter"
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Read specific content items by ID.
 
@@ -281,10 +280,10 @@ class RetrieverAgent(BaseAgent):
 
     def _search_twitter(
         self,
-        keywords: List[str],
-        party_usernames: List[str] = None,
+        keywords: list[str],
+        party_usernames: list[str] = None,
         limit: int = 200
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Search Twitter content."""
         query = self.db.query(Tweet).filter(Tweet.is_retweet == False)
 
@@ -314,10 +313,10 @@ class RetrieverAgent(BaseAgent):
 
     def _search_instagram(
         self,
-        keywords: List[str],
-        party_usernames: List[str] = None,
+        keywords: list[str],
+        party_usernames: list[str] = None,
         limit: int = 200
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Search Instagram content."""
         query = self.db.query(InstagramPost)
 
@@ -345,7 +344,7 @@ class RetrieverAgent(BaseAgent):
 
         return contents
 
-    def _tweet_to_dict(self, tweet: Tweet) -> Dict:
+    def _tweet_to_dict(self, tweet: Tweet) -> dict:
         """Convert Tweet ORM object to dict."""
         councilor = self.db.query(Councilor).filter(
             Councilor.username == tweet.username
@@ -365,7 +364,7 @@ class RetrieverAgent(BaseAgent):
             "platform": "twitter",
         }
 
-    def _post_to_dict(self, post: InstagramPost) -> Dict:
+    def _post_to_dict(self, post: InstagramPost) -> dict:
         """Convert InstagramPost ORM object to dict."""
         councilor = self.db.query(Councilor).filter(
             Councilor.username == post.username
@@ -391,7 +390,7 @@ class RetrieverAgent(BaseAgent):
             "post_url": post.post_url,
         }
 
-    def _get_party_members(self, party: str) -> List[str]:
+    def _get_party_members(self, party: str) -> list[str]:
         """Get usernames for a party."""
         normalized_party = normalize_party_name(party)
         councilors = self.db.query(Councilor).all()
@@ -402,7 +401,7 @@ class RetrieverAgent(BaseAgent):
             if normalize_party_name(c.party) == normalized_party
         ]
 
-    def _extract_keywords(self, query: str) -> List[str]:
+    def _extract_keywords(self, query: str) -> list[str]:
         """Extract keywords from query."""
         # Simple keyword extraction - stopword removal
         stopwords = {

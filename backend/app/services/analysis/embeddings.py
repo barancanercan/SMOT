@@ -5,8 +5,6 @@ Embeddings v1.0 - Tweet Embedding Olusturma
 - all-MiniLM-L6-v2 modeli (hizli, CPU uyumlu)
 """
 
-from typing import List, Optional
-
 
 # Lazy loading - model sadece gerektiginde yuklenir
 _model = None
@@ -27,7 +25,7 @@ def get_model():
     return _model
 
 
-def create_embedding(text: str) -> List[float]:
+def create_embedding(text: str) -> list[float]:
     """
     Tek bir metin icin embedding olustur
 
@@ -42,7 +40,7 @@ def create_embedding(text: str) -> List[float]:
     return embedding.tolist()
 
 
-def create_embeddings_batch(texts: List[str], batch_size: int = 32, show_progress: bool = True) -> List[List[float]]:
+def create_embeddings_batch(texts: list[str], batch_size: int = 32, show_progress: bool = True) -> list[list[float]]:
     """
     Birden fazla metin icin embedding olustur (batch processing)
 
@@ -91,7 +89,7 @@ def preprocess_tweet(text: str) -> str:
     return text.strip()
 
 
-def embed_tweets_from_db(username: Optional[str] = None, limit: Optional[int] = None) -> List[dict]:
+def embed_tweets_from_db(username: str | None = None, limit: int | None = None) -> list[dict]:
     """
     Database'deki tweetleri embed et
 
@@ -103,6 +101,7 @@ def embed_tweets_from_db(username: Optional[str] = None, limit: Optional[int] = 
         [{'id': int, 'username': str, 'text': str, 'embedding': List[float]}, ...]
     """
     import sqlite3
+
     from app.core.config import DB_PATH
 
     conn = sqlite3.connect(DB_PATH)
@@ -110,7 +109,7 @@ def embed_tweets_from_db(username: Optional[str] = None, limit: Optional[int] = 
 
     query = "SELECT id, username, tweet_text FROM tweets WHERE is_retweet = 0"
     from typing import Any
-    params: List[Any] = []
+    params: list[Any] = []
 
     if username:
         query += " AND username = ?"

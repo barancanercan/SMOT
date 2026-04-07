@@ -8,12 +8,12 @@ Provides:
 - AgentResult: Standardized result format
 """
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Generic
-from functools import wraps
 import time
-import logging
+from abc import ABC, abstractmethod
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from functools import wraps
+from typing import Any
 
 from app.utils.logger import get_logger
 
@@ -38,9 +38,9 @@ class AgentResult:
     """
     success: bool = True
     data: Any = None
-    error: Optional[str] = None
+    error: str | None = None
     execution_time_ms: float = 0.0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __bool__(self) -> bool:
         return self.success
@@ -58,7 +58,7 @@ class ToolCall:
         duration_ms: Time taken in milliseconds
     """
     tool_name: str
-    arguments: Dict[str, Any]
+    arguments: dict[str, Any]
     result: Any = None
     duration_ms: float = 0.0
 
@@ -77,7 +77,7 @@ class Tool:
     name: str
     description: str
     function: Callable
-    parameters: Dict[str, Any] = field(default_factory=dict)
+    parameters: dict[str, Any] = field(default_factory=dict)
 
     def __call__(self, *args, **kwargs) -> Any:
         return self.function(*args, **kwargs)
@@ -135,8 +135,8 @@ class BaseAgent(ABC):
     def __init__(self, name: str = None):
         """Initialize the agent."""
         self.name = name or self.__class__.__name__
-        self.tools: Dict[str, Tool] = {}
-        self.tool_calls: List[ToolCall] = []
+        self.tools: dict[str, Tool] = {}
+        self.tool_calls: list[ToolCall] = []
         self.logger = get_logger(self.name)
 
         # Discover tools from decorated methods
@@ -158,7 +158,7 @@ class BaseAgent(ABC):
                 self.tools[tool_obj.name] = tool_obj
                 self.logger.debug(f"Registered tool: {tool_obj.name}")
 
-    def get_tools(self) -> List[Tool]:
+    def get_tools(self) -> list[Tool]:
         """Get list of available tools."""
         return list(self.tools.values())
 

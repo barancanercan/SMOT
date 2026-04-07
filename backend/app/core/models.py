@@ -6,7 +6,7 @@ v5.0 additions:
 - ChatSession: Persistent chat sessions
 - ChatMessage: Chat message history
 """
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Date, ForeignKey, JSON
+from sqlalchemy import JSON, Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 

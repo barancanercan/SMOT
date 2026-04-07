@@ -17,25 +17,23 @@ Performance:
     - Reranker: precision boost on top candidates
 """
 
-import time
-import numpy as np
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, field
-import logging
 import re
+import time
+from dataclasses import dataclass
+from typing import Any
 
+import numpy as np
 from rank_bm25 import BM25Okapi
 
 try:
-    from sentence_transformers import SentenceTransformer, CrossEncoder
+    from sentence_transformers import CrossEncoder, SentenceTransformer
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
 
 from app.services.chat.turkish_nlp import (
-    normalize_turkish,
     TURKISH_STOPWORDS,
-    turkish_stem,
+    normalize_turkish,
 )
 from app.utils.logger import get_logger
 
@@ -104,14 +102,14 @@ NEGATIVE_WORDS = {
     "algı", "algi", "sorumsuz", "sorumsuzluk", "plansız", "plansiz",
     "öngörüsüz", "ongörusuz", "vurgun", "talan", "oyun",
     # Mocking/dismissive
-    "aciz", "zavallı", "komik", "trajikomik", "utanç", "utanc",
+    "aciz", "komik", "trajikomik", "utanç", "utanc",
 }
 
 
 @dataclass
 class RetrievalResult:
     """Single retrieval result with scores."""
-    content: Dict[str, Any]
+    content: dict[str, Any]
     bm25_score: float = 0.0
     dense_score: float = 0.0
     rrf_score: float = 0.0
@@ -123,14 +121,14 @@ class RetrievalResult:
 @dataclass
 class RetrievalResponse:
     """Complete retrieval response."""
-    results: List[RetrievalResult]
+    results: list[RetrievalResult]
     total_searched: int
-    detected_topic: Optional[str]
+    detected_topic: str | None
     is_criticism: bool
     retrieval_time_ms: float
 
 
-def _tokenize_turkish(text: str) -> List[str]:
+def _tokenize_turkish(text: str) -> list[str]:
     """Tokenize Turkish text for BM25: lowercase, normalize, remove stopwords."""
     text_lower = text.lower()
     # Also create normalized version
@@ -155,9 +153,9 @@ def _has_negative_sentiment(text: str) -> bool:
 
 
 def reciprocal_rank_fusion(
-    rankings: List[List[int]],
+    rankings: list[list[int]],
     k: int = 60
-) -> List[tuple]:
+) -> list[tuple]:
     """
     Reciprocal Rank Fusion - merge multiple rankings without score normalization.
 
@@ -207,7 +205,7 @@ class HybridRetriever:
         except Exception as e:
             logger.warning(f"Cross-encoder not available, skipping reranking: {e}")
 
-    def detect_topic(self, query: str) -> Optional[str]:
+    def detect_topic(self, query: str) -> str | None:
         """Detect topic from query using keyword matching."""
         query_lower = query.lower()
         for topic, keywords in TOPIC_KEYWORDS.items():
@@ -220,14 +218,14 @@ class HybridRetriever:
         query_lower = query.lower()
         return any(kw in query_lower for kw in CRITICISM_KEYWORDS)
 
-    def get_topic_keywords(self, topic: str) -> List[str]:
+    def get_topic_keywords(self, topic: str) -> list[str]:
         """Get keywords for a detected topic."""
         return TOPIC_KEYWORDS.get(topic, [])
 
     def retrieve(
         self,
         query: str,
-        documents: List[Dict[str, Any]],
+        documents: list[dict[str, Any]],
         top_k: int = 20,
         is_criticism: bool = False,
     ) -> RetrievalResponse:
@@ -347,7 +345,7 @@ class HybridRetriever:
             retrieval_time_ms=elapsed_ms,
         )
 
-    def _bm25_search(self, query: str, texts: List[str]) -> List[int]:
+    def _bm25_search(self, query: str, texts: list[str]) -> list[int]:
         """BM25 sparse retrieval - returns ranked doc indices."""
         try:
             # Tokenize all documents
@@ -374,7 +372,7 @@ class HybridRetriever:
             logger.warning(f"BM25 search failed: {e}")
             return []
 
-    def _dense_search(self, query: str, texts: List[str]) -> List[int]:
+    def _dense_search(self, query: str, texts: list[str]) -> list[int]:
         """Dense embedding retrieval - returns ranked doc indices."""
         if not self.embed_model:
             return []
@@ -403,15 +401,15 @@ class HybridRetriever:
     def _rerank(
         self,
         query: str,
-        texts: List[str],
-        candidates: List[tuple],
-    ) -> List[tuple]:
+        texts: list[str],
+        candidates: list[tuple],
+    ) -> list[tuple]:
         """Cross-encoder reranking on candidate set."""
         try:
             # Build query-document pairs
             pairs = []
             indices = []
-            for doc_idx, rrf_score in candidates:
+            for doc_idx, _rrf_score in candidates:
                 if doc_idx < len(texts):
                     # Truncate long texts for reranker efficiency
                     text = texts[doc_idx][:512]

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import os
-from typing import List, Dict, Optional
 
 """
 Vector Database v1.0 - ChromaDB Islemleri
@@ -53,8 +52,8 @@ def add_tweet(
     tweet_id: int,
     username: str,
     text: str,
-    embedding: List[float],
-    metadata: Optional[Dict] = None
+    embedding: list[float],
+    metadata: dict | None = None
 ):
     """
     Tek bir tweet ekle
@@ -85,7 +84,7 @@ def add_tweet(
     )
 
 
-def add_tweets_batch(tweets: List[Dict]):
+def add_tweets_batch(tweets: list[dict]):
     """
     Birden fazla tweet ekle (batch)
 
@@ -116,8 +115,8 @@ def add_tweets_batch(tweets: List[Dict]):
 def search_similar(
     query: str,
     n_results: int = 10,
-    username: Optional[str] = None
-) -> List[Dict]:
+    username: str | None = None
+) -> list[dict]:
     """
     Benzer tweetleri bul (semantic search)
 
@@ -164,10 +163,10 @@ def search_similar(
 
 
 def search_by_embedding(
-    embedding: List[float],
+    embedding: list[float],
     n_results: int = 10,
-    username: Optional[str] = None
-) -> List[Dict]:
+    username: str | None = None
+) -> list[dict]:
     """
     Embedding vektoruyle benzer tweetleri bul
 
@@ -202,7 +201,7 @@ def search_by_embedding(
     return formatted
 
 
-def get_user_tweets(username: str, limit: int = 100) -> List[Dict]:
+def get_user_tweets(username: str, limit: int = 100) -> list[dict]:
     """Kullanicinin tum tweetlerini getir"""
     collection = get_collection()
 
@@ -224,7 +223,7 @@ def get_user_tweets(username: str, limit: int = 100) -> List[Dict]:
     return formatted
 
 
-def get_stats() -> Dict:
+def get_stats() -> dict:
     """ChromaDB istatistikleri"""
     collection = get_collection()
 
@@ -252,7 +251,7 @@ def delete_user_tweets(username: str) -> int:
     return 0
 
 
-def rebuild_index(username: Optional[str] = None):
+def rebuild_index(username: str | None = None):
     """
     Index'i yeniden olustur (database'den)
 

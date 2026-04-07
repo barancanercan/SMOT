@@ -1,7 +1,8 @@
 """
 API Response Schemas - Pagination and Common Models
 """
-from typing import Generic, TypeVar, List, Optional
+from typing import Generic, TypeVar
+
 from pydantic import BaseModel, Field
 
 T = TypeVar('T')
@@ -19,7 +20,7 @@ class PaginationParams(BaseModel):
 
 class PaginatedResponse(BaseModel, Generic[T]):
     """Generic paginated response"""
-    items: List[T]
+    items: list[T]
     total: int
     page: int
     page_size: int
@@ -28,7 +29,7 @@ class PaginatedResponse(BaseModel, Generic[T]):
     has_prev: bool
 
     @classmethod
-    def create(cls, items: List[T], total: int, page: int, page_size: int):
+    def create(cls, items: list[T], total: int, page: int, page_size: int):
         total_pages = (total + page_size - 1) // page_size if page_size > 0 else 0
         return cls(
             items=items,
@@ -45,19 +46,19 @@ class PaginatedResponse(BaseModel, Generic[T]):
 class UserBase(BaseModel):
     username: str
     name: str
-    party: Optional[str] = None
-    district: Optional[str] = None
+    party: str | None = None
+    district: str | None = None
 
 
 class UserListItem(UserBase):
     id: int
-    tweet_count: Optional[int] = None
+    tweet_count: int | None = None
 
 
 class UserDetail(UserBase):
     id: int
     tweet_count: int
-    profile: Optional[dict] = None
+    profile: dict | None = None
 
 
 # Tweet schemas
@@ -65,7 +66,7 @@ class TweetBase(BaseModel):
     id: int
     username: str
     tweet_text: str
-    tweet_date: Optional[str] = None
+    tweet_date: str | None = None
     likes: int = 0
     replies: int = 0
     retweets: int = 0
@@ -88,7 +89,7 @@ class PartyStats(BaseModel):
 class EngagementStats(BaseModel):
     username: str
     name: str
-    party: Optional[str] = None
+    party: str | None = None
     tweet_count: int = 0
     total_likes: int = 0
     total_retweets: int = 0

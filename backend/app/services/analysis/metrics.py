@@ -4,11 +4,9 @@ Tracks LLM calls, latency, token usage, and success rates
 """
 
 import time
-import json
-from dataclasses import dataclass, field, asdict
-from typing import Optional, Dict, List
-from datetime import datetime
 from collections import deque
+from dataclasses import asdict, dataclass
+from datetime import datetime
 from threading import Lock
 
 from app.utils.logger import get_logger
@@ -27,7 +25,7 @@ class LLMCallMetric:
     latency_ms: float
     success: bool
     validated: bool
-    error: Optional[str] = None
+    error: str | None = None
     prompt_tokens: int = 0
     completion_tokens: int = 0
     confidence_score: float = 0.0
@@ -66,7 +64,7 @@ class LLMMetricsCollector:
         latency_ms: float,
         success: bool,
         validated: bool,
-        error: Optional[str] = None,
+        error: str | None = None,
         prompt_tokens: int = 0,
         completion_tokens: int = 0,
         confidence_score: float = 0.0
@@ -101,13 +99,13 @@ class LLMMetricsCollector:
 
         return metric
 
-    def get_recent_metrics(self, limit: int = 100) -> List[Dict]:
+    def get_recent_metrics(self, limit: int = 100) -> list[dict]:
         """Get recent metrics as list of dicts"""
         with self._lock:
             recent = list(self._metrics)[-limit:]
         return [asdict(m) for m in recent]
 
-    def get_aggregate_stats(self) -> Dict:
+    def get_aggregate_stats(self) -> dict:
         """Calculate aggregate statistics"""
         with self._lock:
             metrics = list(self._metrics)

@@ -10,21 +10,18 @@ Uses:
 
 import json
 import re
-from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
-from app.services.analysis.chat_prompts import get_chat_prompt
-from app.services.analysis.analyzer import TweetAnalyzer
-from app.services.chat.turkish_nlp import (
-    extract_keywords,
-    expand_keywords,
-    text_contains_any,
-    TURKISH_STOPWORDS,
-    turkish_stem,
-    get_synonyms
-)
 from app.core.constants import normalize_party_name
+from app.services.analysis.analyzer import TweetAnalyzer
+from app.services.analysis.chat_prompts import get_chat_prompt
+from app.services.chat.turkish_nlp import (
+    expand_keywords,
+    extract_keywords,
+    text_contains_any,
+)
 from app.utils.logger import get_logger
 
 logger = get_logger("IntentParser")
@@ -34,7 +31,7 @@ logger = get_logger("IntentParser")
 class ParsedIntent:
     """Parsed intent from user query"""
     intent_type: str  # search_topic, search_user, search_date, analyze_topics, search_retweets, search_criticism
-    filters: Dict[str, Any] = field(default_factory=dict)
+    filters: dict[str, Any] = field(default_factory=dict)
     semantic_query: str = ""
     confidence: float = 0.0
     raw_response: str = ""
@@ -153,7 +150,7 @@ class IntentParser:
         """
         query_lower = query.lower()
         intent_type = "search_topic"
-        filters: Dict[str, Any] = {
+        filters: dict[str, Any] = {
             "username": None,
             "party": None,
             "start_date": None,
@@ -285,7 +282,7 @@ class IntentParser:
             raw_response=""
         )
 
-    def _validate_date(self, date_str: str) -> Optional[str]:
+    def _validate_date(self, date_str: str) -> str | None:
         """
         Validate and normalize date string to YYYY-MM-DD format.
 

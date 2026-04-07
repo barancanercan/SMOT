@@ -15,12 +15,12 @@ Components:
 v5.0 - Initial implementation
 """
 
-from app.services.agents.base import BaseAgent, Tool, AgentResult
-from app.services.agents.meta_agent import MetaAgent
-from app.services.agents.retriever import RetrieverAgent
+from app.services.agents.base import AgentResult, BaseAgent, Tool
 from app.services.agents.classifier import ClassifierAgent
-from app.services.agents.summarizer import SummarizerAgent
+from app.services.agents.meta_agent import MetaAgent
 from app.services.agents.reranker import ReRanker
+from app.services.agents.retriever import RetrieverAgent
+from app.services.agents.summarizer import SummarizerAgent
 
 __all__ = [
     "BaseAgent",

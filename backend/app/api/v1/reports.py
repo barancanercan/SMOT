@@ -2,20 +2,21 @@
 Reports API Routes
 """
 import logging
-from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.api.v1.schemas import Platform
-from app.core.database import (
-    get_report_cache, save_report_cache, clear_report_cache, clear_expired_cache,
-    get_content_by_platform, get_instagram_posts
-)
-from app.core.rate_limit import limiter, RateLimits
 from app.core.constants import normalize_party_name
+from app.core.database import (
+    clear_expired_cache,
+    clear_report_cache,
+    get_report_cache,
+    save_report_cache,
+)
+from app.core.rate_limit import RateLimits, limiter
 from app.services.reporting.report_generator import ReportGenerator
 
 logger = logging.getLogger("Reports")
@@ -30,7 +31,7 @@ class GenerateReportRequest(BaseModel):
 
 
 class BatchReportRequest(BaseModel):
-    usernames: List[str]
+    usernames: list[str]
     use_llm: bool = True
     platform: Platform = Platform.TWITTER
 
@@ -174,7 +175,7 @@ async def get_cached_report(
 @limiter.limit(RateLimits.WRITE)
 async def clear_all_cache(
     request: Request,
-    report_type: Optional[str] = None,
+    report_type: str | None = None,
     db: Session = Depends(get_db)
 ):
     """
@@ -227,7 +228,7 @@ class PartyReportRequest(BaseModel):
 
 
 class MultiUserReportRequest(BaseModel):
-    usernames: List[str]
+    usernames: list[str]
     use_llm: bool = True
     platform: Platform = Platform.TWITTER
 
@@ -248,8 +249,9 @@ async def generate_multi_user_report(
 
     Rate limit: 5 requests per minute
     """
-    from app.core.models import Councilor, Tweet, InstagramPost
     from sqlalchemy import func
+
+    from app.core.models import Councilor, InstagramPost, Tweet
 
     if not body.usernames:
         raise HTTPException(status_code=400, detail="Kullanici listesi bos")
@@ -424,7 +426,7 @@ async def generate_multi_user_report(
                         report_lines.append("")
                         report_lines.append("**AI Analizi:**")
                         report_lines.append(f"> {analysis.executive_summary}")
-                        report_lines.append(f">")
+                        report_lines.append(">")
                         report_lines.append(f"> - Sadakat Seviyesi: {analysis.loyalty_level}")
                         report_lines.append(f"> - Elestiri Seviyesi: {analysis.criticism_level}")
                         if analysis.independent_topics:
@@ -523,8 +525,9 @@ async def generate_party_report(
 
     Rate limit: 5 requests per minute
     """
-    from app.core.models import Councilor, Tweet, ProfileHistory, InstagramPost
-    from sqlalchemy import func, Integer
+    from sqlalchemy import Integer, func
+
+    from app.core.models import Councilor, InstagramPost, Tweet
 
     platform = body.platform
 
@@ -615,8 +618,8 @@ async def generate_party_report(
             report_lines.extend([
                 "### Twitter (X)",
                 "",
-                f"| Metrik | Deger |",
-                f"|--------|-------|",
+                "| Metrik | Deger |",
+                "|--------|-------|",
                 f"| Toplam Tweet | {tweet_stats.total_tweets:,} |",
                 f"| Toplam Like | {tweet_stats.total_likes:,} |",
                 f"| Toplam RT | {tweet_stats.total_retweets:,} |",
@@ -633,8 +636,8 @@ async def generate_party_report(
             report_lines.extend([
                 "### Instagram",
                 "",
-                f"| Metrik | Deger |",
-                f"|--------|-------|",
+                "| Metrik | Deger |",
+                "|--------|-------|",
                 f"| Toplam Post | {total_posts:,} |",
                 f"| Foto | {total_photos:,} |",
                 f"| Video | {total_videos:,} |",

@@ -8,12 +8,11 @@ Metrics v1.0 - Tweet Metrik Hesaplama
 
 import sqlite3
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional
 
 from app.core.config import DB_PATH
 
 
-def calculate_engagement(likes: int, replies: int, retweets: int, views: int = 0) -> Dict:
+def calculate_engagement(likes: int, replies: int, retweets: int, views: int = 0) -> dict:
     """
     Tweet icin etkilesim metriklerini hesapla
 
@@ -32,7 +31,7 @@ def calculate_engagement(likes: int, replies: int, retweets: int, views: int = 0
     }
 
 
-def get_user_engagement_stats(username: str, start_date: Optional[str] = None, end_date: Optional[str] = None) -> Dict:
+def get_user_engagement_stats(username: str, start_date: str | None = None, end_date: str | None = None) -> dict:
     """
     Kullanici icin toplam etkilesim istatistikleri
 
@@ -120,7 +119,7 @@ def compare_periods(
     period1_end: str,
     period2_start: str,
     period2_end: str
-) -> Dict:
+) -> dict:
     """
     Iki donem arasindaki etkilesim degisimini karsilastir
 
@@ -160,7 +159,7 @@ def compare_periods(
     }
 
 
-def compare_last_weeks(username: str, weeks: int = 2) -> Dict:
+def compare_last_weeks(username: str, weeks: int = 2) -> dict:
     """
     Son N haftayi bir onceki N hafta ile karsilastir
 
@@ -189,10 +188,10 @@ def get_top_tweets(
     username: str,
     limit: int = 10,
     sort_by: str = 'engagement',
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
     include_retweets: bool = False
-) -> List[Dict]:
+) -> list[dict]:
     """
     En iyi tweetleri getir
 
@@ -275,12 +274,12 @@ def get_top_tweets(
 
 
 def get_top_tweets_all_users(
-    usernames: List[str],
+    usernames: list[str],
     limit_per_user: int = 5,
     sort_by: str = 'engagement',
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None
-) -> Dict[str, List[Dict]]:
+    start_date: str | None = None,
+    end_date: str | None = None
+) -> dict[str, list[dict]]:
     """
     Birden fazla kullanici icin en iyi tweetleri getir
     """
@@ -302,7 +301,7 @@ def get_top_tweets_all_users(
 # RAPORLAMA YARDIMCILARI
 # ============================================================================
 
-def get_engagement_ranking(usernames: List[str], start_date: Optional[str] = None, end_date: Optional[str] = None) -> List[Dict]:
+def get_engagement_ranking(usernames: list[str], start_date: str | None = None, end_date: str | None = None) -> list[dict]:
     """
     Kullanicilari toplam etkilesime gore sirala
 
@@ -324,7 +323,7 @@ def get_engagement_ranking(usernames: List[str], start_date: Optional[str] = Non
     return stats
 
 
-def print_engagement_report(usernames: List[str], start_date: Optional[str] = None, end_date: Optional[str] = None):
+def print_engagement_report(usernames: list[str], start_date: str | None = None, end_date: str | None = None):
     """Etkilesim raporu yazdir"""
     ranking = get_engagement_ranking(usernames, start_date, end_date)
 

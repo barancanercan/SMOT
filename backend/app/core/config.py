@@ -3,13 +3,12 @@ Application Configuration - Pydantic Settings
 Single source of truth for all configuration
 """
 from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 
 # Project paths
 BACKEND_DIR = Path(__file__).parent.parent.parent  # backend/
@@ -103,11 +102,11 @@ class Settings(BaseSettings):
     log_dir: str = Field(default=str(BACKEND_DIR / "logs"), description="Log files directory")
 
     # Browser Settings (for scraping)
-    brave_path_windows: Optional[str] = Field(
+    brave_path_windows: str | None = Field(
         default=r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe",
         description="Path to Brave browser on Windows"
     )
-    brave_path_linux: Optional[str] = Field(
+    brave_path_linux: str | None = Field(
         default="/usr/bin/brave-browser",
         description="Path to Brave browser on Linux"
     )
@@ -127,7 +126,7 @@ class Settings(BaseSettings):
         """Check if running in production"""
         return self.environment == "production"
 
-    def get_browser_path(self) -> Optional[str]:
+    def get_browser_path(self) -> str | None:
         """Get browser path based on OS"""
         import platform
         if platform.system() == "Windows":

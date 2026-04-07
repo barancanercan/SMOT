@@ -4,7 +4,6 @@ Modular design with separate sections for clean layout
 """
 import re
 from datetime import datetime
-from typing import Dict, List
 
 from fpdf import FPDF
 
@@ -105,7 +104,7 @@ class IntelligencePDFGenerator:
             'ş': 's', 'Ş': 'S', 'ı': 'i', 'İ': 'I',
             'ö': 'o', 'Ö': 'O', 'ç': 'c', 'Ç': 'C',
             # Quotes
-            ''': "'", ''': "'", '"': '"', '"': '"',
+            ''': "'", ''': "'", '"': '"',
             '‚': ',', '„': '"',
             # Dashes
             '–': '-', '—': '-', '‐': '-', '−': '-',
@@ -134,7 +133,7 @@ class IntelligencePDFGenerator:
         self.pdf.set_fill_color(*self.COLORS['bg_dark'])
         self.pdf.rect(0, 0, 210, 297, 'F')
 
-    def _parse_content(self, content: str) -> List[Dict]:
+    def _parse_content(self, content: str) -> list[dict]:
         """Parse markdown into structured sections"""
         sections = []
         current_section = {'type': 'text', 'title': '', 'items': []}
@@ -276,7 +275,7 @@ class IntelligencePDFGenerator:
         self.pdf.cell(0, 5, 'SMOT v3.1 | Powered by OpenAI GPT')
 
     def _draw_info_card(self, x: float, y: float, w: float, h: float,
-                        items: List[tuple]):
+                        items: list[tuple]):
         """Draw info card with label-value pairs"""
         self.pdf.set_fill_color(*self.COLORS['bg_card'])
         self.pdf.rect(x, y, w, h, 'F')
@@ -297,7 +296,7 @@ class IntelligencePDFGenerator:
             self.pdf.cell(0, 6, value)
             current_y += 14
 
-    def _add_content_pages(self, sections: List[Dict]):
+    def _add_content_pages(self, sections: list[dict]):
         """Render all content sections"""
         self.pdf.is_cover = False  # Enable header/footer
         self.pdf.add_page()
@@ -338,7 +337,7 @@ class IntelligencePDFGenerator:
             self.pdf.add_page()
             self.pdf.set_y(18)  # Start below header
 
-    def _render_section(self, section: Dict):
+    def _render_section(self, section: dict):
         """Render a section with its items"""
         section_type = section.get('type', 'text')
         title = section.get('title', '')
@@ -390,7 +389,7 @@ class IntelligencePDFGenerator:
 
         self.pdf.set_y(y + 14)
 
-    def _render_item(self, item: Dict):
+    def _render_item(self, item: dict):
         """Render individual item"""
         item_type = item.get('type', 'text')
 
@@ -480,7 +479,7 @@ class IntelligencePDFGenerator:
         self._set_color('text_light')
         self.pdf.multi_cell(162, 5, self._safe_text(self._strip_md(text)))
 
-    def _render_table_row(self, cells: List[str]):
+    def _render_table_row(self, cells: list[str]):
         """Render table row"""
         if not cells:
             return

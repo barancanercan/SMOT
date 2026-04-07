@@ -11,11 +11,10 @@ Uses both in-memory cache and database cache (ReportCache).
 """
 
 import hashlib
-import json
 import time
-from typing import Dict, Optional, Any, Tuple
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -59,10 +58,10 @@ class InMemoryCache:
 
     def __init__(self):
         """Initialize the cache."""
-        self._cache: Dict[str, CacheEntry] = {}
+        self._cache: dict[str, CacheEntry] = {}
         self._access_order: list = []  # LRU tracking
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """
         Get value from cache.
 
@@ -125,7 +124,7 @@ class InMemoryCache:
         self._access_order.clear()
         logger.info("Cache cleared")
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         now = time.time()
         valid_entries = sum(
@@ -172,7 +171,7 @@ _cache = InMemoryCache()
 # CACHE FUNCTIONS
 # =============================================================================
 
-def generate_cache_key(prefix: str, query: str, filters: Optional[Dict] = None) -> str:
+def generate_cache_key(prefix: str, query: str, filters: dict | None = None) -> str:
     """
     Generate a unique cache key.
 
@@ -206,9 +205,9 @@ def generate_cache_key(prefix: str, query: str, filters: Optional[Dict] = None) 
 
 def get_intent_cache(
     query: str,
-    party_filter: Optional[str] = None,
+    party_filter: str | None = None,
     platform: str = "twitter"
-) -> Optional[Dict]:
+) -> dict | None:
     """
     Get cached intent for query with filters.
 
@@ -233,8 +232,8 @@ def get_intent_cache(
 
 def set_intent_cache(
     query: str,
-    intent: Dict,
-    party_filter: Optional[str] = None,
+    intent: dict,
+    party_filter: str | None = None,
     platform: str = "twitter"
 ) -> None:
     """
@@ -252,9 +251,9 @@ def set_intent_cache(
 
 def get_response_cache(
     query: str,
-    filters: Optional[Dict] = None,
+    filters: dict | None = None,
     platform: str = "twitter"
-) -> Optional[Dict]:
+) -> dict | None:
     """
     Get cached response for query.
 
@@ -281,8 +280,8 @@ def get_response_cache(
 
 def set_response_cache(
     query: str,
-    response: Dict,
-    filters: Optional[Dict] = None,
+    response: dict,
+    filters: dict | None = None,
     platform: str = "twitter"
 ) -> None:
     """
@@ -307,7 +306,7 @@ def clear_cache() -> None:
     _cache.clear()
 
 
-def get_cache_stats() -> Dict[str, Any]:
+def get_cache_stats() -> dict[str, Any]:
     """Get cache statistics."""
     return _cache.stats()
 
@@ -320,7 +319,7 @@ def get_db_cache(
     db: Session,
     cache_type: str,
     key: str
-) -> Optional[str]:
+) -> str | None:
     """
     Get value from database cache (ReportCache).
 

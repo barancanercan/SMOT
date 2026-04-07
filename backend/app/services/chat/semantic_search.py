@@ -12,19 +12,18 @@ Features:
 4. In-memory search (fast for moderate datasets)
 """
 
-import re
 import math
-from typing import List, Dict, Tuple, Optional, Any
-from dataclasses import dataclass
+import re
 from collections import Counter
+from dataclasses import dataclass
+from typing import Any
 
 from app.services.chat.turkish_nlp import (
-    process_text,
-    turkish_stem,
-    normalize_turkish,
-    expand_keywords,
     TURKISH_STOPWORDS,
-    calculate_keyword_score
+    calculate_keyword_score,
+    expand_keywords,
+    normalize_turkish,
+    turkish_stem,
 )
 from app.utils.logger import get_logger
 
@@ -38,7 +37,7 @@ logger = get_logger("SemanticSearch")
 @dataclass
 class SearchResult:
     """Single search result with scoring."""
-    item: Dict[str, Any]
+    item: dict[str, Any]
     score: float
     tfidf_score: float
     keyword_score: float
@@ -66,11 +65,11 @@ class TurkishTFIDF:
         self.min_df = min_df
         self.max_df_ratio = max_df_ratio
 
-        self.vocabulary: Dict[str, int] = {}
-        self.idf: Dict[str, float] = {}
+        self.vocabulary: dict[str, int] = {}
+        self.idf: dict[str, float] = {}
         self.document_count = 0
 
-    def fit(self, documents: List[str]) -> 'TurkishTFIDF':
+    def fit(self, documents: list[str]) -> 'TurkishTFIDF':
         """
         Fit the vectorizer on documents.
 
@@ -111,7 +110,7 @@ class TurkishTFIDF:
         logger.info(f"TF-IDF fitted: {self.document_count} docs, {len(self.vocabulary)} terms")
         return self
 
-    def transform(self, documents: List[str]) -> List[Dict[str, float]]:
+    def transform(self, documents: list[str]) -> list[dict[str, float]]:
         """
         Transform documents to TF-IDF vectors.
 
@@ -129,12 +128,12 @@ class TurkishTFIDF:
 
         return vectors
 
-    def fit_transform(self, documents: List[str]) -> List[Dict[str, float]]:
+    def fit_transform(self, documents: list[str]) -> list[dict[str, float]]:
         """Fit and transform in one step."""
         self.fit(documents)
         return self.transform(documents)
 
-    def _tokenize(self, text: str) -> List[str]:
+    def _tokenize(self, text: str) -> list[str]:
         """Tokenize and stem text."""
         # Normalize and lowercase
         text = normalize_turkish(text.lower())
@@ -152,7 +151,7 @@ class TurkishTFIDF:
 
         return tokens
 
-    def _document_to_vector(self, doc: str) -> Dict[str, float]:
+    def _document_to_vector(self, doc: str) -> dict[str, float]:
         """Convert document to TF-IDF sparse vector."""
         tokens = self._tokenize(doc)
 
@@ -180,7 +179,7 @@ class TurkishTFIDF:
         return vector
 
 
-def cosine_similarity(vec1: Dict[str, float], vec2: Dict[str, float]) -> float:
+def cosine_similarity(vec1: dict[str, float], vec2: dict[str, float]) -> float:
     """
     Calculate cosine similarity between two sparse vectors.
 
@@ -221,11 +220,11 @@ class SemanticSearchEngine:
     def __init__(self):
         """Initialize the search engine."""
         self.tfidf = TurkishTFIDF(min_df=1, max_df_ratio=0.9)
-        self.documents: List[Dict[str, Any]] = []
-        self.vectors: List[Dict[str, float]] = []
+        self.documents: list[dict[str, Any]] = []
+        self.vectors: list[dict[str, float]] = []
         self.max_engagement = 1
 
-    def index(self, items: List[Dict[str, Any]], text_field: str = "tweet_text") -> None:
+    def index(self, items: list[dict[str, Any]], text_field: str = "tweet_text") -> None:
         """
         Index items for search.
 
@@ -253,10 +252,10 @@ class SemanticSearchEngine:
     def search(
         self,
         query: str,
-        keywords: Optional[List[str]] = None,
+        keywords: list[str] | None = None,
         top_k: int = 50,
         min_score: float = 0.1
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """
         Search for items matching query.
 
@@ -276,11 +275,11 @@ class SemanticSearchEngine:
         query_vector = self.tfidf._document_to_vector(query)
 
         # Expand keywords for matching
-        expanded_keywords = expand_keywords(keywords or [])
+        expand_keywords(keywords or [])
 
         results = []
 
-        for i, (doc, vec) in enumerate(zip(self.documents, self.vectors)):
+        for _i, (doc, vec) in enumerate(zip(self.documents, self.vectors, strict=False)):
             # TF-IDF similarity
             tfidf_score = cosine_similarity(query_vector, vec)
 
@@ -313,7 +312,7 @@ class SemanticSearchEngine:
 
         return results[:top_k]
 
-    def _get_engagement(self, item: Dict[str, Any]) -> float:
+    def _get_engagement(self, item: dict[str, Any]) -> float:
         """Calculate engagement score for an item."""
         likes = item.get("likes", 0) or 0
         retweets = item.get("retweets", 0) or 0
@@ -344,12 +343,12 @@ class HybridSearchEngine:
 
     def search(
         self,
-        candidates: List[Dict[str, Any]],
+        candidates: list[dict[str, Any]],
         query: str,
-        keywords: Optional[List[str]] = None,
-        filters: Optional[Dict[str, Any]] = None,
+        keywords: list[str] | None = None,
+        filters: dict[str, Any] | None = None,
         max_results: int = 50
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Perform hybrid search.
 
@@ -397,11 +396,11 @@ class HybridSearchEngine:
 # =============================================================================
 
 def semantic_search(
-    items: List[Dict[str, Any]],
+    items: list[dict[str, Any]],
     query: str,
-    keywords: Optional[List[str]] = None,
+    keywords: list[str] | None = None,
     max_results: int = 50
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Convenience function for one-shot semantic search.
 

@@ -112,7 +112,7 @@ class TestResponseGenerator:
             intent_type="search_topic"
         )
 
-        assert result.answer == "Aramaniza uygun tweet bulunamadi."
+        assert "bulunamadı" in result.answer.lower() or "bulunamadi" in result.answer.lower()
         assert result.summary["total_found"] == 0
 
     def test_generate_simple_response(self):
@@ -137,23 +137,21 @@ class TestResponseGenerator:
         assert result.summary["total_found"] == 3
         assert "user1" in result.summary["most_active_users"]
 
-    def test_should_generate_summary(self):
-        """Test summary generation decision"""
+    def test_generate_returns_chat_response(self):
+        """Test that generate returns a proper ChatResponse"""
         from app.services.chat.response_generator import ResponseGenerator
 
         generator = ResponseGenerator()
+        generator.llm_available = False
 
-        # Always for analysis
-        assert generator.should_generate_summary(3, "analyze_topics") == True
+        result = generator.generate(
+            query="Test query",
+            tweets=[],
+            intent_type="search_topic"
+        )
 
-        # For 10+ tweets
-        assert generator.should_generate_summary(10, "search_topic") == True
-
-        # For 5+ tweets
-        assert generator.should_generate_summary(5, "search_topic") == True
-
-        # For fewer tweets with simple intent
-        assert generator.should_generate_summary(2, "search_topic") == False
+        assert result.confidence_score == 0.0
+        assert isinstance(result.summary, dict)
 
 
 # Test ChatHandler

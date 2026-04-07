@@ -7,11 +7,11 @@
 ✅ Enhanced RT detection + Views
 """
 
+import platform
+import random
 import time
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional
-import random
-import platform
+
 from app.utils.logger import get_logger
 from app.utils.retry_config import retry_on_scraping_error
 
@@ -20,14 +20,14 @@ logger = get_logger("XScraper")
 
 # Safe imports
 try:
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
     from selenium.common.exceptions import (
-        TimeoutException,
         NoSuchElementException,
-        StaleElementReferenceException
+        StaleElementReferenceException,
+        TimeoutException,
     )
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.support.ui import WebDriverWait
 
     SELENIUM_AVAILABLE = True
 except ImportError as e:
@@ -149,7 +149,7 @@ class XTwitterScraper:
             self.logged_in = False
             return False
 
-    def _parse_tweet_date(self, timestamp_str: str) -> Optional[datetime]:
+    def _parse_tweet_date(self, timestamp_str: str) -> datetime | None:
         """Parse ISO format date"""
         try:
             if not timestamp_str:
@@ -196,7 +196,7 @@ class XTwitterScraper:
             return 0
 
     @retry_on_scraping_error
-    def scrape_tweets(self, username: str, max_tweets: int = 500, days_back: int = 90) -> List[Dict]:
+    def scrape_tweets(self, username: str, max_tweets: int = 500, days_back: int = 90) -> list[dict]:
         """
         Scrape tweets - AGGRESSIVE TIME-BASED COLLECTION
 
@@ -209,7 +209,7 @@ class XTwitterScraper:
         if not self.driver or not SELENIUM_AVAILABLE:
             return []
 
-        tweets: List[Dict] = []
+        tweets: list[dict] = []
         url = f"https://x.com/{username}"
 
         logger.info(f"Scraping: @{username}")
@@ -590,8 +590,8 @@ class XTwitterScraper:
             logger.error(f"Scrape error @{username}: {e}")
             return []
 
-    def scrape_multiple(self, usernames: List[str], max_tweets: int = 500, days_back: int = 90) -> Dict[
-        str, List[Dict]]:
+    def scrape_multiple(self, usernames: list[str], max_tweets: int = 500, days_back: int = 90) -> dict[
+        str, list[dict]]:
         """Scrape multiple users"""
         logger.info(f"START BATCH: {len(usernames)} users, {days_back} days window")
 

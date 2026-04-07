@@ -6,35 +6,32 @@ Hybrid RAG: BM25 + Dense Embeddings + RRF + Cross-Encoder Reranking.
 """
 import asyncio
 import logging
-from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session as DBSession
 
 from app.api.deps import get_db
 from app.api.v1.schemas import (
+    AddMessageRequest,
+    ChatMessageResponse,
     ChatQueryRequest,
     ChatQueryResponse,
-    ChatTweetResult,
-    ChatSummary,
     ChatSuggestionsResponse,
+    ChatSummary,
+    ChatTweetResult,
     # Session schemas
     CreateSessionRequest,
     CreateSessionResponse,
     SessionDetailResponse,
     SessionListResponse,
     UpdateSessionRequest,
-    AddMessageRequest,
-    ChatMessageResponse,
 )
-from app.core.rate_limit import limiter, RateLimits
+from app.core.rate_limit import RateLimits, limiter
 from app.services.chat.chat_handler import ChatHandler
+from app.services.chat.query_cache import clear_cache as clear_query_cache
 from app.services.chat.session_manager import (
     SessionManager,
-    session_to_dict,
-    message_to_dict,
 )
-from app.services.chat.query_cache import clear_cache as clear_query_cache
 
 logger = logging.getLogger("Chat")
 router = APIRouter()
@@ -166,8 +163,8 @@ async def chat_query(
 @limiter.limit(RateLimits.STANDARD)
 async def get_suggestions(
     request: Request,
-    platform: Optional[str] = Query(default="twitter", description="Platform filter (twitter, instagram, both)"),
-    party: Optional[str] = Query(default=None, description="Party filter for context-aware suggestions"),
+    platform: str | None = Query(default="twitter", description="Platform filter (twitter, instagram, both)"),
+    party: str | None = Query(default=None, description="Party filter for context-aware suggestions"),
     db: DBSession = Depends(get_db)
 ):
     """

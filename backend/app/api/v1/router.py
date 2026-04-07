@@ -3,7 +3,7 @@ API v1 Router - Combines all route modules
 """
 from fastapi import APIRouter
 
-from app.api.v1 import auth, dashboard, users, analytics, tweets, reports, exports, metrics, chat
+from app.api.v1 import analytics, auth, chat, dashboard, exports, metrics, reports, tweets, users
 
 api_router = APIRouter()
 

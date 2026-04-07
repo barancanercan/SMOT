@@ -1,19 +1,17 @@
 """
 Users API Routes
 """
-from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.api.schemas import PaginatedResponse, UserListItem, UserDetail
-from app.core.models import Councilor, Tweet, ProfileHistory, ReportCache
-from app.core.database import get_latest_profile, get_all_profile_history
-from app.core.rate_limit import limiter, RateLimits
 from app.core.constants import normalize_party_name
+from app.core.database import get_all_profile_history, get_latest_profile
+from app.core.models import Councilor, ProfileHistory, ReportCache, Tweet
+from app.core.rate_limit import RateLimits, limiter
 
 router = APIRouter()
 
@@ -23,20 +21,20 @@ class CreateUserRequest(BaseModel):
     username: str
     name: str
     party: str
-    district: Optional[str] = None
+    district: str | None = None
 
 
 class BulkCreateRequest(BaseModel):
-    users: List[CreateUserRequest]
+    users: list[CreateUserRequest]
 
 
 @router.get("/")
 @limiter.limit(RateLimits.STANDARD)
 async def get_all_users(
     request: Request,
-    party: Optional[str] = None,
-    district: Optional[str] = None,
-    search: Optional[str] = None,
+    party: str | None = None,
+    district: str | None = None,
+    search: str | None = None,
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     db: Session = Depends(get_db)

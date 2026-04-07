@@ -20,10 +20,10 @@ References:
 - RAGFlow 2025 Review
 """
 
-import numpy as np
-from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
-import logging
+from typing import Any
+
+import numpy as np
 
 # Sentence transformers for embeddings
 try:
@@ -255,20 +255,20 @@ NEGATION_WORDS = {
 @dataclass
 class RetrievalResult:
     """Single retrieval result with score"""
-    content: Dict[str, Any]
+    content: dict[str, Any]
     semantic_score: float
     keyword_score: float
     sentiment_score: float  # Negative = criticism, Positive = praise
     combined_score: float
-    matched_concepts: List[str]
+    matched_concepts: list[str]
 
 
 @dataclass
 class RetrievalResponse:
     """Complete retrieval response"""
-    results: List[RetrievalResult]
+    results: list[RetrievalResult]
     total_searched: int
-    query_concepts: List[str]
+    query_concepts: list[str]
     retrieval_time_ms: float
 
 
@@ -330,8 +330,8 @@ class SemanticRetriever:
     def retrieve(
         self,
         query: str,
-        documents: List[Dict[str, Any]],
-        target_concepts: Optional[List[str]] = None,
+        documents: list[dict[str, Any]],
+        target_concepts: list[str] | None = None,
         top_k: int = 30,
         min_score: float = 0.3
     ) -> RetrievalResponse:
@@ -498,7 +498,7 @@ class SemanticRetriever:
 
         return max(-1.0, min(1.0, combined))  # Clamp to [-1, 1]
 
-    def _is_criticism_search(self, query: str, target_concepts: Optional[List[str]]) -> bool:
+    def _is_criticism_search(self, query: str, target_concepts: list[str] | None) -> bool:
         """
         Check if this is EXPLICITLY a criticism-focused search.
 
@@ -530,12 +530,12 @@ class SemanticRetriever:
     def _semantic_search(
         self,
         query: str,
-        texts: List[str],
-        documents: List[Dict],
-        target_concepts: Optional[List[str]],
+        texts: list[str],
+        documents: list[dict],
+        target_concepts: list[str] | None,
         top_k: int,
         min_score: float
-    ) -> List[RetrievalResult]:
+    ) -> list[RetrievalResult]:
         """
         Embedding-based semantic search with conditional sentiment filtering.
 
@@ -594,11 +594,11 @@ class SemanticRetriever:
         elif target_concepts:
             # Topic search WITH concepts - NO sentiment filter
             combined_scores = 0.5 * semantic_scores + 0.5 * concept_scores
-            logger.info(f"Topic search with concepts: NO sentiment filter applied")
+            logger.info("Topic search with concepts: NO sentiment filter applied")
         else:
             # Pure semantic search - NO sentiment filter
             combined_scores = semantic_scores
-            logger.info(f"Pure semantic search: NO sentiment filter applied")
+            logger.info("Pure semantic search: NO sentiment filter applied")
 
         # Rank and filter
         results = []
@@ -642,11 +642,11 @@ class SemanticRetriever:
     def _tfidf_search(
         self,
         query: str,
-        texts: List[str],
-        documents: List[Dict],
+        texts: list[str],
+        documents: list[dict],
         top_k: int,
         min_score: float
-    ) -> List[RetrievalResult]:
+    ) -> list[RetrievalResult]:
         """TF-IDF fallback when embeddings not available."""
         from sklearn.feature_extraction.text import TfidfVectorizer
         from sklearn.metrics.pairwise import cosine_similarity
@@ -701,7 +701,7 @@ class SemanticRetriever:
         # Dot product = cosine similarity for normalized vectors
         return np.dot(doc_norms, query_norm)
 
-    def detect_topic(self, query: str) -> Optional[str]:
+    def detect_topic(self, query: str) -> str | None:
         """
         Detect the PRIMARY topic of the query using keyword matching.
 
@@ -723,17 +723,17 @@ class SemanticRetriever:
 
         return None
 
-    def get_topic_keywords(self, topic: str) -> List[str]:
+    def get_topic_keywords(self, topic: str) -> list[str]:
         """Get keywords for a topic."""
         topic_data = TOPIC_CONCEPTS.get(topic, {})
         return topic_data.get("keywords", [])
 
-    def get_topic_examples(self, topic: str) -> List[str]:
+    def get_topic_examples(self, topic: str) -> list[str]:
         """Get few-shot examples for a topic."""
         topic_data = TOPIC_CONCEPTS.get(topic, {})
         return topic_data.get("examples", [])
 
-    def detect_query_concepts(self, query: str) -> List[str]:
+    def detect_query_concepts(self, query: str) -> list[str]:
         """
         Detect which political concepts are relevant to the query.
 
@@ -763,7 +763,7 @@ class SemanticRetriever:
 
         return rule_based[:4]  # Return top 4 concepts
 
-    def _rule_based_concept_detection(self, query: str) -> List[str]:
+    def _rule_based_concept_detection(self, query: str) -> list[str]:
         """
         Rule-based fallback for concept detection.
 

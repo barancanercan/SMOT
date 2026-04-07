@@ -12,11 +12,11 @@ Provides persistent chat session management:
 
 import uuid
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.core.models import ChatSession, ChatMessage
+from app.core.models import ChatMessage, ChatSession
 from app.utils.logger import get_logger
 
 logger = get_logger("SessionManager")
@@ -42,8 +42,8 @@ class SessionManager:
     def create_session(
         self,
         platform: str = "twitter",
-        party_filter: Optional[str] = None,
-        title: Optional[str] = None
+        party_filter: str | None = None,
+        title: str | None = None
     ) -> ChatSession:
         """
         Create a new chat session.
@@ -75,7 +75,7 @@ class SessionManager:
         logger.info(f"Created session: {session_id}")
         return session
 
-    def get_session(self, session_id: str) -> Optional[ChatSession]:
+    def get_session(self, session_id: str) -> ChatSession | None:
         """
         Get a session by ID with its messages.
 
@@ -93,7 +93,7 @@ class SessionManager:
         self,
         limit: int = 20,
         offset: int = 0
-    ) -> List[ChatSession]:
+    ) -> list[ChatSession]:
         """
         List all sessions ordered by most recent first.
 
@@ -133,8 +133,8 @@ class SessionManager:
         session_id: str,
         role: str,
         content: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Optional[ChatMessage]:
+        metadata: dict[str, Any] | None = None
+    ) -> ChatMessage | None:
         """
         Add a message to a session.
 
@@ -181,7 +181,7 @@ class SessionManager:
         self,
         session_id: str,
         limit: int = 100
-    ) -> List[ChatMessage]:
+    ) -> list[ChatMessage]:
         """
         Get messages for a session.
 
@@ -201,10 +201,10 @@ class SessionManager:
     def update_session(
         self,
         session_id: str,
-        title: Optional[str] = None,
-        platform: Optional[str] = None,
-        party_filter: Optional[str] = None
-    ) -> Optional[ChatSession]:
+        title: str | None = None,
+        platform: str | None = None,
+        party_filter: str | None = None
+    ) -> ChatSession | None:
         """
         Update session properties.
 
@@ -305,7 +305,7 @@ class SessionManager:
 # Helper functions for API endpoints
 # =============================================================================
 
-def session_to_dict(session: ChatSession, include_messages: bool = False) -> Dict[str, Any]:
+def session_to_dict(session: ChatSession, include_messages: bool = False) -> dict[str, Any]:
     """
     Convert ChatSession to dictionary for API response.
 
@@ -334,7 +334,7 @@ def session_to_dict(session: ChatSession, include_messages: bool = False) -> Dic
     return data
 
 
-def message_to_dict(message: ChatMessage) -> Dict[str, Any]:
+def message_to_dict(message: ChatMessage) -> dict[str, Any]:
     """
     Convert ChatMessage to dictionary for API response.
 

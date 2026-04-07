@@ -13,8 +13,8 @@ Temel yetenekler:
 
 import json
 import logging
-from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
+from typing import Any
 
 from openai import OpenAI
 
@@ -68,11 +68,11 @@ class ReasonedQuery:
     original_query: str
     reasoning: str  # Model'in düşünce süreci
     enhanced_query: str  # Genişletilmiş sorgu
-    search_terms: List[str]  # Aranacak terimler
-    target_party: Optional[str]  # Eleştirilen parti
-    source_party: Optional[str]  # Eleştiren parti (UI'dan)
+    search_terms: list[str]  # Aranacak terimler
+    target_party: str | None  # Eleştirilen parti
+    source_party: str | None  # Eleştiren parti (UI'dan)
     intent: str  # criticism, support, neutral, information
-    political_context: Dict[str, Any] = field(default_factory=dict)
+    political_context: dict[str, Any] = field(default_factory=dict)
     confidence: float = 0.0
 
 
@@ -98,7 +98,7 @@ class QueryReasoner:
     def reason(
         self,
         query: str,
-        party_filter: Optional[str] = None,
+        party_filter: str | None = None,
         platform: str = "twitter"
     ) -> ReasonedQuery:
         """
@@ -124,7 +124,7 @@ class QueryReasoner:
     def _llm_reasoning(
         self,
         query: str,
-        party_filter: Optional[str],
+        party_filter: str | None,
         platform: str
     ) -> ReasonedQuery:
         """GPT ile sorgu analizi."""
@@ -207,7 +207,7 @@ Lütfen JSON formatında yanıt ver:
     def _fallback_reasoning(
         self,
         query: str,
-        party_filter: Optional[str]
+        party_filter: str | None
     ) -> ReasonedQuery:
         """LLM olmadan basit kural tabanlı analiz."""
 

@@ -11,9 +11,8 @@ Gorevler:
 import sqlite3
 from datetime import datetime
 
-
 from app.core.config import settings
-from app.core.database import init_database, clear_expired_cache
+from app.core.database import clear_expired_cache, init_database
 
 
 def get_all_usernames():

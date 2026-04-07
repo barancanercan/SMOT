@@ -2,24 +2,21 @@
 Analytics API Routes
 """
 import logging
-from typing import Optional, List
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy import func
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_
 
 from app.api.deps import get_db
-from app.api.v1.schemas import Platform, ComparisonRequest, PartyComparisonRequest
-from app.core.models import Councilor, Tweet, ProfileHistory, InstagramPost, InstagramProfile
+from app.api.v1.schemas import ComparisonRequest, PartyComparisonRequest, Platform
 from app.core.constants import normalize_party_name
-from app.core.rate_limit import limiter, RateLimits
 from app.core.database import (
-    get_instagram_followers_ranking,
     get_instagram_engagement_ranking,
-    get_engagement_by_platform
+    get_instagram_followers_ranking,
 )
+from app.core.models import Councilor, InstagramPost, InstagramProfile, ProfileHistory, Tweet
+from app.core.rate_limit import RateLimits, limiter
 
 logger = logging.getLogger("Analytics")
 router = APIRouter()
@@ -136,16 +133,16 @@ async def get_party_statistics(db: Session = Depends(get_db)):
                 }
             party_map[normalized]["member_count"] += 1
 
-        return sorted(list(party_map.values()), key=lambda x: x["member_count"], reverse=True)
-    except Exception as e:
+        return sorted(party_map.values(), key=lambda x: x["member_count"], reverse=True)
+    except Exception:
         return []
 
 
 @router.get("/engagement")
 async def get_engagement_ranking(
     limit: int = 15,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
     platform: Platform = Query(Platform.TWITTER, description="Platform for engagement ranking"),
     db: Session = Depends(get_db)
 ):
@@ -271,7 +268,7 @@ async def get_district_statistics(db: Session = Depends(get_db)):
             }
             for r in results
         ]
-    except Exception as e:
+    except Exception:
         return []
 
 
@@ -997,8 +994,8 @@ async def compare_parties_llm(
 @limiter.limit(RateLimits.STANDARD)
 async def get_weekly_top_tweets(
     request: Request,
-    party: Optional[str] = None,
-    username: Optional[str] = None,
+    party: str | None = None,
+    username: str | None = None,
     limit: int = Query(5, ge=1, le=20),
     db: Session = Depends(get_db)
 ):
@@ -1066,8 +1063,8 @@ async def get_weekly_top_tweets(
 @limiter.limit(RateLimits.STANDARD)
 async def get_recent_tweets(
     request: Request,
-    party: Optional[str] = None,
-    username: Optional[str] = None,
+    party: str | None = None,
+    username: str | None = None,
     limit: int = Query(3, ge=1, le=10),
     db: Session = Depends(get_db)
 ):
@@ -1124,8 +1121,8 @@ async def get_recent_tweets(
 @limiter.limit(RateLimits.STANDARD)
 async def get_top_tweets_all(
     request: Request,
-    party: Optional[str] = None,
-    username: Optional[str] = None,
+    party: str | None = None,
+    username: str | None = None,
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db)
 ):
@@ -1190,8 +1187,8 @@ async def get_top_tweets_all(
 @limiter.limit(RateLimits.STANDARD)
 async def get_top_posts(
     request: Request,
-    party: Optional[str] = None,
-    username: Optional[str] = None,
+    party: str | None = None,
+    username: str | None = None,
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db)
 ):
@@ -1257,8 +1254,8 @@ async def get_top_posts(
 @limiter.limit(RateLimits.STANDARD)
 async def get_weekly_top_posts(
     request: Request,
-    party: Optional[str] = None,
-    username: Optional[str] = None,
+    party: str | None = None,
+    username: str | None = None,
     limit: int = Query(5, ge=1, le=20),
     db: Session = Depends(get_db)
 ):

@@ -1,15 +1,14 @@
 """
 API Dependencies - Dependency Injection
 """
-from typing import Generator, Optional
+from collections.abc import Generator
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.core.db_config import SessionLocal
-from app.core.security import verify_token, get_user, TokenData, UserInDB
-
+from app.core.security import TokenData, UserInDB, get_user, verify_token
 
 # OAuth2 scheme for token authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
@@ -28,7 +27,7 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> Optional[UserInDB]:
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB | None:
     """
     Get current authenticated user from token.
 
@@ -58,7 +57,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Optional[User
 
 
 async def get_current_user_required(
-    current_user: Optional[UserInDB] = Depends(get_current_user)
+    current_user: UserInDB | None = Depends(get_current_user)
 ) -> UserInDB:
     """
     Require authenticated user.

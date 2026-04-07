@@ -8,12 +8,12 @@
 """
 
 import os
-import time
-import re
-import random
-from datetime import datetime, timedelta
-from typing import List, Dict, Optional
 import platform
+import random
+import re
+import time
+from datetime import datetime, timedelta
+
 from app.utils.logger import get_logger
 from app.utils.retry_config import retry_on_scraping_error
 
@@ -21,14 +21,14 @@ logger = get_logger("InstagramScraper")
 
 # Safe imports
 try:
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
     from selenium.common.exceptions import (
-        TimeoutException,
         NoSuchElementException,
-        StaleElementReferenceException
+        StaleElementReferenceException,
+        TimeoutException,
     )
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.support.ui import WebDriverWait
     SELENIUM_AVAILABLE = True
 except ImportError as e:
     SELENIUM_AVAILABLE = False
@@ -44,7 +44,7 @@ except ImportError:
 # Instaloader - API based scraping (faster, no browser needed)
 try:
     import instaloader
-    from instaloader import Profile, Post
+    from instaloader import Profile
     INSTALOADER_AVAILABLE = True
 except ImportError:
     INSTALOADER_AVAILABLE = False
@@ -272,10 +272,10 @@ class InstagramScraper:
 
             return int(num)
 
-        except Exception as e:
+        except Exception:
             return 0
 
-    def _parse_instagram_date(self, date_text: str) -> Optional[datetime]:
+    def _parse_instagram_date(self, date_text: str) -> datetime | None:
         """Parse Instagram relative date format"""
         if not date_text:
             return None
@@ -332,7 +332,7 @@ class InstagramScraper:
             return None
 
     @retry_on_scraping_error
-    def scrape_profile(self, username: str) -> Optional[Dict]:
+    def scrape_profile(self, username: str) -> dict | None:
         """
         Scrape profile info: followers, following, posts count
 
@@ -496,7 +496,7 @@ class InstagramScraper:
             return None
 
     @retry_on_scraping_error
-    def scrape_posts(self, username: str, max_posts: int = 50, days_back: int = 90) -> List[Dict]:
+    def scrape_posts(self, username: str, max_posts: int = 50, days_back: int = 90) -> list[dict]:
         """
         Scrape posts from a profile - Updated for Instagram 2026 DOM
 
@@ -515,7 +515,7 @@ class InstagramScraper:
             logger.error("Driver yok")
             return []
 
-        posts: List[Dict] = []
+        posts: list[dict] = []
         url = f"https://www.instagram.com/{username}/"
 
         logger.info(f"Scraping posts: @{username}")
@@ -667,7 +667,7 @@ class InstagramScraper:
             logger.error(f"Scrape error @{username}: {e}")
             return posts  # Return what we have
 
-    def _extract_engagement_from_dom(self) -> Dict:
+    def _extract_engagement_from_dom(self) -> dict:
         """
         Extract likes and comments from Instagram DOM (2026 method).
         Instagram uses spans with specific classes for engagement counts.
@@ -742,7 +742,7 @@ class InstagramScraper:
 
         return result
 
-    def _scrape_single_post(self, post_url: str, username: str) -> Optional[Dict]:
+    def _scrape_single_post(self, post_url: str, username: str) -> dict | None:
         """Scrape details from a single post - Updated for Instagram 2026"""
         try:
             # Open post
@@ -972,7 +972,7 @@ class InstagramScraper:
             logger.debug(f"Single post error: {e}")
             return None
 
-    def scrape_user_complete(self, username: str, max_posts: int = 50, days_back: int = 90) -> Dict:
+    def scrape_user_complete(self, username: str, max_posts: int = 50, days_back: int = 90) -> dict:
         """
         Scrape both profile and posts for a user
 
@@ -992,7 +992,7 @@ class InstagramScraper:
             'posts': posts
         }
 
-    def scrape_multiple(self, usernames: List[str], max_posts: int = 50, days_back: int = 90) -> Dict[str, Dict]:
+    def scrape_multiple(self, usernames: list[str], max_posts: int = 50, days_back: int = 90) -> dict[str, dict]:
         """Scrape multiple users"""
         logger.info(f"START BATCH: {len(usernames)} users")
 
@@ -1009,7 +1009,7 @@ class InstagramScraper:
 
         return results
 
-    def update_post_engagement(self, post_url: str) -> Optional[Dict]:
+    def update_post_engagement(self, post_url: str) -> dict | None:
         """
         Re-visit a single post URL to get updated engagement data (likes, comments, caption).
         Use this to update existing posts in database.
@@ -1077,7 +1077,7 @@ class InstagramScraper:
                     pass
 
             if not result['caption']:
-                logger.warning(f"  -> Caption bulunamadi!")
+                logger.warning("  -> Caption bulunamadi!")
 
             return result
 
@@ -1085,7 +1085,7 @@ class InstagramScraper:
             logger.error(f"Update engagement error: {e}")
             return None
 
-    def batch_update_engagement(self, post_urls: List[str], delay: float = 2.0) -> Dict[str, Dict]:
+    def batch_update_engagement(self, post_urls: list[str], delay: float = 2.0) -> dict[str, dict]:
         """
         Update engagement for multiple posts.
 
@@ -1107,7 +1107,7 @@ class InstagramScraper:
                 results[url] = data
                 logger.info(f"  -> {data['likes']} likes, {data['comments']} comments")
             else:
-                logger.warning(f"  -> Failed to update")
+                logger.warning("  -> Failed to update")
 
             if i < total:
                 time.sleep(delay + random.uniform(0, 1))
@@ -1197,7 +1197,7 @@ class InstagramScraper:
             logger.error(f"Instaloader init error: {e}")
             return False
 
-    def scrape_profile_fast(self, username: str) -> Optional[Dict]:
+    def scrape_profile_fast(self, username: str) -> dict | None:
         """
         Scrape profile using instaloader (faster than Selenium)
 
@@ -1236,7 +1236,7 @@ class InstagramScraper:
         username: str,
         max_posts: int = 50,
         since_date: datetime = None
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Scrape posts using instaloader (faster than Selenium)
 
@@ -1309,7 +1309,7 @@ class InstagramScraper:
         username: str,
         max_posts: int = 50,
         since_date: datetime = None
-    ) -> Dict:
+    ) -> dict:
         """
         Scrape profile + posts using instaloader (fast mode)
         """

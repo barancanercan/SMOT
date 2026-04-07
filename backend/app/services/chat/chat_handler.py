@@ -15,25 +15,27 @@ Key improvements over v6:
 """
 
 import time
-from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
+from typing import Any
 
-from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
-from app.services.chat.query_analyzer import get_query_analyzer, AnalyzedQuery
-from app.services.chat.hybrid_retriever import get_hybrid_retriever, TOPIC_KEYWORDS
-from app.services.chat.response_generator import (
-    ResponseGenerator, ChatResponse, compute_confidence, _get_content_name,
-)
-from app.services.chat.turkish_nlp import expand_keywords, calculate_keyword_score
-from app.services.chat.query_cache import (
-    get_intent_cache, set_intent_cache,
-    get_response_cache, set_response_cache,
-    get_cache_stats,
-)
-from app.core.models import Tweet, Councilor, InstagramPost
 from app.core.constants import normalize_party_name
+from app.core.models import Councilor, InstagramPost, Tweet
+from app.services.chat.hybrid_retriever import get_hybrid_retriever
+from app.services.chat.query_analyzer import AnalyzedQuery, get_query_analyzer
+from app.services.chat.query_cache import (
+    get_response_cache,
+    set_response_cache,
+)
+from app.services.chat.response_generator import (
+    ChatResponse,
+    ResponseGenerator,
+    _get_content_name,
+    compute_confidence,
+)
+from app.services.chat.turkish_nlp import expand_keywords
 from app.utils.logger import get_logger
 
 logger = get_logger("ChatHandler")
@@ -57,9 +59,9 @@ class ChatQueryResult:
     """Complete result of a chat query."""
     query: str
     answer: str
-    summary: Dict[str, Any] = field(default_factory=dict)
-    tweets: List[Dict] = field(default_factory=list)
-    filters_applied: Dict[str, Any] = field(default_factory=dict)
+    summary: dict[str, Any] = field(default_factory=dict)
+    tweets: list[dict] = field(default_factory=list)
+    filters_applied: dict[str, Any] = field(default_factory=dict)
     confidence_score: float = 0.0
     execution_time_ms: float = 0.0
     cached: bool = False
@@ -95,7 +97,7 @@ class ChatHandler:
         query: str,
         max_results: int = DEFAULT_MAX_RESULTS,
         include_summary: bool = True,
-        party_filter: Optional[str] = None,
+        party_filter: str | None = None,
         platform: str = "twitter",
     ) -> ChatQueryResult:
         """
@@ -283,7 +285,7 @@ class ChatHandler:
         self,
         analysis: AnalyzedQuery,
         platform: str,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Get content pool from database using SQL filters.
 
@@ -372,13 +374,13 @@ class ChatHandler:
 
     def _query_twitter(
         self,
-        party_usernames: Optional[List[str]],
-        keywords: List[str],
-        username: Optional[str],
-        start_date: Optional[str],
-        end_date: Optional[str],
+        party_usernames: list[str] | None,
+        keywords: list[str],
+        username: str | None,
+        start_date: str | None,
+        end_date: str | None,
         limit: int,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Query Twitter content from database."""
         query = self.db.query(Tweet).filter(Tweet.is_retweet == False)
 
@@ -427,13 +429,13 @@ class ChatHandler:
 
     def _query_instagram(
         self,
-        party_usernames: Optional[List[str]],
-        keywords: List[str],
-        username: Optional[str],
-        start_date: Optional[str],
-        end_date: Optional[str],
+        party_usernames: list[str] | None,
+        keywords: list[str],
+        username: str | None,
+        start_date: str | None,
+        end_date: str | None,
         limit: int,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Query Instagram content from database."""
         query = self.db.query(InstagramPost)
 
@@ -486,7 +488,7 @@ class ChatHandler:
 
         return results
 
-    def _get_party_members(self, party: str) -> List[str]:
+    def _get_party_members(self, party: str) -> list[str]:
         """Get usernames belonging to a party."""
         normalized = normalize_party_name(party)
         councilors = self.db.query(Councilor).all()
@@ -500,8 +502,8 @@ class ChatHandler:
     def get_suggested_questions(
         self,
         platform: str = "twitter",
-        party_filter: Optional[str] = None,
-    ) -> List[str]:
+        party_filter: str | None = None,
+    ) -> list[str]:
         """Get suggested questions for chat UI."""
         content_name = _get_content_name(platform)
 

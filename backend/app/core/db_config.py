@@ -2,11 +2,13 @@
 Database Configuration - SQLAlchemy Engine and Session Management
 Provides centralized database connection handling
 """
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker, scoped_session, Session
-from sqlalchemy.pool import StaticPool
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator
+
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import Session, scoped_session, sessionmaker
+from sqlalchemy.pool import StaticPool
+
 from app.core.config import settings
 from app.utils.logger import get_logger
 
@@ -37,7 +39,7 @@ ScopedSession = scoped_session(SessionLocal)
 def get_session() -> Session:
     """
     Get a new database session
-    
+
     Returns:
         Session instance
     """
@@ -48,12 +50,12 @@ def get_session() -> Session:
 def session_scope() -> Generator[Session, None, None]:
     """
     Provide a transactional scope for database operations
-    
+
     Usage:
         with session_scope() as session:
             session.add(obj)
             # Auto-commits on success, rolls back on exception
-    
+
     Yields:
         Session instance
     """
@@ -133,8 +135,7 @@ def init_db():
     """Initialize database tables using ORM models"""
     # Import all models to ensure they're registered with Base.metadata
     from app.core.models import (
-        Base, Councilor, Tweet, ProfileHistory, ReportCache,
-        InstagramPost, InstagramProfile, ChatSession, ChatMessage
+        Base,
     )
 
     logger.info("Creating database tables with SQLAlchemy ORM...")
@@ -149,7 +150,7 @@ def get_scoped_session() -> scoped_session:
     """
     Get thread-local scoped session
     Useful for multi-threaded applications
-    
+
     Returns:
         Scoped session instance
     """

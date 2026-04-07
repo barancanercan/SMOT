@@ -2,8 +2,8 @@
 Security Module - JWT Authentication & Password Hashing
 """
 from __future__ import annotations
+
 from datetime import datetime, timedelta
-from typing import Optional
 
 from fastapi import HTTPException, status
 from jose import JWTError, jwt
@@ -11,7 +11,6 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 
 from app.core.config import settings
-
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -30,7 +29,7 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     """Token payload data"""
-    username: Optional[str] = None
+    username: str | None = None
     scopes: list[str] = []
 
 
@@ -38,7 +37,7 @@ class UserCreate(BaseModel):
     """User creation request"""
     username: str
     password: str
-    full_name: Optional[str] = None
+    full_name: str | None = None
     is_admin: bool = False
 
 
@@ -46,7 +45,7 @@ class UserInDB(BaseModel):
     """User stored in database"""
     username: str
     hashed_password: str
-    full_name: Optional[str] = None
+    full_name: str | None = None
     is_admin: bool = False
     disabled: bool = False
 
@@ -61,7 +60,7 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """
     Create JWT access token.
 
@@ -132,7 +131,7 @@ DEFAULT_USERS = {
 }
 
 
-def get_user(username: str) -> Optional[UserInDB]:
+def get_user(username: str) -> UserInDB | None:
     """
     Get user from storage.
 
@@ -144,7 +143,7 @@ def get_user(username: str) -> Optional[UserInDB]:
     return None
 
 
-def authenticate_user(username: str, password: str) -> Optional[UserInDB]:
+def authenticate_user(username: str, password: str) -> UserInDB | None:
     """
     Authenticate user with username and password.
 

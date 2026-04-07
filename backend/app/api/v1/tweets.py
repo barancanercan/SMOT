@@ -1,15 +1,15 @@
 """
 Tweets API Routes
 """
-from typing import Optional, Literal
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.core.models import Tweet
-from app.core.rate_limit import limiter, RateLimits
+from app.core.rate_limit import RateLimits, limiter
 
 router = APIRouter()
 
@@ -22,8 +22,8 @@ async def get_user_tweets(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     include_retweets: bool = False,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
     db: Session = Depends(get_db)
 ):
     """
@@ -75,7 +75,7 @@ async def get_user_tweets(
             "has_next": page < total_pages,
             "has_prev": page > 1,
         }
-    except Exception as e:
+    except Exception:
         return {
             "username": username,
             "items": [],
@@ -137,7 +137,7 @@ async def get_top_tweets(
                 for t in tweets
             ]
         }
-    except Exception as e:
+    except Exception:
         return {"username": username, "sort_by": sort_by, "tweets": []}
 
 
@@ -146,8 +146,8 @@ async def get_top_tweets(
 async def get_tweet_stats(
     request: Request,
     username: str,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
     db: Session = Depends(get_db)
 ):
     """
@@ -234,5 +234,5 @@ async def get_daily_tweet_stats(
                 for s in reversed(daily_stats)
             ]
         }
-    except Exception as e:
+    except Exception:
         return {"username": username, "days": days, "data": []}

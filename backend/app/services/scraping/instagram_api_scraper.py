@@ -13,10 +13,10 @@ For private profiles, login is required.
 """
 
 import os
-import time
 import random
+import time
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional
+
 from app.utils.logger import get_logger
 
 logger = get_logger("InstagramAPIScraper")
@@ -24,7 +24,7 @@ logger = get_logger("InstagramAPIScraper")
 # Check instaloader availability
 try:
     import instaloader
-    from instaloader import Profile, Post
+    from instaloader import Post, Profile
     INSTALOADER_AVAILABLE = True
 except ImportError:
     INSTALOADER_AVAILABLE = False
@@ -121,7 +121,7 @@ class InstagramAPIScraper:
         time.sleep(delay)
         self._last_request = datetime.now()
 
-    def scrape_profile(self, username: str) -> Optional[Dict]:
+    def scrape_profile(self, username: str) -> dict | None:
         """
         Scrape profile information.
 
@@ -181,7 +181,7 @@ class InstagramAPIScraper:
         username: str,
         max_posts: int = 50,
         days_back: int = 90
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Scrape posts with 100% reliable engagement data.
 
@@ -265,7 +265,7 @@ class InstagramAPIScraper:
             logger.error(f"@{username}: {str(e)[:50]}")
             return posts
 
-    def get_post_engagement(self, shortcode: str) -> Optional[Dict]:
+    def get_post_engagement(self, shortcode: str) -> dict | None:
         """
         Get engagement data for a single post by shortcode.
 
@@ -299,7 +299,7 @@ class InstagramAPIScraper:
         username: str,
         max_posts: int = 50,
         days_back: int = 90
-    ) -> Dict:
+    ) -> dict:
         """
         Scrape both profile and posts for a user.
 
@@ -326,10 +326,10 @@ class InstagramAPIScraper:
 
     def scrape_multiple_users(
         self,
-        usernames: List[str],
+        usernames: list[str],
         max_posts: int = 50,
         days_back: int = 90
-    ) -> Dict[str, Dict]:
+    ) -> dict[str, dict]:
         """
         Scrape multiple users.
 

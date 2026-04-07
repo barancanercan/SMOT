@@ -10,24 +10,21 @@ Profile Scraper v2.0 - Twitter Profil Bilgileri (Detaylı)
 - Join date (katılma tarihi)
 """
 
-import time
 import random
 import re
+import time
 from datetime import datetime
-from typing import Dict, List, Optional
+
 from app.utils.logger import get_logger
 from app.utils.retry_config import retry_on_scraping_error
 
 logger = get_logger("ProfileScraper")
 
 try:
+    from selenium.common.exceptions import NoSuchElementException, TimeoutException
     from selenium.webdriver.common.by import By
-    from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
-    from selenium.common.exceptions import (
-        TimeoutException,
-        NoSuchElementException
-    )
+    from selenium.webdriver.support.ui import WebDriverWait
     SELENIUM_AVAILABLE = True
 except ImportError:
     SELENIUM_AVAILABLE = False
@@ -146,7 +143,7 @@ class ProfileScraper:
             return 0
 
     @retry_on_scraping_error
-    def scrape_profile(self, username: str) -> Optional[Dict]:
+    def scrape_profile(self, username: str) -> dict | None:
         """
         Tek bir kullanıcının TÜM profil bilgilerini çek
 
@@ -371,7 +368,7 @@ class ProfileScraper:
             logger.error(f"@{username}: Hata - {str(e)[:50]}")
             return None
 
-    def scrape_profiles(self, usernames: List[str]) -> List[Dict]:
+    def scrape_profiles(self, usernames: list[str]) -> list[dict]:
         """
         Birden fazla kullanıcının profil bilgilerini çek
         """
@@ -396,7 +393,7 @@ class ProfileScraper:
         logger.info(f"Tamamlandı: {len(results)}/{len(usernames)} profil")
         return results
 
-    def scrape_and_save(self, usernames: List[str]) -> int:
+    def scrape_and_save(self, usernames: list[str]) -> int:
         """
         Profilleri çek ve database'e kaydet
         """
@@ -452,10 +449,11 @@ class ProfileScraper:
 # HAFTALIK KARŞILAŞTIRMA FONKSİYONLARI
 # ============================================================================
 
-def get_weekly_comparison(username: str) -> Optional[Dict]:
+def get_weekly_comparison(username: str) -> dict | None:
     """Son 7 günlük profil değişimini getir"""
-    from app.core.database import get_all_profile_history
     from datetime import datetime, timedelta
+
+    from app.core.database import get_all_profile_history
 
     history = get_all_profile_history(username)
 
@@ -490,7 +488,7 @@ def get_weekly_comparison(username: str) -> Optional[Dict]:
     }
 
 
-def get_all_weekly_comparisons(usernames: List[str]) -> List[Dict]:
+def get_all_weekly_comparisons(usernames: list[str]) -> list[dict]:
     """Tüm kullanıcılar için haftalık karşılaştırma"""
     results = []
     for username in usernames:
@@ -500,7 +498,7 @@ def get_all_weekly_comparisons(usernames: List[str]) -> List[Dict]:
     return results
 
 
-def print_weekly_report(usernames: List[str]):
+def print_weekly_report(usernames: list[str]):
     """Haftalık değişim raporu yazdır"""
     comparisons = get_all_weekly_comparisons(usernames)
 

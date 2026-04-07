@@ -15,9 +15,9 @@ Strategy:
 3. Position optimization: Most relevant at start AND end
 """
 
-from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple
 import math
+from dataclasses import dataclass
+from typing import Any
 
 from app.services.agents.base import BaseAgent, tool
 from app.services.chat.semantic_search import semantic_search
@@ -68,9 +68,9 @@ class ReRanker(BaseAgent):
     def execute(
         self,
         query: str,
-        contents: List[Dict],
+        contents: list[dict],
         top_k: int = 50
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Execute reranking pipeline.
 
@@ -132,9 +132,9 @@ class ReRanker(BaseAgent):
     @tool(name="score_contents", description="Score contents with multiple relevance signals")
     def score_contents(
         self,
-        contents: List[Dict],
+        contents: list[dict],
         query: str
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Score contents using multiple signals.
 
@@ -193,9 +193,9 @@ class ReRanker(BaseAgent):
     @tool(name="optimize_positions", description="Optimize content positions for LLM attention")
     def optimize_positions(
         self,
-        contents: List[Dict],
+        contents: list[dict],
         query: str = ""
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Optimize positions to fix lost-in-the-middle.
 
@@ -248,10 +248,10 @@ class ReRanker(BaseAgent):
     @tool(name="rerank_by_query", description="Rerank contents by query relevance")
     def rerank_by_query(
         self,
-        contents: List[Dict],
+        contents: list[dict],
         query: str,
         top_k: int = 30
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Simple reranking by query relevance.
 
@@ -287,7 +287,7 @@ class ReRanker(BaseAgent):
             return 0.5  # Unknown date gets middle score
 
         try:
-            from datetime import datetime, timedelta
+            from datetime import datetime
             date = datetime.strptime(date_str[:10], "%Y-%m-%d")
             now = datetime.now()
             age_days = (now - date).days
@@ -302,5 +302,5 @@ class ReRanker(BaseAgent):
                 return 0.4
             else:
                 return 0.2
-        except:
+        except Exception:
             return 0.5

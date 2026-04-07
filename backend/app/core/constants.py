@@ -3,10 +3,9 @@ Application Constants - Party Name Normalization
 Ensures consistent party names across the system
 """
 from __future__ import annotations
-from typing import Dict
 
 # Party name aliases mapping to canonical names
-PARTY_ALIASES: Dict[str, str] = {
+PARTY_ALIASES: dict[str, str] = {
     # CHP (Cumhuriyet Halk Partisi)
     "CHP": "CHP",
     "Cumhuriyet Halk Partisi": "CHP",

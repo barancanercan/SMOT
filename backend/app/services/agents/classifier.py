@@ -13,10 +13,10 @@ Tools:
 - classify_criticism: Detect criticism and targets
 """
 
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
 import json
 import re
+from dataclasses import dataclass
+from typing import Any
 
 from app.services.agents.base import BaseAgent, tool
 from app.services.analysis.analyzer import TweetAnalyzer
@@ -65,9 +65,9 @@ class ClassifierAgent(BaseAgent):
     def execute(
         self,
         query: str,
-        contents: List[Dict],
+        contents: list[dict],
         context: Any = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Execute content classification.
 
@@ -112,7 +112,7 @@ class ClassifierAgent(BaseAgent):
         return result
 
     @tool(name="classify_sentiment", description="Analyze sentiment of content (positive/negative/neutral)")
-    def classify_sentiment(self, contents: List[Dict]) -> Dict[str, Any]:
+    def classify_sentiment(self, contents: list[dict]) -> dict[str, Any]:
         """
         Classify content by sentiment.
 
@@ -173,7 +173,7 @@ JSON:"""
             return {"contents": contents, "summary": {"sentiment": "notr"}}
 
     @tool(name="classify_topic", description="Identify topics and themes in content")
-    def classify_topic(self, contents: List[Dict]) -> Dict[str, Any]:
+    def classify_topic(self, contents: list[dict]) -> dict[str, Any]:
         """
         Classify content by topic.
 
@@ -243,9 +243,9 @@ JSON:"""
     @tool(name="classify_criticism", description="Detect criticism and identify targets")
     def classify_criticism(
         self,
-        contents: List[Dict],
+        contents: list[dict],
         query: str = ""
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Classify content for criticism with target identification.
 
@@ -339,9 +339,9 @@ JSON:"""
 
     def _classify_by_relevance(
         self,
-        contents: List[Dict],
+        contents: list[dict],
         query: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Classify contents by relevance to query."""
         if not self.llm_available:
             return {"contents": contents, "summary": {}}
@@ -384,7 +384,7 @@ JSON:"""
             logger.error(f"Relevance classification failed: {e}")
             return {"contents": contents, "summary": {}}
 
-    def _format_contents_for_prompt(self, contents: List[Dict], max_length: int = 300) -> str:
+    def _format_contents_for_prompt(self, contents: list[dict], max_length: int = 300) -> str:
         """Format contents for LLM prompt."""
         lines = []
         for i, c in enumerate(contents):
@@ -398,7 +398,7 @@ JSON:"""
             lines.append(f"[{i}] @{username}{party_str}: {text}")
         return "\n\n".join(lines)
 
-    def _parse_json_response(self, response: str) -> Dict:
+    def _parse_json_response(self, response: str) -> dict:
         """Parse JSON from LLM response."""
         response = response.strip()
         if response.startswith("```"):
@@ -406,7 +406,7 @@ JSON:"""
             response = re.sub(r'\n?```$', '', response)
         return json.loads(response)
 
-    def _detect_target(self, query: str) -> Optional[str]:
+    def _detect_target(self, query: str) -> str | None:
         """Detect criticism target from query."""
         query_lower = query.lower()
 

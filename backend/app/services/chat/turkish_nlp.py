@@ -10,9 +10,7 @@ Provides Turkish-specific text processing:
 """
 
 import re
-from typing import List, Set, Dict, Tuple
 from dataclasses import dataclass
-
 
 # =============================================================================
 # TURKISH CHARACTER NORMALIZATION
@@ -54,12 +52,11 @@ TURKISH_STOPWORDS = {
     'oysa', 'halbuki', 'ne', 'hem', 'ki', 'de', 'da',
     # Prepositions
     'icin', 'için', 'gibi', 'kadar', 'gore', 'göre', 'dolayi', 'dolayı',
-    'ile', 'karsi', 'karşı', 'uzerine', 'üzerine',
+    'karsi', 'karşı', 'uzerine', 'üzerine',
     # Question words
-    'mi', 'mı', 'mu', 'mü', 'ne', 'kim', 'hangi', 'nasil', 'nasıl', 'neden', 'niye',
+    'mi', 'mı', 'mu', 'mü', 'kim', 'hangi', 'nasil', 'nasıl', 'neden', 'niye',
     # Demonstratives
-    'bu', 'su', 'şu', 'o', 'bunlar', 'sunlar', 'şunlar', 'onlar',
-    # Quantifiers
+    'bu', 'su', 'şu', 'bunlar', 'sunlar', 'şunlar', # Quantifiers
     'bir', 'iki', 'uc', 'üç', 'tum', 'tüm', 'hep', 'her', 'bazi', 'bazı',
     'cok', 'çok', 'az', 'en', 'daha', 'pek', 'hic', 'hiç',
     # Verbs (common)
@@ -137,7 +134,7 @@ def turkish_stem(word: str, min_stem_length: int = 3) -> str:
     return word
 
 
-def stem_text(text: str) -> List[str]:
+def stem_text(text: str) -> list[str]:
     """Stem all words in text."""
     words = re.findall(r'\b\w+\b', text.lower())
     return [turkish_stem(w) for w in words if len(w) > 2]
@@ -148,7 +145,7 @@ def stem_text(text: str) -> List[str]:
 # =============================================================================
 
 # Synonym groups - each tuple contains words that should match each other
-SYNONYM_GROUPS: List[Tuple[str, ...]] = [
+SYNONYM_GROUPS: list[tuple[str, ...]] = [
     # Government/Power
     ('hükümet', 'hukumet', 'iktidar', 'yönetim', 'yonetim', 'devlet'),
     ('cumhurbaşkanı', 'cumhurbaskani', 'erdoğan', 'erdogan', 'saray', 'beştepe', 'bestepe'),
@@ -205,7 +202,7 @@ SYNONYM_GROUPS: List[Tuple[str, ...]] = [
 ]
 
 # Build synonym lookup dictionary
-SYNONYM_MAP: Dict[str, Set[str]] = {}
+SYNONYM_MAP: dict[str, set[str]] = {}
 for group in SYNONYM_GROUPS:
     normalized_group = set()
     for word in group:
@@ -218,7 +215,7 @@ for group in SYNONYM_GROUPS:
         SYNONYM_MAP[word.lower()] = normalized_group
 
 
-def get_synonyms(word: str) -> Set[str]:
+def get_synonyms(word: str) -> set[str]:
     """Get all synonyms for a word."""
     word_lower = word.lower()
     word_norm = normalize_turkish(word)
@@ -238,7 +235,7 @@ def get_synonyms(word: str) -> Set[str]:
     return synonyms
 
 
-def expand_keywords(keywords: List[str]) -> List[str]:
+def expand_keywords(keywords: list[str]) -> list[str]:
     """Expand keywords with their synonyms."""
     expanded = set()
 
@@ -266,9 +263,9 @@ class ProcessedText:
     """Result of text processing."""
     original: str
     normalized: str
-    tokens: List[str]
-    stems: List[str]
-    keywords: List[str]  # Without stopwords
+    tokens: list[str]
+    stems: list[str]
+    keywords: list[str]  # Without stopwords
 
 
 def process_text(text: str) -> ProcessedText:
@@ -302,12 +299,12 @@ def process_text(text: str) -> ProcessedText:
     )
 
 
-def extract_keywords(text: str, max_keywords: int = 10) -> List[str]:
+def extract_keywords(text: str, max_keywords: int = 10) -> list[str]:
     """Extract meaningful keywords from text."""
     processed = process_text(text)
 
     # Count keyword frequency
-    keyword_counts: Dict[str, int] = {}
+    keyword_counts: dict[str, int] = {}
     for kw in processed.keywords:
         keyword_counts[kw] = keyword_counts.get(kw, 0) + 1
 
@@ -325,7 +322,7 @@ def extract_keywords(text: str, max_keywords: int = 10) -> List[str]:
 # MATCHING UTILITIES
 # =============================================================================
 
-def text_contains_any(text: str, keywords: List[str], use_stems: bool = True) -> bool:
+def text_contains_any(text: str, keywords: list[str], use_stems: bool = True) -> bool:
     """
     Check if text contains any of the keywords.
     Uses stemming and synonym expansion.
@@ -359,7 +356,7 @@ def text_contains_any(text: str, keywords: List[str], use_stems: bool = True) ->
     return False
 
 
-def calculate_keyword_score(text: str, keywords: List[str]) -> float:
+def calculate_keyword_score(text: str, keywords: list[str]) -> float:
     """
     Calculate how well text matches keywords.
 

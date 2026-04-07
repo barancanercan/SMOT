@@ -9,24 +9,18 @@ Pipeline:
 2. Optional LLM: only for ambiguous queries or when rule-based confidence is low
 """
 
-import json
 import re
-import logging
-from typing import Dict, List, Optional, Any, Set
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from app.services.chat.turkish_nlp import (
-    extract_keywords,
-    expand_keywords,
-    normalize_turkish,
-    TURKISH_STOPWORDS,
-)
-from app.services.chat.hybrid_retriever import (
-    TOPIC_KEYWORDS,
-    CRITICISM_KEYWORDS,
-)
-from app.core.constants import normalize_party_name
 from app.core.config import settings
+from app.services.chat.hybrid_retriever import (
+    CRITICISM_KEYWORDS,
+    TOPIC_KEYWORDS,
+)
+from app.services.chat.turkish_nlp import (
+    expand_keywords,
+    extract_keywords,
+)
 from app.utils.logger import get_logger
 
 logger = get_logger("QueryAnalyzer")
@@ -92,18 +86,18 @@ class AnalyzedQuery:
     is_criticism: bool
     confidence: float
     # Parties
-    source_party: Optional[str]  # Party whose content we're searching (from UI)
-    target_party: Optional[str]  # Party being criticized/discussed
+    source_party: str | None  # Party whose content we're searching (from UI)
+    target_party: str | None  # Party being criticized/discussed
     # Topic
-    detected_topic: Optional[str]
+    detected_topic: str | None
     # Search parameters
-    keywords: List[str]
-    expanded_keywords: List[str]
+    keywords: list[str]
+    expanded_keywords: list[str]
     search_query: str  # Enhanced query for semantic search
     # Filters
-    username: Optional[str] = None
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
+    username: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
 
 
 class QueryAnalyzer:
@@ -128,7 +122,7 @@ class QueryAnalyzer:
     def analyze(
         self,
         query: str,
-        party_filter: Optional[str] = None,
+        party_filter: str | None = None,
         platform: str = "twitter",
     ) -> AnalyzedQuery:
         """
@@ -215,7 +209,7 @@ class QueryAnalyzer:
 
         return result
 
-    def _detect_topic(self, query_lower: str) -> Optional[str]:
+    def _detect_topic(self, query_lower: str) -> str | None:
         """Detect topic from keywords."""
         best_topic = None
         best_count = 0
@@ -234,8 +228,8 @@ class QueryAnalyzer:
         self,
         query_lower: str,
         is_criticism: bool,
-        party_filter: Optional[str],
-    ) -> Optional[str]:
+        party_filter: str | None,
+    ) -> str | None:
         """Detect which party is being criticized/discussed."""
         if not is_criticism:
             return None
@@ -275,9 +269,9 @@ class QueryAnalyzer:
         self,
         query_lower: str,
         is_criticism: bool,
-        username: Optional[str],
-        start_date: Optional[str],
-        detected_topic: Optional[str],
+        username: str | None,
+        start_date: str | None,
+        detected_topic: str | None,
     ) -> str:
         """Classify query intent."""
         if username:
@@ -302,8 +296,8 @@ class QueryAnalyzer:
     def _extract_search_keywords(
         self,
         query: str,
-        detected_topic: Optional[str],
-    ) -> List[str]:
+        detected_topic: str | None,
+    ) -> list[str]:
         """Extract meaningful search keywords from query."""
         # Start with NLP-extracted keywords
         keywords = extract_keywords(query, max_keywords=10)
@@ -330,9 +324,9 @@ class QueryAnalyzer:
     def _build_search_query(
         self,
         original_query: str,
-        keywords: List[str],
-        detected_topic: Optional[str],
-        target_party: Optional[str],
+        keywords: list[str],
+        detected_topic: str | None,
+        target_party: str | None,
     ) -> str:
         """Build an enhanced search query for semantic retrieval."""
         parts = [original_query]

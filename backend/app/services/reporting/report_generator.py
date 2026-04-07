@@ -14,20 +14,20 @@ Report Generator v1.0 - Tam Rapor Olusturma
 """
 
 from datetime import datetime
-from typing import Dict, List, Optional
 
+from app.core.constants import normalize_party_name
 from app.core.database import (
+    clear_report_cache,
     get_latest_profile,
     get_report_cache,
     save_report_cache,
-    clear_report_cache
 )
-from app.core.constants import normalize_party_name
+
 # NOTE: get_weekly_comparison is imported lazily to avoid selenium dependency
 from app.services.reporting.metrics import (
-    get_user_engagement_stats,
+    compare_last_weeks,
     get_top_tweets,
-    compare_last_weeks
+    get_user_engagement_stats,
 )
 
 
@@ -249,6 +249,7 @@ class ReportGenerator:
 
         # Tweetleri ve parti bilgisini al
         import sqlite3
+
         from app.core.config import DB_PATH
 
         conn = sqlite3.connect(DB_PATH)
@@ -471,7 +472,7 @@ def generate_report(username: str, use_cache: bool = True, use_llm: bool = True)
     return generator.generate_report(username)
 
 
-def generate_reports_batch(usernames: List[str], use_llm: bool = True) -> Dict[str, str]:
+def generate_reports_batch(usernames: list[str], use_llm: bool = True) -> dict[str, str]:
     """Birden fazla kullanici icin rapor olustur"""
     generator = ReportGenerator(use_cache=True, use_llm=use_llm)
     reports = {}
@@ -497,7 +498,7 @@ def generate_quick_report(username: str) -> str:
 # EXPORT FONKSIYONLARI
 # ============================================================================
 
-def export_to_excel(data: List[Dict], filename: str) -> Optional[str]:
+def export_to_excel(data: list[dict], filename: str) -> str | None:
     """
     Veriyi Excel dosyasina aktar
 
@@ -511,7 +512,7 @@ def export_to_excel(data: List[Dict], filename: str) -> Optional[str]:
     try:
         import pandas as pd
         from openpyxl import Workbook
-        from openpyxl.styles import Font, Alignment, PatternFill
+        from openpyxl.styles import Alignment, Font, PatternFill
         from openpyxl.utils.dataframe import dataframe_to_rows
 
         df = pd.DataFrame(data)
@@ -554,7 +555,7 @@ def export_to_excel(data: List[Dict], filename: str) -> Optional[str]:
         return None
 
 
-def export_to_pdf(markdown_content: str, filename: str, title: str = "Rapor") -> Optional[str]:
+def export_to_pdf(markdown_content: str, filename: str, title: str = "Rapor") -> str | None:
     """
     Markdown icerigini PDF'e aktar
 
@@ -567,8 +568,9 @@ def export_to_pdf(markdown_content: str, filename: str, title: str = "Rapor") ->
         Olusturulan dosya yolu
     """
     try:
-        from fpdf import FPDF
         import re
+
+        from fpdf import FPDF
 
         filepath = f"{filename}.pdf"
 
@@ -640,7 +642,7 @@ def export_to_pdf(markdown_content: str, filename: str, title: str = "Rapor") ->
         return None
 
 
-def export_engagement_excel(usernames: Optional[List[str]] = None) -> Optional[str]:
+def export_engagement_excel(usernames: list[str] | None = None) -> str | None:
     """
     Tum kullanicilarin engagement verilerini Excel'e aktar
 
@@ -651,8 +653,9 @@ def export_engagement_excel(usernames: Optional[List[str]] = None) -> Optional[s
         Dosya yolu
     """
     import sqlite3
-    from app.core.config import DB_PATH
     from datetime import datetime
+
+    from app.core.config import DB_PATH
 
     conn = sqlite3.connect(DB_PATH)
 

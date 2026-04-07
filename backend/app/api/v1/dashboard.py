@@ -1,14 +1,13 @@
 """
 Dashboard API Routes
 """
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.api.v1.schemas import Platform
-from app.core.database import get_stats, get_instagram_stats
+from app.core.database import get_instagram_stats, get_stats
 from app.services.reporting.metrics import get_user_engagement_stats
 
 router = APIRouter()
@@ -118,8 +117,8 @@ async def get_dashboard_overview(
 @router.get("/user/{username}")
 async def get_user_dashboard(
     username: str,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
     db: Session = Depends(get_db)
 ):
     """

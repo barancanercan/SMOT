@@ -9,25 +9,24 @@ Analyzer v3.1 - Multi-Provider LLM (OpenAI + Ollama)
 - Confidence scoring
 """
 
-from typing import Dict, List, Optional
-import time
 import asyncio
-import requests
 import json
+import time
+
 import httpx
+import requests
 from pydantic import ValidationError
 
+from app.core.config import settings
+from app.core.constants import normalize_party_name
+from app.services.analysis.metrics import LLMCallTimer
 from app.services.analysis.prompts import SYSTEM_PROMPT, get_prompt
 from app.services.analysis.schemas import (
-    TopicAnalysis,
-    PartyDefenseAnalysis,
+    IntelligenceAnalysis,
     OppositionCriticismAnalysis,
-    FullAnalysis,
-    IntelligenceAnalysis
+    PartyDefenseAnalysis,
+    TopicAnalysis,
 )
-from app.services.analysis.metrics import LLMCallTimer, metrics_collector
-from app.core.constants import normalize_party_name
-from app.core.config import settings
 from app.utils.logger import get_logger
 
 logger = get_logger("Analyzer")
@@ -39,7 +38,7 @@ ASYNC_TIMEOUT = httpx.Timeout(300.0, connect=10.0)  # 5 min read, 10s connect
 class TweetAnalyzer:
     """Multi-provider LLM tweet analizi (OpenAI + Ollama)"""
 
-    def __init__(self, model: Optional[str] = None, provider: Optional[str] = None):
+    def __init__(self, model: str | None = None, provider: str | None = None):
         """
         Args:
             model: Model adı (provider'a göre farklı)
@@ -398,7 +397,7 @@ class TweetAnalyzer:
 
             return None
 
-    def analyze_main_topics(self, tweets: List[Dict]) -> Dict:
+    def analyze_main_topics(self, tweets: list[dict]) -> dict:
         """
         Soru 1: Ana konuları analiz et (JSON)
 
@@ -436,7 +435,7 @@ class TweetAnalyzer:
                 'validated': False
             }
 
-    def analyze_party_defense(self, tweets: List[Dict]) -> Dict:
+    def analyze_party_defense(self, tweets: list[dict]) -> dict:
         """
         Soru 2: Parti/lider savunusu analizi (JSON)
 
@@ -475,7 +474,7 @@ class TweetAnalyzer:
                 'validated': False
             }
 
-    def analyze_opposition_criticism(self, tweets: List[Dict]) -> Dict:
+    def analyze_opposition_criticism(self, tweets: list[dict]) -> dict:
         """
         Soru 3: Muhalefet eleştirisi analizi (JSON)
 
@@ -514,8 +513,8 @@ class TweetAnalyzer:
                 'validated': False
             }
 
-    def analyze_full(self, tweets: List[Dict], username: str, period: Optional[str] = None,
-                     party: Optional[str] = None) -> Dict:
+    def analyze_full(self, tweets: list[dict], username: str, period: str | None = None,
+                     party: str | None = None) -> dict:
         """
         Backward compatibility wrapper for analyze_intelligence
 
@@ -558,8 +557,8 @@ class TweetAnalyzer:
                 'validated': False
             }
 
-    def analyze_intelligence(self, tweets: List[Dict], username: str, period: Optional[str] = None,
-                             party: Optional[str] = None, retweets: Optional[List[Dict]] = None) -> Dict:
+    def analyze_intelligence(self, tweets: list[dict], username: str, period: str | None = None,
+                             party: str | None = None, retweets: list[dict] | None = None) -> dict:
         """
         Üç aşamalı (Yeşil, Kırmızı, Gri) profesyonel istihbarat analizi (senkron)
 
@@ -652,10 +651,10 @@ class TweetAnalyzer:
                 'validated': False
             }
 
-    async def analyze_intelligence_async(self, tweets: List[Dict], username: str,
-                                          period: Optional[str] = None,
-                                          party: Optional[str] = None,
-                                          retweets: Optional[List[Dict]] = None) -> Dict:
+    async def analyze_intelligence_async(self, tweets: list[dict], username: str,
+                                          period: str | None = None,
+                                          party: str | None = None,
+                                          retweets: list[dict] | None = None) -> dict:
         """
         Üç aşamalı profesyonel istihbarat analizi (asenkron)
 
@@ -751,8 +750,8 @@ class TweetAnalyzer:
             }
 
 
-    def analyze_instagram(self, posts: List[Dict], username: str,
-                          party: Optional[str] = None) -> Dict:
+    def analyze_instagram(self, posts: list[dict], username: str,
+                          party: str | None = None) -> dict:
         """
         Instagram-only istihbarat analizi
 
@@ -834,11 +833,11 @@ class TweetAnalyzer:
 
     def analyze_multi_platform(
         self,
-        tweets: List[Dict],
-        instagram_posts: List[Dict],
+        tweets: list[dict],
+        instagram_posts: list[dict],
         username: str,
-        party: Optional[str] = None
-    ) -> Dict:
+        party: str | None = None
+    ) -> dict:
         """
         Çoklu platform (Twitter + Instagram) istihbarat analizi
 
@@ -938,7 +937,7 @@ class TweetAnalyzer:
 # HELPER FUNCTIONS
 # ============================================================================
 
-def analyze_user(username: str) -> Dict:
+def analyze_user(username: str) -> dict:
     """
     Kullanıcı için tam analiz yap (tüm tweetler + retweetler)
 
@@ -949,7 +948,7 @@ def analyze_user(username: str) -> Dict:
         Analiz sonucu
     """
     from app.core.db_config import session_scope
-    from app.core.models import Tweet, Councilor
+    from app.core.models import Councilor, Tweet
 
     # Tweetleri ve retweetleri al (ORM)
     try:
@@ -1013,7 +1012,7 @@ def analyze_user(username: str) -> Dict:
     return result
 
 
-async def analyze_user_async(username: str) -> Dict:
+async def analyze_user_async(username: str) -> dict:
     """
     Kullanıcı için async tam analiz yap (tüm tweetler + retweetler)
 
@@ -1024,7 +1023,7 @@ async def analyze_user_async(username: str) -> Dict:
         Analiz sonucu
     """
     from app.core.db_config import session_scope
-    from app.core.models import Tweet, Councilor
+    from app.core.models import Councilor, Tweet
 
     # Tweetleri, retweetleri ve parti bilgisini al
     try:
@@ -1088,7 +1087,7 @@ async def analyze_user_async(username: str) -> Dict:
     return result
 
 
-def analyze_user_with_vector_search(username: str, query: str, n_results: int = 50) -> Dict:
+def analyze_user_with_vector_search(username: str, query: str, n_results: int = 50) -> dict:
     """
     Vector search ile ilgili tweetleri bulup analiz et
 

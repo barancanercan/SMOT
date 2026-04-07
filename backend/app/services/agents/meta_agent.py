@@ -14,17 +14,17 @@ Features:
 - Result aggregation
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
 import time
+from dataclasses import dataclass, field
+from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.services.agents.base import BaseAgent, AgentResult, tool
-from app.services.agents.retriever import RetrieverAgent
+from app.services.agents.base import BaseAgent, tool
 from app.services.agents.classifier import ClassifierAgent
-from app.services.agents.summarizer import SummarizerAgent
 from app.services.agents.reranker import ReRanker
+from app.services.agents.retriever import RetrieverAgent
+from app.services.agents.summarizer import SummarizerAgent
 from app.utils.logger import get_logger
 
 logger = get_logger("MetaAgent")
@@ -41,7 +41,7 @@ class QueryPlan:
         needs_classification: Whether content needs GPT classification
         needs_reranking: Whether to apply lost-in-the-middle fix
     """
-    steps: List[Tuple[str, str, Dict]] = field(default_factory=list)
+    steps: list[tuple[str, str, dict]] = field(default_factory=list)
     complexity: str = "simple"
     needs_classification: bool = False
     needs_reranking: bool = False
@@ -59,7 +59,7 @@ class SessionContext:
         include_summary: Whether to generate AI summary
     """
     platform: str = "twitter"
-    party_filter: Optional[str] = None
+    party_filter: str | None = None
     max_results: int = 20
     include_summary: bool = True
 
@@ -108,7 +108,7 @@ class MetaAgent(BaseAgent):
         self,
         query: str,
         context: SessionContext = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Process a query through the A-RAG pipeline.
 
@@ -257,7 +257,7 @@ class MetaAgent(BaseAgent):
 
     def _generate_simple_answer(
         self,
-        contents: List[Dict],
+        contents: list[dict],
         platform: str
     ) -> str:
         """Generate a simple answer without LLM."""
@@ -274,7 +274,7 @@ class MetaAgent(BaseAgent):
         return names.get(platform, "tweet")
 
     @tool(name="analyze_query", description="Analyze query complexity and intent")
-    def analyze_query(self, query: str) -> Dict[str, Any]:
+    def analyze_query(self, query: str) -> dict[str, Any]:
         """
         Analyze a query to determine its complexity and requirements.
 
@@ -302,7 +302,7 @@ class MetaAgent(BaseAgent):
         query: str,
         plan: QueryPlan,
         context: SessionContext
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Execute the planned sequence of sub-agents.
 
