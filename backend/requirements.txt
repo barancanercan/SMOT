@@ -35,6 +35,9 @@ python-dotenv>=1.0.0
 requests>=2.31.0
 httpx>=0.26.0
 
+# Search & Retrieval
+rank_bm25>=0.2.2
+
 # Resilience
 tenacity>=8.2.0
 
