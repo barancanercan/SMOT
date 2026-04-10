@@ -23,7 +23,6 @@ import {
   Eye,
   MessageSquare,
   Trash2,
-  Zap,
   TrendingUp,
   Users,
   Calendar,
@@ -523,9 +522,6 @@ export default function ChatPage() {
                 <h1 className="text-lg font-bold text-white">
                   Sosyal Medya ile Sohbet
                 </h1>
-                <p className="text-xs text-gray-500 font-mono">
-                  Hibrit RAG - BM25 + Semantik Arama + Reranking
-                </p>
               </div>
             </div>
 
@@ -760,20 +756,6 @@ export default function ChatPage() {
               </button>
             </form>
 
-            <div className="flex items-center justify-center gap-4 mt-3 text-xs text-gray-600">
-              <div className="flex items-center gap-1">
-                <Zap className="h-3 w-3" />
-                <span>BM25 + Semantik Arama</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Sparkles className="h-3 w-3" />
-                <span>Cross-Encoder Reranking</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <TrendingUp className="h-3 w-3" />
-                <span>LLM Analiz</span>
-              </div>
-            </div>
           </div>
         </footer>
       </div>
