@@ -14,20 +14,30 @@ from app.utils.logger import get_logger
 
 logger = get_logger("Database")
 
-# Create engine with SQLite-specific settings
-engine = create_engine(
-    settings.database_url,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,  # SQLite works best with StaticPool
-    echo=False  # Set to True for SQL query logging
-)
+_is_sqlite = settings.database_url.startswith("sqlite")
 
-# Enable foreign key constraints for SQLite
-@event.listens_for(engine, "connect")
-def set_sqlite_pragma(dbapi_conn, connection_record):
-    cursor = dbapi_conn.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
+if _is_sqlite:
+    engine = create_engine(
+        settings.database_url,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+        echo=False,
+    )
+
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_conn, connection_record):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+else:
+    # PostgreSQL
+    engine = create_engine(
+        settings.database_url,
+        pool_pre_ping=True,
+        pool_size=5,
+        max_overflow=10,
+        echo=False,
+    )
 
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
