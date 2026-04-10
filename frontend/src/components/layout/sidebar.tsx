@@ -32,7 +32,7 @@ export function Sidebar() {
   return (
     <aside className="w-64 bg-[#0A0A0A] border-r border-white/10 min-h-screen">
       <div className="p-6 border-b border-white/10">
-        <div className="flex items-center gap-3">
+        <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="relative">
             <div className="absolute inset-0 bg-[#4DA3FF]/20 rounded-xl blur-lg" />
             <Image
@@ -53,7 +53,7 @@ export function Sidebar() {
             </div>
             <p className="text-xs text-gray-500 mt-0.5">Sosyal Medya Gözlem Aracı</p>
           </div>
-        </div>
+        </Link>
       </div>
 
       <nav className="px-4 space-y-1 mt-6">
