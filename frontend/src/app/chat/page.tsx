@@ -441,7 +441,7 @@ export default function ChatPage() {
         <div className="p-4 border-b border-white/10">
           <button
             onClick={handleNewChat}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400 transition-all"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#4DA3FF] to-[#3d8fe0] text-white hover:from-[#5bb3ff] hover:to-[#4DA3FF] transition-all"
           >
             <Plus className="h-4 w-4" />
             <span className="font-medium">Yeni Sohbet</span>
@@ -464,11 +464,11 @@ export default function ChatPage() {
                   className={`
                     group flex items-start gap-3 px-3 py-2.5 rounded-lg cursor-pointer
                     transition-all hover:bg-white/5
-                    ${currentSessionId === session.id ? 'bg-blue-500/10 border border-blue-500/30' : 'border border-transparent'}
+                    ${currentSessionId === session.id ? 'bg-[#4DA3FF]/10 border border-[#4DA3FF]/30' : 'border border-transparent'}
                   `}
                 >
                   <MessageCircle className={`h-4 w-4 mt-0.5 flex-shrink-0 ${
-                    currentSessionId === session.id ? 'text-blue-400' : 'text-gray-500'
+                    currentSessionId === session.id ? 'text-[#4DA3FF]' : 'text-gray-500'
                   }`} />
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm truncate ${
@@ -497,7 +497,7 @@ export default function ChatPage() {
         <div className="p-4 border-t border-white/10">
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <Sparkles className="h-3 w-3" />
-            <span>GPT-4o ile çalışır</span>
+            <span>Hibrit Arama Aktif</span>
           </div>
         </div>
       </aside>
@@ -516,8 +516,8 @@ export default function ChatPage() {
                 <Menu className="h-5 w-5" />
               </button>
 
-              <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30">
-                <MessageCircle className="h-5 w-5 text-blue-400" />
+              <div className="p-2 rounded-xl bg-gradient-to-br from-[#4DA3FF]/20 to-[#4DA3FF]/10 border border-[#4DA3FF]/30">
+                <MessageCircle className="h-5 w-5 text-[#4DA3FF]" />
               </div>
               <div>
                 <h1 className="text-lg font-bold text-white">
@@ -560,13 +560,13 @@ export default function ChatPage() {
                             key={platform.value}
                             onClick={() => handlePlatformSelect(platform.value)}
                             className={`w-full px-4 py-2.5 text-left text-sm hover:bg-white/5 transition-colors flex items-center gap-2 ${
-                              selectedPlatform === platform.value ? "bg-blue-500/10 text-blue-400" : "text-gray-300"
+                              selectedPlatform === platform.value ? "bg-[#4DA3FF]/10 text-[#4DA3FF]" : "text-gray-300"
                             }`}
                           >
                             <Icon className="h-4 w-4" />
                             {platform.label}
                             {selectedPlatform === platform.value && (
-                              <span className="ml-auto text-blue-400">✓</span>
+                              <span className="ml-auto text-[#4DA3FF]">✓</span>
                             )}
                           </button>
                         );
@@ -605,12 +605,12 @@ export default function ChatPage() {
                           key={party.value}
                           onClick={() => handlePartySelect(party.value)}
                           className={`w-full px-4 py-2.5 text-left text-sm hover:bg-white/5 transition-colors flex items-center justify-between ${
-                            selectedParty === party.value ? "bg-blue-500/10 text-blue-400" : "text-gray-300"
+                            selectedParty === party.value ? "bg-[#4DA3FF]/10 text-[#4DA3FF]" : "text-gray-300"
                           }`}
                         >
                           {party.label}
                           {selectedParty === party.value && (
-                            <span className="text-blue-400">✓</span>
+                            <span className="text-[#4DA3FF]">✓</span>
                           )}
                         </button>
                       ))}
@@ -619,10 +619,10 @@ export default function ChatPage() {
                 )}
               </div>
 
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-medium text-emerald-400 font-mono hidden sm:inline">
-                  GPT-4o
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#00D1B2]/10 border border-[#00D1B2]/30">
+                <div className="w-2 h-2 rounded-full bg-[#00D1B2] animate-pulse" />
+                <span className="text-xs font-medium text-[#00D1B2] font-mono hidden sm:inline">
+                  AKTİF
                 </span>
               </div>
             </div>
@@ -636,8 +636,8 @@ export default function ChatPage() {
               {/* Welcome message */}
               {messages.length === 0 && (
                 <div className="text-center py-12">
-                  <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-blue-500/20 via-blue-600/10 to-emerald-500/10 flex items-center justify-center border border-white/10 mb-6">
-                    <Bot className="w-10 h-10 text-blue-400" />
+                  <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-[#4DA3FF]/20 via-[#4DA3FF]/10 to-[#00D1B2]/10 flex items-center justify-center border border-white/10 mb-6">
+                    <Bot className="w-10 h-10 text-[#4DA3FF]" />
                   </div>
                   <h2 className="text-xl font-semibold text-white mb-2">
                     Merhaba! Size nasıl yardımcı olabilirim?
@@ -657,13 +657,13 @@ export default function ChatPage() {
                     <div className="flex items-center justify-center gap-2 mb-6 p-3 rounded-xl bg-white/5 border border-white/10">
                       <span className="text-xs text-gray-500">Aktif Filtreler:</span>
                       {selectedPlatform !== "both" && (
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#4DA3FF]/10 border border-[#4DA3FF]/30">
                           {selectedPlatform === "twitter" ? (
-                            <Twitter className="h-3 w-3 text-blue-400" />
+                            <Twitter className="h-3 w-3 text-[#4DA3FF]" />
                           ) : (
                             <Instagram className="h-3 w-3 text-pink-400" />
                           )}
-                          <span className="text-xs text-blue-400">
+                          <span className="text-xs text-[#4DA3FF]">
                             {selectedPlatform === "twitter" ? "Twitter" : "Instagram"}
                           </span>
                         </div>
@@ -684,9 +684,9 @@ export default function ChatPage() {
                         key={index}
                         onClick={() => handleSuggestionClick(suggestion)}
                         disabled={chatMutation.isPending}
-                        className="px-4 py-3 rounded-xl bg-[#1A1A1A] border border-white/10 text-sm text-gray-300 hover:border-blue-500/50 hover:bg-blue-500/5 hover:text-blue-400 transition-all disabled:opacity-50 text-left"
+                        className="px-4 py-3 rounded-xl bg-[#1A1A1A] border border-white/10 text-sm text-gray-300 hover:border-[#4DA3FF]/50 hover:bg-[#4DA3FF]/5 hover:text-[#4DA3FF] transition-all disabled:opacity-50 text-left"
                       >
-                        <span className="text-blue-400 mr-2">→</span>
+                        <span className="text-[#4DA3FF] mr-2">→</span>
                         {suggestion}
                       </button>
                     ))}
@@ -712,15 +712,15 @@ export default function ChatPage() {
               {chatMutation.isPending && (
                 <div className="flex justify-start">
                   <div className="flex items-start gap-3 max-w-[80%]">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
-                      <Bot className="h-4 w-4 text-blue-400" />
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4DA3FF]/20 to-[#4DA3FF]/10 border border-[#4DA3FF]/30 flex items-center justify-center flex-shrink-0">
+                      <Bot className="h-4 w-4 text-[#4DA3FF]" />
                     </div>
                     <div className="bg-[#1A1A1A] rounded-2xl rounded-tl-sm px-4 py-3 border border-white/10">
                       <div className="flex items-center gap-2">
                         <div className="flex gap-1">
-                          <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                          <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                          <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                          <span className="w-2 h-2 bg-[#4DA3FF] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                          <span className="w-2 h-2 bg-[#4DA3FF] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                          <span className="w-2 h-2 bg-[#4DA3FF] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                         </div>
                         <span className="text-sm text-gray-500">Hibrit arama ve analiz yapılıyor...</span>
                       </div>
@@ -749,12 +749,12 @@ export default function ChatPage() {
                     : `${getContentName().charAt(0).toUpperCase() + getContentName().slice(1)}ler hakkında soru sorun...`
                 }
                 disabled={chatMutation.isPending}
-                className="flex-1 px-4 py-3 bg-[#1A1A1A] border border-white/10 rounded-xl text-white placeholder:text-gray-600 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-3 bg-[#1A1A1A] border border-white/10 rounded-xl text-white placeholder:text-gray-600 focus:border-[#4DA3FF]/50 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:opacity-50"
               />
               <button
                 type="submit"
                 disabled={!inputValue.trim() || chatMutation.isPending}
-                className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl hover:from-blue-500 hover:to-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/25"
+                className="px-4 py-3 bg-gradient-to-r from-[#4DA3FF] to-[#3d8fe0] text-white rounded-xl hover:from-[#5bb3ff] hover:to-[#4DA3FF] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-[#4DA3FF]/25"
               >
                 <Send className="h-5 w-5" />
               </button>
@@ -771,7 +771,7 @@ export default function ChatPage() {
               </div>
               <div className="flex items-center gap-1">
                 <TrendingUp className="h-3 w-3" />
-                <span>GPT-4o Analiz</span>
+                <span>LLM Analiz</span>
               </div>
             </div>
           </div>
@@ -786,7 +786,7 @@ function UserMessage({ content }: { content: string }) {
   return (
     <div className="flex justify-end">
       <div className="flex items-start gap-3 max-w-[80%]">
-        <div className="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl rounded-tr-sm px-4 py-3 text-white">
+        <div className="bg-gradient-to-r from-[#4DA3FF] to-[#3d8fe0] rounded-2xl rounded-tr-sm px-4 py-3 text-white">
           <p>{content}</p>
         </div>
         <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
@@ -811,8 +811,8 @@ function AssistantMessage({
   return (
     <div className="flex justify-start">
       <div className="flex items-start gap-3 max-w-[90%] w-full">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
-          <Bot className="h-4 w-4 text-blue-400" />
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4DA3FF]/20 to-[#4DA3FF]/10 border border-[#4DA3FF]/30 flex items-center justify-center flex-shrink-0">
+          <Bot className="h-4 w-4 text-[#4DA3FF]" />
         </div>
 
         <div className="flex-1 space-y-3">
@@ -852,7 +852,7 @@ function AssistantMessage({
             <div className="bg-[#1A1A1A]/50 rounded-xl px-4 py-3 border border-white/5">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-blue-400" />
+                  <TrendingUp className="h-4 w-4 text-[#4DA3FF]" />
                   <div>
                     <div className="text-gray-500 text-xs">Bulunan</div>
                     <div className="text-white font-medium">{summary.total_found}</div>
@@ -898,7 +898,7 @@ function AssistantMessage({
                   {summary.top_topics.map((topic, index) => (
                     <span
                       key={index}
-                      className="px-2 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs text-blue-400"
+                      className="px-2 py-1 rounded-full bg-[#4DA3FF]/10 border border-[#4DA3FF]/30 text-xs text-[#4DA3FF]"
                     >
                       {topic}
                     </span>
@@ -940,7 +940,7 @@ function TweetCard({ tweet }: { tweet: ChatTweetResult }) {
             </span>
             <span className="text-gray-500 text-sm">@{tweet.username}</span>
             {tweet.party && (
-              <span className="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs text-blue-400">
+              <span className="px-2 py-0.5 rounded-full bg-[#4DA3FF]/10 border border-[#4DA3FF]/30 text-xs text-[#4DA3FF]">
                 {tweet.party}
               </span>
             )}

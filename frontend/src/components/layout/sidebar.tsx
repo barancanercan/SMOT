@@ -8,7 +8,6 @@ import {
   BarChart3,
   FileText,
   Flame,
-  Settings,
   Users,
   GitCompare,
   Camera,
@@ -25,7 +24,6 @@ const navItems = [
   { href: "/users", label: "Kullanıcılar", icon: Users },
   { href: "/tweets", label: "Top Tweetler", icon: Flame },
   { href: "/instagram", label: "Top Postlar", icon: Camera },
-  { href: "/system", label: "Sistem", icon: Settings },
 ];
 
 export function Sidebar() {
