@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from slowapi.errors import RateLimitExceeded
 
 from app.api.v1.router import api_router
@@ -96,7 +97,7 @@ async def log_requests(request: Request, call_next):
 app.include_router(api_router, prefix=settings.api_prefix)
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "version": "3.1.0"}
@@ -108,9 +109,9 @@ async def test_endpoint():
     return {"message": "API is working"}
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
-    """Root endpoint"""
+    """Root endpoint - HEAD supported for Render connectivity checks"""
     return {
         "name": "SMOT API",
         "version": "3.1.0",
