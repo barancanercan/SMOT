@@ -16,7 +16,7 @@ import {
   Camera,
   Video,
 } from "lucide-react";
-import { SkeletonMetricCard, SkeletonCard } from "@/components/ui/skeleton";
+import { SkeletonMetricCard } from "@/components/ui/skeleton";
 import { PartyBadge } from "@/components/ui/badge";
 import { PlatformSelector } from "@/components/ui/platform-selector";
 import Image from "next/image";
