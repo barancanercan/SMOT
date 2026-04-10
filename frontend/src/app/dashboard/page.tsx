@@ -82,7 +82,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <p className="text-gray-400 mt-1">
-                Gerçek Zamanlı · Sosyal Medya İzleme Paneli
+                Sosyal Medya İzleme
               </p>
             </div>
           </div>
