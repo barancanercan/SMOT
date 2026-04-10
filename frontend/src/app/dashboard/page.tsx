@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, DashboardStats, Platform } from "@/lib/api";
-import { MetricCard } from "@/components/features/metric-card";
 import {
   BarChart3,
   Users,
@@ -12,16 +11,11 @@ import {
   MessageCircle,
   Repeat2,
   TrendingUp,
-  Activity,
   Shield,
   Zap,
-  Image as ImageIcon,
   Camera,
   Video,
 } from "lucide-react";
-import { PartyBarChart } from "@/components/charts/party-bar-chart";
-import { EngagementPieChart } from "@/components/charts/engagement-pie-chart";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { SkeletonMetricCard, SkeletonCard } from "@/components/ui/skeleton";
 import { PartyBadge } from "@/components/ui/badge";
 import { PlatformSelector } from "@/components/ui/platform-selector";
@@ -35,36 +29,20 @@ export default function DashboardPage() {
     queryFn: () => api.get<DashboardStats>(`/dashboard/overview?platform=${platform}`),
   });
 
-  const { data: parties, isLoading: partiesLoading } = useQuery({
-    queryKey: ["analytics-parties"],
-    queryFn: () => api.get<any[]>("/analytics/parties"),
+  const { data: topTweets, isLoading: topTweetsLoading } = useQuery({
+    queryKey: ["analytics-top-tweets"],
+    queryFn: () => api.get<{ tweets: any[] }>("/analytics/tweets/top?limit=5"),
+  });
+
+  const { data: topPosts, isLoading: topPostsLoading } = useQuery({
+    queryKey: ["analytics-top-posts"],
+    queryFn: () => api.get<{ posts: any[] }>("/analytics/posts/top?limit=5"),
   });
 
   const { data: topUsers, isLoading: topUsersLoading } = useQuery({
     queryKey: ["analytics-engagement-top5"],
     queryFn: () => api.get<any[]>("/analytics/engagement?limit=5"),
   });
-
-  // Engagement breakdown for pie chart (platform-aware)
-  const engagementData = stats
-    ? platform === "instagram"
-      ? [
-          { name: "Begeniler", value: stats.total_likes || 0 },
-          { name: "Yorumlar", value: stats.total_comments || 0 },
-        ]
-      : platform === "both"
-      ? [
-          { name: "X Begeniler", value: stats.twitter_likes || 0 },
-          { name: "X Retweetler", value: stats.total_retweets_count || 0 },
-          { name: "IG Begeniler", value: stats.instagram_likes || 0 },
-          { name: "IG Yorumlar", value: stats.total_comments || 0 },
-        ]
-      : [
-          { name: "Begeniler", value: stats.total_likes || 0 },
-          { name: "Retweetler", value: stats.total_retweets_count || 0 },
-          { name: "Yorumlar", value: stats.total_replies || 0 },
-        ]
-    : [];
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] p-6 space-y-6">
@@ -102,11 +80,9 @@ export default function DashboardPage() {
                     SMOT
                   </h1>
                 </div>
-                <div className="h-8 w-px bg-gradient-to-b from-transparent via-[#4DA3FF]/50 to-transparent mx-2" />
-                <span className="text-xl font-semibold text-white/90">Gözlem Paneli</span>
               </div>
               <p className="text-gray-400 mt-1">
-                Gerçek zamanlı sosyal medya gözlem sistemi
+                Gerçek Zamanlı · Sosyal Medya İzleme Paneli
               </p>
             </div>
           </div>
@@ -450,68 +426,123 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Charts Row - Intelligence Panels */}
+      {/* Charts Row - Top Content Panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Party Distribution */}
+        {/* En Çok Etkileşim Alan Tweetler */}
         <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#4DA3FF]/50 to-transparent" />
 
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-[#4DA3FF]/10">
-                <Users className="h-5 w-5 text-[#4DA3FF]" />
+                <TrendingUp className="h-5 w-5 text-[#4DA3FF]" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">Parti Dagilimi</h3>
-                <p className="text-sm text-gray-500">Uye dagilimi analizi</p>
+                <h3 className="text-lg font-semibold text-white">En Çok Etkileşim Alan Tweetler</h3>
+                <p className="text-sm text-gray-500">Tüm zamanların en yüksek etkileşimi</p>
               </div>
             </div>
           </div>
 
           <div className="p-6">
-            {partiesLoading ? (
-              <div className="h-[300px] flex items-center justify-center">
-                <div className="relative">
-                  <div className="w-12 h-12 border-4 border-[#4DA3FF]/20 border-t-[#4DA3FF] rounded-full animate-spin" />
-                  <div className="absolute inset-0 w-12 h-12 border-4 border-transparent border-t-[#00D1B2] rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1s' }} />
-                </div>
+            {topTweetsLoading ? (
+              <div className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-16 bg-[#0B0B0B]/50 rounded-lg animate-pulse" />
+                ))}
               </div>
             ) : (
-              <PartyBarChart
-                data={parties?.slice(0, 8) || []}
-                dataKey="member_count"
-                height={300}
-              />
+              <div className="space-y-3">
+                {topTweets?.tweets?.map((tweet: any, index: number) => (
+                  <div key={tweet.id} className="group flex gap-3 p-3 rounded-lg bg-[#0B0B0B]/50 border border-white/5 hover:border-[#4DA3FF]/30 transition-all">
+                    <div className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-[#4DA3FF]/10 text-[#4DA3FF] text-sm font-bold">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium text-white truncate">{tweet.name}</span>
+                        <PartyBadge party={tweet.party || "BAGIMSIZ"} />
+                      </div>
+                      <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">{tweet.tweet_text}</p>
+                    </div>
+                    <div className="flex-shrink-0 text-right">
+                      <div className="flex items-center gap-1 text-pink-400">
+                        <Heart className="h-3 w-3" />
+                        <span className="text-xs font-semibold">{tweet.likes?.toLocaleString("tr-TR")}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-green-400 mt-1">
+                        <Repeat2 className="h-3 w-3" />
+                        <span className="text-xs">{tweet.retweets?.toLocaleString("tr-TR")}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {(!topTweets?.tweets || topTweets.tweets.length === 0) && (
+                  <div className="h-[200px] flex items-center justify-center text-gray-500 text-sm">
+                    Veri bulunamadı
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
 
-        {/* Engagement Breakdown */}
+        {/* En Çok Etkileşim Alan Instagram Postları */}
         <div className="relative bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00D1B2]/50 to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#E1306C]/50 to-transparent" />
 
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[#00D1B2]/10">
-                <Activity className="h-5 w-5 text-[#00D1B2]" />
+              <div className="p-2 rounded-lg bg-[#E1306C]/10">
+                <Camera className="h-5 w-5 text-[#E1306C]" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">Etkilesim Dagilimi</h3>
-                <p className="text-sm text-gray-500">Etkilesim metrikleri dagilimi</p>
+                <h3 className="text-lg font-semibold text-white">En Çok Etkileşim Alan Postlar</h3>
+                <p className="text-sm text-gray-500">Instagram tüm zamanların en iyileri</p>
               </div>
             </div>
           </div>
 
           <div className="p-6">
-            {statsLoading ? (
-              <div className="h-[300px] flex items-center justify-center">
-                <div className="relative">
-                  <div className="w-12 h-12 border-4 border-[#4DA3FF]/20 border-t-[#4DA3FF] rounded-full animate-spin" />
-                  <div className="absolute inset-0 w-12 h-12 border-4 border-transparent border-t-[#00D1B2] rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1s' }} />
-                </div>
+            {topPostsLoading ? (
+              <div className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-16 bg-[#0B0B0B]/50 rounded-lg animate-pulse" />
+                ))}
               </div>
             ) : (
-              <EngagementPieChart data={engagementData} height={300} />
+              <div className="space-y-3">
+                {topPosts?.posts?.map((post: any, index: number) => (
+                  <div key={post.id} className="group flex gap-3 p-3 rounded-lg bg-[#0B0B0B]/50 border border-white/5 hover:border-[#E1306C]/30 transition-all">
+                    <div className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-[#E1306C]/10 text-[#E1306C] text-sm font-bold">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium text-white truncate">{post.name || post.username}</span>
+                        <PartyBadge party={post.party || "BAGIMSIZ"} />
+                        {post.is_video && <Video className="h-3 w-3 text-gray-400 flex-shrink-0" />}
+                      </div>
+                      <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">{post.caption || "—"}</p>
+                    </div>
+                    <div className="flex-shrink-0 text-right">
+                      <div className="flex items-center gap-1 text-pink-400">
+                        <Heart className="h-3 w-3" />
+                        <span className="text-xs font-semibold">{post.likes?.toLocaleString("tr-TR")}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-purple-400 mt-1">
+                        <MessageCircle className="h-3 w-3" />
+                        <span className="text-xs">{post.comments?.toLocaleString("tr-TR")}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {(!topPosts?.posts || topPosts.posts.length === 0) && (
+                  <div className="h-[200px] flex items-center justify-center text-gray-500 text-sm">
+                    Veri bulunamadı
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
