@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "S.A.M - Stratejik Analiz Merkezi",
-  description: "Stratejik Analiz ve Sosyal Medya İzleme Platformu",
+  description: "Stratejik Analiz ve Sosyal Medya Analiz Platformu",
 };
 
 export default function RootLayout({

@@ -82,7 +82,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <p className="text-gray-400 mt-1">
-                Sosyal Medya İzleme Paneli
+                Stratejik Analiz Merkezi
               </p>
             </div>
           </div>
@@ -566,7 +566,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <Image
                 src="/minik_logo.png"
-                alt="MIS"
+                alt="S.A.M"
                 width={24}
                 height={24}
                 className="opacity-50"
