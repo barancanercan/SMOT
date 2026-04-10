@@ -38,7 +38,7 @@ if not logger.handlers:
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
 SESSION_FILE = os.path.join(PROJECT_ROOT, "x_session.json")
-DB_PATH = os.path.join(DATA_DIR, "smot.db")
+DB_PATH = os.path.join(DATA_DIR, "sam.db")
 
 
 # ======================================================================

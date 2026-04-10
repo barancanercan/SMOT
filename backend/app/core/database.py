@@ -993,7 +993,7 @@ def get_instagram_engagement_ranking(limit: int = 15) -> list[dict]:
 
 
 if __name__ == "__main__":
-    logger.info("Initializing SMOT Database v5.0 (SQLAlchemy ORM)...")
+    logger.info("Initializing S.A.M Database v5.0 (SQLAlchemy ORM)...")
     init_database()
 
     stats = get_stats()

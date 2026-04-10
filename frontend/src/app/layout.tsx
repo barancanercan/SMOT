@@ -6,8 +6,8 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SMOT - Sosyal Medya Gözlem Aracı",
-  description: "Sosyal Medya Gözlem ve Analiz Platformu",
+  title: "S.A.M - Stratejik Analiz Merkezi",
+  description: "Stratejik Analiz ve Sosyal Medya İzleme Platformu",
 };
 
 export default function RootLayout({

@@ -14,7 +14,7 @@ from tenacity import (
     wait_exponential,
 )
 
-logger = logging.getLogger("SMOT")
+logger = logging.getLogger("SAM")
 
 # Try to import selenium (optional - only needed for scraping)
 try:

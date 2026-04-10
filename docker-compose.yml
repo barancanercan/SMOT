@@ -9,7 +9,7 @@ services:
       - "8000:8000"
     environment:
       - ENVIRONMENT=production
-      - DATABASE_URL=sqlite:///./data/smot.db
+      - DATABASE_URL=sqlite:///./data/sam.db
       - OLLAMA_URL=http://ollama:11434
       - CORS_ORIGINS=http://localhost:3000
     volumes:

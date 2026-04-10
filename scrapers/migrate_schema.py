@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-SMOT - Schema Migration
+S.A.M - Schema Migration
 Tüm eksik kolonları ekler. Tekrar çalıştırılabilir (idempotent).
 """
 import sqlite3
 import os
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(PROJECT_ROOT, "data", "smot.db")
+DB_PATH = os.path.join(PROJECT_ROOT, "data", "sam.db")
 
 
 def add_column_if_missing(conn, table, col, col_type):

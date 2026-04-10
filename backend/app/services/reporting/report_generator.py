@@ -457,7 +457,7 @@ class ReportGenerator:
         return """
 ---
 
-*Bu rapor SMOT (Sosyal Medya Gozlem Araci) tarafindan otomatik olusturulmustur.*
+*Bu rapor S.A.M (Stratejik Analiz Merkezi) tarafindan otomatik olusturulmustur.*
 *Rapor suresi: 1 hafta gecerlidir.*
 """
 
@@ -722,7 +722,7 @@ def export_engagement_excel(usernames: list[str] | None = None) -> str | None:
         for row in rows
     ]
 
-    filename = f"smot_rapor_{datetime.now().strftime('%Y%m%d_%H%M')}"
+    filename = f"sam_rapor_{datetime.now().strftime('%Y%m%d_%H%M')}"
     return export_to_excel(data, filename)
 
 

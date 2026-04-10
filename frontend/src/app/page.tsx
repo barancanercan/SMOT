@@ -59,7 +59,7 @@ export default function LandingPage() {
                 <div className="absolute inset-0 bg-[#4DA3FF]/30 rounded-xl blur-xl" />
                 <Image
                   src="/transparan_logo.png"
-                  alt="SMOT Logo"
+                  alt="S.A.M Logo"
                   width={48}
                   height={48}
                   className="relative z-10"
@@ -67,10 +67,10 @@ export default function LandingPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-black bg-gradient-to-r from-white via-blue-200 to-[#4DA3FF] bg-clip-text text-transparent">
-                  SMOT
+                  S.A.M
                 </h1>
                 <p className="text-[10px] text-gray-500 tracking-widest uppercase">
-                  Sosyal Medya Gözlem Aracı
+                  Stratejik Analiz Merkezi
                 </p>
               </div>
             </div>
@@ -104,17 +104,17 @@ export default function LandingPage() {
             {/* Badge */}
             <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#4DA3FF]/10 border border-[#4DA3FF]/20 mb-8 transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               <Sparkles className="h-4 w-4 text-[#4DA3FF]" />
-              <span className="text-sm text-[#4DA3FF]">Sosyal Medya Gözlem Platformu</span>
+              <span className="text-sm text-[#4DA3FF]">Stratejik Analiz Platformu</span>
             </div>
 
             {/* Main Title */}
             <h1 className={`text-5xl md:text-7xl font-black mb-6 leading-tight transition-all duration-1000 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
               <span className="bg-gradient-to-r from-white via-white to-gray-400 bg-clip-text text-transparent">
-                Sosyal Medya
+                Stratejik Analiz
               </span>
               <br />
               <span className="bg-gradient-to-r from-[#4DA3FF] via-[#00D1B2] to-[#4DA3FF] bg-clip-text text-transparent">
-                Gözlem Aracı
+                Merkezi
               </span>
             </h1>
 
@@ -312,9 +312,9 @@ export default function LandingPage() {
                 </span>
               </h2>
               <p className="text-gray-400 mb-6 leading-relaxed">
-                SMOT (Sosyal Medya Gözlem Aracı), sosyal medya aktivitelerini
+                S.A.M (Stratejik Analiz Merkezi), sosyal medya aktivitelerini
                 takip eden ve analiz eden kapsamlı
-                bir gözlem platformudur.
+                bir stratejik analiz platformudur.
               </p>
               <p className="text-gray-400 mb-8 leading-relaxed">
                 Analiz motorumuz, her kullanıcının paylaşımlarına
@@ -485,17 +485,17 @@ export default function LandingPage() {
             <div className="flex items-center gap-3">
               <Image
                 src="/transparan_logo.png"
-                alt="SMOT Logo"
+                alt="S.A.M Logo"
                 width={32}
                 height={32}
               />
               <div className="flex items-center gap-2">
-                <span className="font-bold text-white">SMOT</span>
+                <span className="font-bold text-white">S.A.M</span>
                 <span className="text-[10px] text-[#4DA3FF] font-medium px-1.5 py-0.5 bg-[#4DA3FF]/10 rounded">v3.2</span>
               </div>
             </div>
             <p className="text-gray-500 text-sm">
-              SMOT - Sosyal Medya Gözlem Aracı
+              S.A.M - Stratejik Analiz Merkezi
             </p>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <div className="w-2 h-2 rounded-full bg-[#00D1B2] animate-pulse" />

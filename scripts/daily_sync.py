@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SMOT Daily Sync — Her gün 00:00'da son 24 saatlik veriyi çeker ve GitHub'a pushlar.
+S.A.M Daily Sync — Her gün 00:00'da son 24 saatlik veriyi çeker ve GitHub'a pushlar.
 Twitter + Instagram günlük güncelleme + git push
 """
 
@@ -22,7 +22,7 @@ from scrapers.cdp_browser import CDPBrowser
 from scrapers.batch_instagram import scrape_user_posts
 
 # --- Config ---
-DB_PATH      = os.path.join(PROJECT_ROOT, "data", "smot.db")
+DB_PATH      = os.path.join(PROJECT_ROOT, "data", "sam.db")
 X_SESSION    = os.path.join(PROJECT_ROOT, "x_session.json")
 IG_SESSION   = os.path.join(PROJECT_ROOT, "ig_session.json")
 LOG_DIR      = os.path.join(PROJECT_ROOT, "data", "logs")
@@ -215,7 +215,7 @@ def git_push(new_tw, upd_tw, new_ig):
     commit_msg = f"daily sync {date_str}: +{new_tw} tweet ({upd_tw} güncellendi), +{new_ig} ig post"
 
     cmds = [
-        ["git", "-C", PROJECT_ROOT, "add", "data/smot.db"],
+        ["git", "-C", PROJECT_ROOT, "add", "data/sam.db"],
         ["git", "-C", PROJECT_ROOT, "commit", "-m", commit_msg],
         ["git", "-C", PROJECT_ROOT, "push"],
     ]
@@ -230,7 +230,7 @@ def git_push(new_tw, upd_tw, new_ig):
 def main():
     start = datetime.now()
     logger.info(f"{'='*60}")
-    logger.info(f"SMOT DAILY SYNC — {start.strftime('%Y-%m-%d %H:%M')}")
+    logger.info(f"S.A.M DAILY SYNC — {start.strftime('%Y-%m-%d %H:%M')}")
     logger.info(f"Son {DAYS_BACK} gün verisi güncelleniyor")
     logger.info(f"{'='*60}")
 

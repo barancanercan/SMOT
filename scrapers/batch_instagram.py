@@ -39,7 +39,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("BatchInstagram")
 
-DB_PATH = os.path.join(PROJECT_ROOT, "data", "smot.db")
+DB_PATH = os.path.join(PROJECT_ROOT, "data", "sam.db")
 IG_SESSION = os.path.join(PROJECT_ROOT, "ig_session.json")
 
 START_DATE = datetime(2026, 1, 1)

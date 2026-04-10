@@ -1,3 +1,3 @@
 """
-Test Suite for SMOT - Sosyal Medya Gozlem Araci
+Test Suite for S.A.M - Stratejik Analiz Merkezi
 """

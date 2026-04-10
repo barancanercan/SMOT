@@ -37,7 +37,7 @@ export function Sidebar() {
             <div className="absolute inset-0 bg-[#4DA3FF]/20 rounded-xl blur-lg" />
             <Image
               src="/transparan_logo.png"
-              alt="SMOT Logo"
+              alt="S.A.M Logo"
               width={44}
               height={44}
               className="object-contain relative z-10"
@@ -46,12 +46,12 @@ export function Sidebar() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-black bg-gradient-to-r from-white via-blue-200 to-[#4DA3FF] bg-clip-text text-transparent tracking-tight">
-                SMOT
+                S.A.M
               </h1>
               <div className="h-4 w-px bg-gradient-to-b from-transparent via-[#4DA3FF]/50 to-transparent" />
               <span className="text-[10px] font-medium text-[#4DA3FF] uppercase tracking-widest">v3.2</span>
             </div>
-            <p className="text-xs text-gray-500 mt-0.5">Sosyal Medya Gözlem Aracı</p>
+            <p className="text-xs text-gray-500 mt-0.5">Stratejik Analiz Merkezi</p>
           </div>
         </Link>
       </div>

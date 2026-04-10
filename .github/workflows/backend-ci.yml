@@ -56,6 +56,6 @@ jobs:
         with:
           context: ./backend
           push: false
-          tags: smot-backend:latest
+          tags: sam-backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max

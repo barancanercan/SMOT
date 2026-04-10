@@ -1,11 +1,11 @@
 <div align="center">
 
-# SMOT - Social Media Observation Tool
+# S.A.M - Stratejik Analiz Merkezi
 
-### Yapay Zeka Destekli Sosyal Medya Gozlem ve Analiz Platformu
+### Yapay Zeka Destekli Stratejik Sosyal Medya Analiz Platformu
 
-[![Live Demo](https://img.shields.io/badge/Demo-Live-success?style=for-the-badge&logo=vercel)](https://smot.vercel.app)
-[![API](https://img.shields.io/badge/API-Online-success?style=for-the-badge&logo=fastapi)](https://smot-api.onrender.com/docs)
+[![Live Demo](https://img.shields.io/badge/Demo-Live-success?style=for-the-badge&logo=vercel)](https://stratejik-analiz-merkezi.vercel.app)
+[![API](https://img.shields.io/badge/API-Online-success?style=for-the-badge&logo=fastapi)](https://smot-vwin.onrender.com/docs)
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -16,12 +16,12 @@
 
 <br/>
 
-<img src="docs/logo.png" alt="SMOT Logo" width="300"/>
+<img src="docs/logo.png" alt="S.A.M Logo" width="300"/>
 
 **Sosyal medya aktivitelerini (Twitter + Instagram) analiz eden,**
-**profesyonel gozlem raporlari ureten modern SaaS platformu.**
+**stratejik analiz raporlari ureten modern SaaS platformu.**
 
-[Canli Demo](https://smot.vercel.app) · [API Dokumantasyonu](https://smot-api.onrender.com/docs) · [Hata Bildir](https://github.com/barancanercan/SMOT/issues)
+[Canli Demo](https://stratejik-analiz-merkezi.vercel.app) · [API Dokumantasyonu](https://smot-vwin.onrender.com/docs) · [Hata Bildir](https://github.com/barancanercan/S.A.M/issues)
 
 </div>
 
@@ -189,8 +189,8 @@
 
 ```bash
 # 1. Klonla
-git clone https://github.com/barancanercan/SMOT.git
-cd SMOT
+git clone https://github.com/barancanercan/S.A.M.git
+cd SAM
 
 # 2. Backend
 cd backend
@@ -252,7 +252,7 @@ OLLAMA_MODEL=qwen2.5:3b
 # ============================================
 # VERITABANI
 # ============================================
-DATABASE_URL=sqlite:///./data/smot.db
+DATABASE_URL=sqlite:///./data/sam.db
 
 # ============================================
 # API AYARLARI
@@ -306,7 +306,7 @@ npm run build && npm start
 
 | Ortam | URL |
 |-------|-----|
-| Production | `https://smot-api.onrender.com` |
+| Production | `https://smot-vwin.onrender.com` |
 | Development | `http://localhost:8000` |
 
 ### Endpoints
@@ -462,7 +462,7 @@ POST /api/v1/chat/query
 
 ## Analiz Framework'u
 
-SMOT, siyasi icerik analizinde **Yesil-Kirmizi-Gri Takim** framework'unu kullanir:
+S.A.M, siyasi icerik analizinde **Yesil-Kirmizi-Gri Takim** framework'unu kullanir:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -547,7 +547,7 @@ cd backend && docker build -t mis-backend . && docker run -p 8000:8000 mis-backe
 ## Proje Yapisi
 
 ```
-SMOT/
+SAM/
 ├── backend/
 │   ├── app/
 │   │   ├── api/v1/           # REST endpoints
@@ -711,7 +711,7 @@ Bu proje [MIT Lisansi](LICENSE) altinda lisanslanmistir.
 
 ---
 
-<sub>SMOT v6.0 - Modern RAG ile Semantic Arama ve Siyasi Analiz</sub>
+<sub>S.A.M v6.0 - Modern RAG ile Semantic Arama ve Siyasi Analiz</sub>
 
 <sub>Made with by Baran Can Ercan</sub>
 

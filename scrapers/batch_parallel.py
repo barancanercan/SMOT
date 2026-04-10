@@ -24,7 +24,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("BatchParallel")
 
-DB_PATH = os.path.join(PROJECT_ROOT, "data", "smot.db")
+DB_PATH = os.path.join(PROJECT_ROOT, "data", "sam.db")
 X_SESSION = os.path.join(PROJECT_ROOT, "x_session.json")
 
 START_DATE = datetime(2026, 1, 1)

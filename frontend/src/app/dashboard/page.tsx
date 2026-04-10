@@ -66,7 +66,7 @@ export default function DashboardPage() {
               <div className="absolute inset-0 bg-[#4DA3FF]/20 rounded-xl blur-xl" />
               <Image
                 src="/transparan_logo.png"
-                alt="SMOT Logo"
+                alt="S.A.M Logo"
                 width={80}
                 height={80}
                 className="relative z-10"
@@ -77,7 +77,7 @@ export default function DashboardPage() {
                 <Shield className="h-8 w-8 text-[#4DA3FF]" />
                 <div>
                   <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-blue-100 to-[#4DA3FF] bg-clip-text text-transparent">
-                    SMOT
+                    S.A.M
                   </h1>
                 </div>
               </div>

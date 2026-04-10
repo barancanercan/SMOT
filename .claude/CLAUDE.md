@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**SMOT - Sosyal Medya Gozlem Araci** (Social Media Observation Tool) v6.0
+**S.A.M - Stratejik Analiz Merkezi** (Strategic Analysis Center) v6.0
 
 AI-powered political intelligence platform analyzing Turkish council members' social media (Twitter + Instagram).
 
@@ -155,7 +155,7 @@ OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-3.5-turbo
 OLLAMA_URL=http://127.0.0.1:11434
 OLLAMA_MODEL=qwen2.5:3b
-DATABASE_URL=sqlite:///./data/smot.db
+DATABASE_URL=sqlite:///./data/sam.db
 CORS_ORIGINS=http://localhost:3000
 ```
 
@@ -216,7 +216,7 @@ ChatMessage: id, session_id (FK), role, content, metadata (JSON), created_at
 | Instagram 403 | Rate limited - wait 5 min, script auto-retries |
 | Chat old response | Clear chat cache: `POST /api/v1/chat/cache/clear` |
 | Chat wrong results | Restart server to reload code changes |
-| DB malformed schema | DB corrupted — restore from git: `git show <commit>:data/smot.db > data/smot.db` then re-run migration |
+| DB malformed schema | DB corrupted — restore from git: `git show <commit>:data/sam.db > data/sam.db` then re-run migration |
 | Migration emoji error | Windows cp1254 encoding — use `PYTHONIOENCODING=utf-8 python scrapers/migrate_schema.py` |
 
 ## API Reference

@@ -1,5 +1,5 @@
 """
-SMOT - Sosyal Medya Gozlem Araci - Backend Application
+S.A.M - Stratejik Analiz Merkezi - Backend Application
 """
 
 __version__ = "3.0.0"

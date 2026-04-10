@@ -1,7 +1,7 @@
 [project]
-name = "smot-backend"
+name = "sam-backend"
 version = "3.0.0"
-description = "SMOT - Sosyal Medya Gozlem Araci - Backend API"
+description = "S.A.M - Stratejik Analiz Merkezi - Backend API"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -48,7 +48,7 @@ scraping = [
 ]
 
 [project.scripts]
-smot-api = "app.main:app"
+sam-api = "app.main:app"
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]

@@ -1,5 +1,5 @@
 """
-SMOT - Sosyal Medya Gozlem Araci - FastAPI Backend
+S.A.M - Stratejik Analiz Merkezi - FastAPI Backend
 """
 import logging
 import time
@@ -35,8 +35,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="SMOT API",
-    description="Sosyal Medya Gozlem Araci - REST API",
+    title="S.A.M API",
+    description="Stratejik Analiz Merkezi - REST API",
     version="3.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -113,7 +113,7 @@ async def test_endpoint():
 async def root():
     """Root endpoint - HEAD supported for Render connectivity checks"""
     return {
-        "name": "SMOT API",
+        "name": "S.A.M API",
         "version": "3.1.0",
         "docs": "/docs",
         "auth": "/api/v1/auth/token"
