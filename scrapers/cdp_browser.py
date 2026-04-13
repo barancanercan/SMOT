@@ -171,15 +171,29 @@ class CDPBrowser:
             with urllib.request.urlopen(url, timeout=5) as resp:
                 targets = json.loads(resp.read().decode())
 
-            # Find first "page" type target
+            # Find first real "page" target (skip DevTools windows)
+            for target in targets:
+                if target.get("type") != "page":
+                    continue
+                title = target.get("title", "")
+                url_t = target.get("url", "")
+                # Skip DevTools windows (title starts with "DevTools" or devtools:// URL)
+                if title.startswith("DevTools") or "devtools://" in url_t or "chrome-devtools://" in url_t:
+                    continue
+                ws_url = target.get("webSocketDebuggerUrl")
+                if ws_url:
+                    logger.info(f"Page target: {title} → {ws_url}")
+                    return ws_url
+
+            # Fallback: any page target (including DevTools if nothing else)
             for target in targets:
                 if target.get("type") == "page":
                     ws_url = target.get("webSocketDebuggerUrl")
                     if ws_url:
-                        logger.info(f"Page target: {target.get('title', '?')} → {ws_url}")
+                        logger.warning(f"No real page target, using DevTools window: {target.get('title', '?')}")
                         return ws_url
 
-            # Fallback: any target with WS URL
+            # Final fallback: any target with WS URL
             for target in targets:
                 ws_url = target.get("webSocketDebuggerUrl")
                 if ws_url:

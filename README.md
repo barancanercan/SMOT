@@ -503,6 +503,85 @@ S.A.M, siyasi icerik analizinde **Yesil-Kirmizi-Gri Takim** framework'unu kullan
 
 ---
 
+## Veri Toplama (Scraper)
+
+S.A.M, Twitter/X ve Instagram verilerini **Chrome DevTools Protocol (CDP)** üzerinden çalışan tarayıcı tabanlı scraper'larla toplar. Bu yaklaşım: gerçek tarayıcı parmak izi + oturum cookie'leri = rate-limit riski minimumdur.
+
+### Gereksinimler
+
+- **Brave** veya **Google Chrome**
+- Python paketleri: `pip install -r requirements.txt`
+
+### 1. Tarayıcıları Başlat (PowerShell)
+
+```powershell
+# Twitter — port 9222
+Start-Process "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe" `
+  -ArgumentList "--remote-debugging-port=9222","--remote-allow-origins=*","--user-data-dir=C:\tmp\chrome-tw"
+
+# Instagram — port 9226 (ayrı profil)
+Start-Process "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe" `
+  -ArgumentList "--remote-debugging-port=9226","--remote-allow-origins=*","--user-data-dir=C:\tmp\chrome-ig"
+```
+
+> Her tarayıcıda ilgili platforma giriş yapın.
+
+### 2. Cookie'leri Kaydet
+
+```bash
+python scrapers/login_session.py --platform twitter    # → x_session.json
+python scrapers/login_session.py --platform instagram  # → ig_session.json
+```
+
+### 3. Scraping'i Başlat
+
+```bash
+# Her ikisi sırayla (önerilen)
+python scrapers/batch_parallel.py
+
+# Sadece Twitter
+python scrapers/batch_parallel.py --twitter
+
+# Sadece Instagram
+python scrapers/batch_parallel.py --instagram
+
+# Paralel (2 Brave penceresi açık olmalı)
+python scrapers/batch_parallel.py --parallel
+```
+
+### Yeni Kullanıcı Ekleme
+
+Scraper'lar kullanıcı listesini **tamamen DB'den** okur — hardcode liste yoktur. Yeni kişiyi eklemek için:
+
+**API üzerinden (önerilen):**
+```json
+POST /api/v1/users
+{
+  "username": "twitter_kullanici_adi",
+  "instagram_username": "instagram_kullanici_adi",
+  "name": "Ad Soyad",
+  "party": "CHP",
+  "district": "Keçiören"
+}
+```
+
+**Doğrudan DB:**
+```sql
+INSERT INTO councilors (username, instagram_username, name, party, district)
+VALUES ('tw_user', 'ig_user', 'Ad Soyad', 'AK Parti', 'İlçe');
+```
+
+Sonraki `batch_parallel.py` çalışmasında otomatik dahil edilir.
+
+### Test
+
+```bash
+python scrapers/test_twitter_3.py    # 3 kullanıcı + DB doğrulama
+python scrapers/test_instagram_3.py  # 3 kullanıcı + birim testleri
+```
+
+---
+
 ## Deployment
 
 ### Vercel (Frontend)
@@ -551,52 +630,47 @@ SAM/
 ├── backend/
 │   ├── app/
 │   │   ├── api/v1/           # REST endpoints
-│   │   │   ├── dashboard.py  # Dashboard stats
-│   │   │   ├── users.py      # User CRUD
-│   │   │   ├── tweets.py     # Tweet queries
-│   │   │   ├── analytics.py  # Analytics & comparison
-│   │   │   └── reports.py    # Report generation
+│   │   │   ├── dashboard.py
+│   │   │   ├── users.py
+│   │   │   ├── tweets.py
+│   │   │   ├── analytics.py
+│   │   │   ├── reports.py
+│   │   │   └── chat.py
 │   │   ├── core/
-│   │   │   ├── config.py     # Settings
-│   │   │   ├── constants.py  # Party normalization
-│   │   │   ├── database.py   # DB operations
-│   │   │   └── models.py     # SQLAlchemy models
+│   │   │   ├── config.py
+│   │   │   ├── constants.py  # Parti normalizasyonu
+│   │   │   ├── database.py
+│   │   │   └── models.py
 │   │   ├── services/
-│   │   │   ├── analysis/     # LLM integration
-│   │   │   │   ├── analyzer.py
-│   │   │   │   └── prompts.py
-│   │   │   ├── reporting/    # Report generation
-│   │   │   └── scraping/     # Social media scrapers
-│   │   │       ├── instagram_scraper.py      # Selenium
-│   │   │       └── instagram_api_scraper.py  # Instaloader API
-│   │   └── utils/            # Helpers
-│   ├── scripts/              # Utility scripts
-│   │   └── update_instagram_engagement.py
-│   ├── data/                 # SQLite database
-│   ├── requirements.txt
+│   │   │   ├── agents/       # A-RAG Agent sistemi
+│   │   │   ├── analysis/     # LLM analiz (prompts, analyzer)
+│   │   │   ├── chat/         # Chat with Tweets v6 RAG pipeline
+│   │   │   └── reporting/    # Rapor üretimi
+│   │   └── utils/
+│   ├── data/                 # SQLite (sam.db)
+│   ├── pyproject.toml
 │   └── Dockerfile
+├── scrapers/                 # CDP tabanlı veri toplama katmanı
+│   ├── batch_parallel.py     # Ana koordinatör (Twitter + Instagram)
+│   ├── batch_twitter.py      # Twitter batch scraper
+│   ├── batch_instagram.py    # Instagram batch scraper
+│   ├── twitter_scraper.py    # Çekirdek Twitter scraper (CDP)
+│   ├── cdp_browser.py        # Chrome DevTools Protocol yöneticisi
+│   ├── migrate_schema.py     # İdempotent DB migrasyon
+│   ├── scheduler.py          # APScheduler zamanlayıcı
+│   ├── login_session.py      # Cookie kaydetme
+│   ├── test_twitter_3.py     # Twitter test + DB doğrulama
+│   └── test_instagram_3.py   # Instagram test + birim testleri
 ├── frontend/
 │   ├── src/
-│   │   ├── app/              # Next.js pages
-│   │   │   ├── page.tsx      # Landing
-│   │   │   ├── dashboard/    # Dashboard
-│   │   │   ├── analytics/    # Charts
-│   │   │   ├── reports/      # Reports
-│   │   │   ├── comparison/   # Comparison
-│   │   │   ├── tweets/       # Tweet search
-│   │   │   ├── instagram/    # Instagram posts (NEW)
-│   │   │   ├── users/        # User management
-│   │   │   └── system/       # System status
-│   │   ├── components/
-│   │   │   ├── charts/       # Recharts
-│   │   │   ├── layout/       # Sidebar, nav
-│   │   │   └── ui/           # UI (platform-selector, instagram-card)
-│   │   └── lib/
-│   │       └── api.ts        # API client
-│   ├── package.json
-│   └── tailwind.config.ts
-├── docs/                     # Documentation
-├── render.yaml               # Render blueprint
+│   │   ├── app/              # Next.js sayfaları
+│   │   ├── components/       # UI bileşenleri
+│   │   └── lib/api.ts        # Typed API istemcisi
+│   └── package.json
+├── data/                     # Veritabanı
+│   └── sam.db                # SQLite (86 meclis üyesi, ~17K tweet, ~1.5K IG post)
+├── requirements.txt          # Python bağımlılıkları
+├── render.yaml               # Render deployment
 ├── docker-compose.yml
 └── README.md
 ```
@@ -681,15 +755,43 @@ python scripts/update_instagram_engagement.py
 </details>
 
 <details>
-<summary><b>Instagram Scraping</b></summary>
+<summary><b>Scraper — Tarayıcıya bağlanılamıyor</b></summary>
+
+```powershell
+# Brave'i doğru portla başlat
+Start-Process "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe" `
+  -ArgumentList "--remote-debugging-port=9222","--remote-allow-origins=*","--user-data-dir=C:\tmp\chrome-tw"
+
+# Bağlantıyı test et
+curl http://localhost:9222/json
+```
+</details>
+
+<details>
+<summary><b>Scraper — Session süresi doldu (login duvarı)</b></summary>
 
 ```bash
-# Yeni API-based scraper (onerilir)
-cd backend
-python -m app.services.scraping.instagram_api_scraper --users USERNAME --max-posts 50
+# Cookie'leri yenile (tarayıcıda giriş yaptıktan sonra)
+python scrapers/login_session.py --platform twitter
+python scrapers/login_session.py --platform instagram
+```
+</details>
 
-# Coklu kullanici
-python -m app.services.scraping.instagram_api_scraper --users user1 user2 user3
+<details>
+<summary><b>Scraper — Twitter followers = 0</b></summary>
+
+X'in `data-testid` attribute'leri değişmiş olabilir. `scrapers/twitter_scraper.py` içinde `PROFILE_JS`'i güncelle veya test et:
+```bash
+python scrapers/test_twitter_3.py
+```
+</details>
+
+<details>
+<summary><b>Instagram 0 Like Sorunu</b></summary>
+
+```bash
+cd backend
+python scripts/update_instagram_engagement.py
 ```
 </details>
 

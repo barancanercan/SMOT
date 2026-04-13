@@ -188,17 +188,94 @@ TWEET_EXTRACT_JS = """
 
 
 # ======================================================================
+# JS: Twitter profile extraction
+# ======================================================================
+
+PROFILE_JS = """
+(() => {
+    const r = {bio: '', followers: '0', following: '0', tweetCount: '0', name: ''};
+
+    // Display name
+    const nameEl = document.querySelector('[data-testid="UserName"] span');
+    if (nameEl) r.name = nameEl.innerText.trim();
+
+    // Bio
+    const bioEl = document.querySelector('[data-testid="UserDescription"]');
+    if (bioEl) r.bio = bioEl.innerText.trim();
+
+    // Followers / Following — href pattern: /{username}/followers veya /{username}/following
+    const allStatLinks = document.querySelectorAll('a[href]');
+    for (const a of allStatLinks) {
+        const href = a.getAttribute('href') || '';
+        if (href.includes('/verified_followers')) continue;
+        const isFollowers = href.includes('/followers') && !href.includes('/following');
+        const isFollowing = href.includes('/following');
+        if (!isFollowers && !isFollowing) continue;
+        // Sayiyi bul: link icinde ilk rakamla baslayan span veya link text
+        const spans = a.querySelectorAll('span');
+        let found = false;
+        for (const s of spans) {
+            const t = s.innerText.trim();
+            if (t && /^[0-9]/.test(t)) {
+                if (isFollowers && r.followers === '0') { r.followers = t; found = true; }
+                if (isFollowing && r.following === '0') { r.following = t; found = true; }
+                break;
+            }
+        }
+        // Fallback: link text iceriginden numerik kismi cek
+        if (!found) {
+            const linkText = a.innerText.trim();
+            const m = linkText.match(/([0-9][0-9,.KMB]*)/);
+            if (m) {
+                if (isFollowers && r.followers === '0') r.followers = m[1];
+                if (isFollowing && r.following === '0') r.following = m[1];
+            }
+        }
+    }
+    // Fallback: primaryColumn icinde "X Followers" / "X Takipçi" metni
+    if (r.followers === '0') {
+        const primary = document.querySelector('[data-testid="primaryColumn"]');
+        if (primary) {
+            const text = primary.innerText;
+            const fm = text.match(/([0-9][0-9,.KMB]*)\\s*(?:Followers?|Takipçi)/i);
+            if (fm) r.followers = fm[1];
+        }
+    }
+
+    // Tweet count — shown as "X posts" in profile header
+    const primary = document.querySelector('[data-testid="primaryColumn"]');
+    if (primary) {
+        const m = primary.innerText.match(/([0-9][0-9,.KMB]*)\\s*(?:posts?|tweets?|gönderi)/i);
+        if (m) r.tweetCount = m[1];
+    }
+
+    return r;
+})()
+"""
+
+
+# ======================================================================
 # Helper Functions
 # ======================================================================
 
 def parse_metric(value) -> int:
-    """Parse engagement metrics: '1.2K' -> 1200, '5.5M' -> 5500000"""
+    """
+    Twitter metrik stringini tam integer'a çevirir. Daima tam sayı döner.
+
+    Örnekler:
+      '1.2K'   → 1200
+      '5.5M'   → 5500000
+      '1,234'  → 1234   (binlik virgül)
+      '10,500' → 10500
+    """
     if isinstance(value, (int, float)):
         return int(value)
     if not value:
         return 0
 
     text = str(value).strip().upper()
+    # Binlik ayraç olarak kullanılan virgülü kaldır, ondalık noktayı koru
+    text = text.replace(",", "")
     text = "".join(c for c in text if c.isdigit() or c in ".KMB")
 
     try:
@@ -543,7 +620,13 @@ class TwitterCDPScraper:
                     "replies": parse_metric(raw.get("replies", 0)),
                     "retweets": parse_metric(raw.get("retweets", 0)),
                     "views": parse_metric(raw.get("views", 0)),
+                    "bookmarks": parse_metric(raw.get("bookmarks", 0)),
                     "media_type": raw.get("mediaType", "none"),
+                    "media_urls": raw.get("mediaUrls", []),
+                    "media_count": int(raw.get("mediaCount") or len(raw.get("mediaUrls", []))),
+                    "hashtags": raw.get("hashtags", []),
+                    "mentions": raw.get("mentions", []),
+                    "quote_tweet_id": raw.get("quoteTweetId"),
                     "language": raw.get("language", "tr"),
                 })
 
@@ -582,6 +665,47 @@ class TwitterCDPScraper:
 
         logger.info(f"DONE: @{username} - {len(tweets)} tweets")
         return tweets
+
+    def scrape_profile(self, username: str) -> Optional[Dict]:
+        """
+        Scrape Twitter profile: bio, followers, following, tweet count.
+        Navigates to profile page and extracts data.
+        Returns dict or None on failure.
+        """
+        if self.mock:
+            return {
+                "bio": f"Mock bio for @{username}",
+                "followers": str(random.randint(100, 50000)),
+                "following": str(random.randint(50, 2000)),
+                "tweetCount": str(random.randint(100, 10000)),
+                "name": username.capitalize(),
+            }
+
+        self._ensure_session()
+
+        safe_url = f"https://x.com/{username}".replace("'", "\\'")
+        self.browser.evaluate(f"window.location.href = '{safe_url}'")
+        time.sleep(random.uniform(4, 6))
+
+        # Wait for profile content
+        for _ in range(5):
+            loaded = self.browser.evaluate(
+                "!!document.querySelector('[data-testid=\"UserDescription\"], [data-testid=\"UserName\"]')"
+            )
+            if loaded:
+                break
+            time.sleep(2)
+
+        try:
+            data = self.browser.evaluate(PROFILE_JS, timeout=10)
+            if data:
+                logger.info(
+                    f"Profile @{username}: {data.get('followers','?')} followers, bio={bool(data.get('bio'))}"
+                )
+            return data
+        except Exception as e:
+            logger.warning(f"Profile scrape failed for @{username}: {e}")
+            return None
 
     def scrape_multiple(
         self,

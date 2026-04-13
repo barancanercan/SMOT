@@ -16,7 +16,7 @@ from datetime import datetime
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
-from scrapers.twitter_scraper import TwitterCDPScraper
+from scrapers.twitter_scraper import TwitterCDPScraper, parse_metric
 
 logging.basicConfig(
     level=logging.INFO,
@@ -104,6 +104,32 @@ def save_tweets(tweets: list, username: str) -> tuple:
     return saved, updated
 
 
+def save_profile(username: str, profile: dict) -> None:
+    """Update councilor's Twitter profile stats."""
+    if not profile:
+        return
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("PRAGMA journal_mode=WAL")
+    try:
+        conn.execute("""
+            UPDATE councilors
+            SET bio=?, followers_count=?, following_count=?, tweet_count_total=?,
+                twitter_updated_at=CURRENT_TIMESTAMP
+            WHERE username=?
+        """, (
+            profile.get("bio", "") or "",
+            parse_metric(profile.get("followers", "0")),
+            parse_metric(profile.get("following", "0")),
+            parse_metric(profile.get("tweetCount", "0")),
+            username,
+        ))
+        conn.commit()
+    except Exception as e:
+        logger.warning(f"Profile save error for @{username}: {e}")
+    finally:
+        conn.close()
+
+
 def get_all_users() -> list:
     conn = sqlite3.connect(DB_PATH)
     rows = conn.execute(
@@ -129,6 +155,11 @@ def main():
         for i, (pid, username, name) in enumerate(users, 1):
             logger.info(f"\n[{i}/{len(users)}] @{username} ({name})")
             try:
+                # Scrape profile first (navigates to profile page)
+                profile = scraper.scrape_profile(username)
+                if profile:
+                    save_profile(username, profile)
+
                 tweets = scraper.scrape_tweets(
                     username=username,
                     max_tweets=MAX_TWEETS_PER_USER,

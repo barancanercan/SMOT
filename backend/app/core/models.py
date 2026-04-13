@@ -58,6 +58,11 @@ class Tweet(Base):
     bookmarks = Column(Integer, default=0)  # Bookmark count
     tweet_url = Column(String(500))  # Direct URL to tweet
     media_type = Column(String(50))  # photo, video, gif, poll, none
+    media_urls = Column(Text)  # JSON list of media URLs
+    media_count = Column(Integer, default=0)
+    hashtags = Column(Text)  # JSON list of hashtags (without #)
+    mentions = Column(Text)  # JSON list of mentioned usernames
+    quote_tweet_id = Column(String(50))  # Quoted tweet ID
     language = Column(String(10))  # Tweet language (tr, en, etc.)
     created_at = Column(DateTime, default=func.now(), nullable=True)
     is_deleted = Column(Boolean, default=False)
@@ -107,9 +112,14 @@ class InstagramPost(Base):
     caption = Column(Text)
     post_date = Column(String(50), index=True)
     post_url = Column(String(500), unique=True)
+    shortcode = Column(String(100))  # Instagram shortcode (e.g. "ABC123xyz")
+    post_type = Column(String(20), default='photo')  # photo, video, reel
     likes = Column(Integer, default=0)
     comments = Column(Integer, default=0)
+    video_views = Column(Integer, default=0)
     is_video = Column(Boolean, default=False)
+    hashtags = Column(Text)  # JSON list
+    mentions = Column(Text)  # JSON list
     created_at = Column(DateTime, default=func.now(), nullable=True)
 
     def __repr__(self):

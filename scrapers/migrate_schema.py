@@ -30,6 +30,9 @@ def main():
     # ── tweets ──────────────────────────────────────────────
     print("\n📋 tweets tablosu:")
     for col, typ in [
+        ("tweet_url",       "TEXT"),
+        ("views",           "INTEGER DEFAULT 0"),
+        ("bookmarks",       "INTEGER DEFAULT 0"),
         ("hashtags",        "TEXT"),
         ("mentions",        "TEXT"),
         ("media_urls",      "TEXT"),
@@ -37,20 +40,20 @@ def main():
         ("quote_tweet_id",  "TEXT"),
         ("conversation_id", "TEXT"),
         ("source",          "TEXT"),
-        ("bookmarks",       "INTEGER DEFAULT 0"),
     ]:
         add_column_if_missing(conn, "tweets", col, typ)
 
     # ── instagram_posts ──────────────────────────────────────
     print("\n📷 instagram_posts tablosu:")
     for col, typ in [
+        ("post_url",    "TEXT"),
+        ("shortcode",   "TEXT"),
+        ("post_type",   "TEXT DEFAULT 'photo'"),
         ("video_views", "INTEGER DEFAULT 0"),
-        ("saves",       "INTEGER DEFAULT 0"),
-        ("shares",      "INTEGER DEFAULT 0"),
         ("hashtags",    "TEXT"),
         ("mentions",    "TEXT"),
-        ("post_type",   "TEXT DEFAULT 'photo'"),
-        ("shortcode",   "TEXT"),
+        ("saves",       "INTEGER DEFAULT 0"),
+        ("shares",      "INTEGER DEFAULT 0"),
         ("media_count", "INTEGER DEFAULT 1"),
         ("location",    "TEXT"),
     ]:
