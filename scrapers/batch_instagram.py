@@ -353,11 +353,35 @@ IG_PROFILE_JS = """
         }
     }
 
+    // Followers/Following fallback — sayfa metni üzerinden (gizli hesaplar için)
+    // "N gönderi  M takipçi  K takip" sırası her zaman sabit
+    if (r.followers === '0' || r.following === '0') {
+        const bodyText = document.body.innerText || '';
+        if (r.followers === '0') {
+            const fm = bodyText.match(/([0-9][0-9.,]*[KMB]?)[\s\u00a0]*takipçi/i) ||
+                       bodyText.match(/([0-9][0-9.,]*[KMB]?)[\s\u00a0]*followers?/i);
+            if (fm) r.followers = fm[1];
+        }
+        if (r.following === '0') {
+            // "takip" eşleşmesi, "takipçi" ile karışmasın diye negatif lookahead
+            const fm = bodyText.match(/([0-9][0-9.,]*[KMB]?)[\s\u00a0]*takip(?!çi|ci)/i) ||
+                       bodyText.match(/([0-9][0-9.,]*[KMB]?)[\s\u00a0]*following/i);
+            if (fm) r.following = fm[1];
+        }
+    }
+
     // Post count & bio from header
     const header = document.querySelector('header') || document.querySelector('main');
     if (header) {
         const text = header.innerText || '';
         const pm = text.match(/([0-9][0-9,.KMB]*)\\s*(?:posts?|gönderi)/i);
+        if (pm) r.postCount = pm[1];
+    }
+    // Post count fallback — body text
+    if (!r.postCount || r.postCount === '0') {
+        const bodyText = document.body.innerText || '';
+        const pm = bodyText.match(/([0-9][0-9.,]*[KMB]?)[\s\u00a0]*gönderi/i) ||
+                   bodyText.match(/([0-9][0-9.,]*[KMB]?)[\s\u00a0]*posts?(?!\s*gönderi)/i);
         if (pm) r.postCount = pm[1];
     }
 
