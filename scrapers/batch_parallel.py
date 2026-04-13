@@ -256,7 +256,6 @@ def run_instagram():
                     save_ig_profile(ig_user, profile)
 
                 if posts:
-                    new_count = sum(1 for p in save_post_to_db(p, ig_user) for _ in [1] if p)
                     new_count = sum(1 for p in posts if save_post_to_db(p, ig_user))
                     total_posts += len(posts)
                     total_saved += new_count
