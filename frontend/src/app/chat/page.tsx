@@ -908,87 +908,96 @@ function AssistantMessage({
 // Tweet card
 function TweetCard({ tweet }: { tweet: ChatTweetResult }) {
   const isInstagram = tweet.platform === "instagram";
-  const postLink = isInstagram
-    ? tweet.post_url
-    : tweet.tweet_url;
+  const postLink = isInstagram ? tweet.post_url : tweet.tweet_url;
 
-  return (
-    <div className="bg-[#1A1A1A]/70 rounded-xl px-4 py-3 border border-white/5 hover:border-white/10 transition-all">
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center flex-shrink-0">
-          <span className="text-sm font-bold text-gray-300">
-            {tweet.name?.[0] || tweet.username[0].toUpperCase()}
+  const cardClass =
+    "block bg-[#1A1A1A]/70 rounded-xl px-4 py-3 border border-white/5 transition-all" +
+    (postLink
+      ? " hover:border-white/20 hover:bg-[#1E1E1E] cursor-pointer"
+      : " hover:border-white/10");
+
+  const inner = (
+    <div className="flex items-start gap-3">
+      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center flex-shrink-0">
+        <span className="text-sm font-bold text-gray-300">
+          {tweet.name?.[0] || tweet.username[0].toUpperCase()}
+        </span>
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-medium text-white">
+            {tweet.name || tweet.username}
           </span>
+          <span className="text-gray-500 text-sm">@{tweet.username}</span>
+          {tweet.party && (
+            <span className="px-2 py-0.5 rounded-full bg-[#4DA3FF]/10 border border-[#4DA3FF]/30 text-xs text-[#4DA3FF]">
+              {tweet.party}
+            </span>
+          )}
+          {tweet.criticism_topic && (
+            <span className="px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30 text-xs text-red-400">
+              {tweet.criticism_topic}
+            </span>
+          )}
+          {postLink && (
+            <ExternalLink className="ml-auto h-3.5 w-3.5 text-gray-600 group-hover:text-gray-400 transition-colors flex-shrink-0" />
+          )}
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-white">
-              {tweet.name || tweet.username}
-            </span>
-            <span className="text-gray-500 text-sm">@{tweet.username}</span>
-            {tweet.party && (
-              <span className="px-2 py-0.5 rounded-full bg-[#4DA3FF]/10 border border-[#4DA3FF]/30 text-xs text-[#4DA3FF]">
-                {tweet.party}
-              </span>
-            )}
-            {tweet.criticism_topic && (
-              <span className="px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30 text-xs text-red-400">
-                {tweet.criticism_topic}
-              </span>
-            )}
-            {postLink && (
-              <a
-                href={postLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-auto p-1 rounded hover:bg-white/10 transition-colors"
-                title={isInstagram ? "Instagram'da Gör" : "X'de Gör"}
-              >
-                <ExternalLink className="h-3.5 w-3.5 text-gray-400 hover:text-white" />
-              </a>
-            )}
+        <p className="text-gray-300 mt-2 text-sm leading-relaxed whitespace-pre-wrap">
+          {tweet.tweet_text}
+        </p>
+
+        {tweet.criticism_explanation && (
+          <div className="mt-2 px-3 py-2 bg-red-500/5 border-l-2 border-red-500/30 rounded-r">
+            <p className="text-xs text-red-300/80 italic">
+              {tweet.criticism_explanation}
+            </p>
           </div>
+        )}
 
-          <p className="text-gray-300 mt-2 text-sm leading-relaxed whitespace-pre-wrap">
-            {tweet.tweet_text}
-          </p>
-
-          {tweet.criticism_explanation && (
-            <div className="mt-2 px-3 py-2 bg-red-500/5 border-l-2 border-red-500/30 rounded-r">
-              <p className="text-xs text-red-300/80 italic">
-                {tweet.criticism_explanation}
-              </p>
+        <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+          {tweet.tweet_date && (
+            <span>{tweet.tweet_date.substring(0, 10)}</span>
+          )}
+          <div className="flex items-center gap-1">
+            <Heart className="h-3 w-3" />
+            <span>{tweet.likes.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Repeat2 className="h-3 w-3" />
+            <span>{tweet.retweets.toLocaleString()}</span>
+          </div>
+          {tweet.replies > 0 && (
+            <div className="flex items-center gap-1">
+              <MessageSquare className="h-3 w-3" />
+              <span>{tweet.replies.toLocaleString()}</span>
             </div>
           )}
-
-          <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
-            {tweet.tweet_date && (
-              <span>{tweet.tweet_date.substring(0, 10)}</span>
-            )}
+          {tweet.views > 0 && (
             <div className="flex items-center gap-1">
-              <Heart className="h-3 w-3" />
-              <span>{tweet.likes.toLocaleString()}</span>
+              <Eye className="h-3 w-3" />
+              <span>{(tweet.views / 1000).toFixed(1)}K</span>
             </div>
-            <div className="flex items-center gap-1">
-              <Repeat2 className="h-3 w-3" />
-              <span>{tweet.retweets.toLocaleString()}</span>
-            </div>
-            {tweet.replies > 0 && (
-              <div className="flex items-center gap-1">
-                <MessageSquare className="h-3 w-3" />
-                <span>{tweet.replies.toLocaleString()}</span>
-              </div>
-            )}
-            {tweet.views > 0 && (
-              <div className="flex items-center gap-1">
-                <Eye className="h-3 w-3" />
-                <span>{(tweet.views / 1000).toFixed(1)}K</span>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>
   );
+
+  if (postLink) {
+    return (
+      <a
+        href={postLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cardClass + " group"}
+        title={isInstagram ? "Instagram'da Gör" : "X'de Gör"}
+      >
+        {inner}
+      </a>
+    );
+  }
+  return <div className={cardClass}>{inner}</div>;
 }

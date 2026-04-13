@@ -304,11 +304,14 @@ export default function TweetsPage() {
             const engagementLevel = getEngagementLevel(tweet.engagement || 0);
 
             return (
-              <div
+              <a
                 key={tweet.id || index}
+                href={tweet.tweet_url || `https://x.com/${tweet.username}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="group relative bg-[#1A1A1A] border border-[#4DA3FF]/10 rounded-lg p-5
                          hover:border-[#4DA3FF]/30 hover:bg-[#1A1A1A]/80
-                         transition-all duration-300"
+                         transition-all duration-300 block cursor-pointer"
               >
                 {/* Hover glow effect */}
                 <div className="absolute inset-0 bg-gradient-to-br from-[#4DA3FF]/0 to-[#00D1B2]/0
@@ -420,22 +423,16 @@ export default function TweetsPage() {
                       <span className="text-xs text-gray-500 font-mono">ETK</span>
                     </div>
 
-                    {/* View on X button */}
-                    <a
-                      href={tweet.tweet_url || `https://x.com/${tweet.username}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 bg-[#0B0B0B] border border-white/10 rounded-lg hover:border-blue-500/30 transition-colors"
-                      title={tweet.tweet_url ? "Tweeti Gör" : "Profili Gör"}
-                    >
-                      <ExternalLink className="w-4 h-4 text-gray-400 hover:text-blue-400" />
-                    </a>
+                    {/* External link indicator */}
+                    <div className="p-1.5 bg-[#0B0B0B] border border-white/10 rounded-lg group-hover:border-blue-500/30 transition-colors">
+                      <ExternalLink className="w-4 h-4 text-gray-600 group-hover:text-blue-400 transition-colors" />
+                    </div>
                   </div>
                 </div>
 
                 {/* Bottom accent line */}
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#4DA3FF]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
+              </a>
             );
           })}
         </div>

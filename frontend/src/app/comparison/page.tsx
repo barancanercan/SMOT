@@ -99,7 +99,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 // Tweet Card Component
 const TweetCard = ({ tweet, showUser = true }: { tweet: TweetItem; showUser?: boolean }) => (
-  <div className="bg-[#0B0B0B] rounded-lg border border-white/5 p-4 hover:border-white/10 transition-all">
+  <a
+    href={tweet.tweet_url || `https://x.com/${tweet.username}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="block bg-[#0B0B0B] rounded-lg border border-white/5 p-4 hover:border-blue-500/20 hover:bg-[#0F0F0F] transition-all cursor-pointer group"
+  >
     {showUser && (
       <div className="flex items-center gap-2 mb-2">
         <span className="text-blue-400 font-mono text-sm">@{tweet.username}</span>
@@ -135,18 +140,10 @@ const TweetCard = ({ tweet, showUser = true }: { tweet: TweetItem; showUser?: bo
           <Clock className="w-3 h-3" />
           {tweet.tweet_date?.split("T")[0] || "-"}
         </span>
-        <a
-          href={tweet.tweet_url || `https://x.com/${tweet.username}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-400 hover:text-blue-300 transition-colors"
-          title={tweet.tweet_url ? "Tweeti Gör" : "Profili Gör"}
-        >
-          <ExternalLink className="w-3 h-3" />
-        </a>
+        <ExternalLink className="w-3 h-3 text-gray-600 group-hover:text-blue-400 transition-colors" />
       </div>
     </div>
-  </div>
+  </a>
 );
 
 // Instagram Post Card Component
