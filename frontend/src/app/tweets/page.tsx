@@ -422,11 +422,11 @@ export default function TweetsPage() {
 
                     {/* View on X button */}
                     <a
-                      href={`https://x.com/${tweet.username}`}
+                      href={tweet.tweet_url || `https://x.com/${tweet.username}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-1.5 bg-[#0B0B0B] border border-white/10 rounded-lg hover:border-blue-500/30 transition-colors"
-                      title="X'de Gor"
+                      title={tweet.tweet_url ? "Tweeti Gör" : "Profili Gör"}
                     >
                       <ExternalLink className="w-4 h-4 text-gray-400 hover:text-blue-400" />
                     </a>

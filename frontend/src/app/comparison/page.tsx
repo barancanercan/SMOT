@@ -136,11 +136,11 @@ const TweetCard = ({ tweet, showUser = true }: { tweet: TweetItem; showUser?: bo
           {tweet.tweet_date?.split("T")[0] || "-"}
         </span>
         <a
-          href={`https://x.com/${tweet.username}`}
+          href={tweet.tweet_url || `https://x.com/${tweet.username}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-400 hover:text-blue-300 transition-colors"
-          title="X'de Gor"
+          title={tweet.tweet_url ? "Tweeti Gör" : "Profili Gör"}
         >
           <ExternalLink className="w-3 h-3" />
         </a>

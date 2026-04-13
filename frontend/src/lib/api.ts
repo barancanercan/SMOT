@@ -382,6 +382,7 @@ export interface TweetItem {
   replies: number;
   views: number;
   engagement?: number;
+  tweet_url?: string;
 }
 
 export interface WeeklyTopTweetsResponse {
@@ -523,6 +524,9 @@ export interface ChatTweetResult {
   replies: number;
   views: number;
   relevance_score: number;
+  platform?: string;
+  tweet_url?: string;
+  post_url?: string;
   // Classification fields (for criticism search)
   criticism_topic?: string;
   criticism_explanation?: string;

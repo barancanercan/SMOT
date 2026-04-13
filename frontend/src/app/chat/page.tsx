@@ -36,6 +36,7 @@ import {
   X,
   ChevronLeft,
   Menu,
+  ExternalLink,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -906,6 +907,11 @@ function AssistantMessage({
 
 // Tweet card
 function TweetCard({ tweet }: { tweet: ChatTweetResult }) {
+  const isInstagram = tweet.platform === "instagram";
+  const postLink = isInstagram
+    ? tweet.post_url
+    : tweet.tweet_url;
+
   return (
     <div className="bg-[#1A1A1A]/70 rounded-xl px-4 py-3 border border-white/5 hover:border-white/10 transition-all">
       <div className="flex items-start gap-3">
@@ -930,6 +936,17 @@ function TweetCard({ tweet }: { tweet: ChatTweetResult }) {
               <span className="px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30 text-xs text-red-400">
                 {tweet.criticism_topic}
               </span>
+            )}
+            {postLink && (
+              <a
+                href={postLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-auto p-1 rounded hover:bg-white/10 transition-colors"
+                title={isInstagram ? "Instagram'da Gör" : "X'de Gör"}
+              >
+                <ExternalLink className="h-3.5 w-3.5 text-gray-400 hover:text-white" />
+              </a>
             )}
           </div>
 

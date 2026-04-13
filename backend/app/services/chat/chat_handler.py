@@ -423,6 +423,7 @@ class ChatHandler:
                 "replies": t.replies or 0,
                 "views": t.views or 0,
                 "platform": "twitter",
+                "tweet_url": t.tweet_url if t.tweet_url else (f"https://x.com/{t.username}/status/{t.tweet_id}" if t.tweet_id else None),
             })
 
         return results

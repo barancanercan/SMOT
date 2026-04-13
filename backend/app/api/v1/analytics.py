@@ -1050,6 +1050,7 @@ async def get_weekly_top_tweets(
                     "replies": t.replies or 0,
                     "views": t.views or 0,
                     "engagement": (t.likes or 0) + (t.retweets or 0) + (t.replies or 0),
+                    "tweet_url": t.tweet_url if t.tweet_url else (f"https://x.com/{t.username}/status/{t.tweet_id}" if t.tweet_id else None),
                 }
                 for t in tweets
             ]
@@ -1108,6 +1109,7 @@ async def get_recent_tweets(
                     "retweets": t.retweets or 0,
                     "replies": t.replies or 0,
                     "views": t.views or 0,
+                    "tweet_url": t.tweet_url if t.tweet_url else (f"https://x.com/{t.username}/status/{t.tweet_id}" if t.tweet_id else None),
                 }
                 for t in tweets
             ]
@@ -1170,6 +1172,7 @@ async def get_top_tweets_all(
                     "replies": t.replies or 0,
                     "views": t.views or 0,
                     "engagement": (t.likes or 0) + (t.retweets or 0) + (t.replies or 0),
+                    "tweet_url": t.tweet_url if t.tweet_url else (f"https://x.com/{t.username}/status/{t.tweet_id}" if t.tweet_id else None),
                 }
                 for t in tweets
             ]
