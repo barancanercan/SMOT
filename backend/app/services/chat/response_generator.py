@@ -35,6 +35,32 @@ CONTENT_NAMES = {
 }
 
 
+def _build_url_map(tweets: list[dict]) -> dict[int, str]:
+    """Build a mapping of tweet index (1-based) to URL."""
+    url_map: dict[int, str] = {}
+    for i, t in enumerate(tweets, 1):
+        url = t.get("tweet_url") or t.get("post_url")
+        if url:
+            url_map[i] = url
+    return url_map
+
+
+def _add_citation_links(text: str, url_map: dict[int, str]) -> str:
+    """Replace [N] citation markers with clickable markdown links when URL available."""
+    if not url_map:
+        return text
+
+    def replace_citation(match: re.Match) -> str:
+        num = int(match.group(1))
+        url = url_map.get(num)
+        if url:
+            return f"[[{num}]]({url})"
+        return match.group(0)
+
+    # Replace [N] not already followed by ( to avoid double-linking
+    return re.sub(r"\[(\d+)\](?!\()", replace_citation, text)
+
+
 def _get_content_name(platform: str, form: str = "plural") -> str:
     """Get platform-aware content name."""
     names = CONTENT_NAMES.get(platform, CONTENT_NAMES["twitter"])
@@ -225,6 +251,9 @@ class ResponseGenerator:
                 tweets=tweets, tweet_count=len(tweets), platform=platform
             )
 
+        # Build URL map before calling LLM (index matches format_tweets_for_chat order)
+        url_map = _build_url_map(tweets)
+
         # Call LLM
         response = self.analyzer._call_llm(prompt)
         logger.debug(f"LLM response length: {len(response)}")
@@ -244,8 +273,9 @@ class ResponseGenerator:
                 if key not in llm_summary or not llm_summary[key]:
                     llm_summary[key] = stats[key]
 
+            answer = _add_citation_links(data.get('answer', 'Analiz tamamlandı.'), url_map)
             return ChatResponse(
-                answer=data.get('answer', 'Analiz tamamlandı.'),
+                answer=answer,
                 summary=llm_summary,
                 confidence_score=float(data.get('confidence_score', 0.75)),
                 raw_response=response,
@@ -256,7 +286,7 @@ class ResponseGenerator:
             # If we got a non-JSON response, use it as the answer directly
             if len(response) > 50 and not response.strip().startswith('{'):
                 return ChatResponse(
-                    answer=response.strip(),
+                    answer=_add_citation_links(response.strip(), url_map),
                     summary=stats,
                     confidence_score=0.6,
                 )
@@ -302,8 +332,11 @@ class ResponseGenerator:
                 text = t.get("tweet_text", t.get("caption", ""))[:150]
                 text = text.replace('\n', ' ').strip()
                 username = t.get("username", "")
-                t.get("likes", 0)
-                lines.append(f"> @{username}: \"{text}\" [{i}]")
+                url = t.get("tweet_url") or t.get("post_url")
+                if url:
+                    lines.append(f"> [@{username}: \"{text}\"]({url}) [{i}]")
+                else:
+                    lines.append(f"> @{username}: \"{text}\" [{i}]")
                 lines.append("")
 
         return ChatResponse(
