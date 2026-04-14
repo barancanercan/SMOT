@@ -20,8 +20,7 @@ cd backend
 uvicorn app.main:app --reload --port 8000
 pytest tests/ -v                    # All tests
 pytest tests/test_chat.py -v        # Single test file
-pytest tests/test_chat.py::test_query -v  # Single test
-ruff check app/
+ruff check app/                     # Lint check
 
 # Frontend
 cd frontend
@@ -37,8 +36,8 @@ python -c "from app.core.database import clear_report_cache; clear_report_cache(
 # Schema Migration (idempotent - adds missing columns)
 PYTHONIOENCODING=utf-8 python scrapers/migrate_schema.py
 
-# Chat Cache (clear after code changes)
-curl -X POST "http://localhost:8000/api/v1/chat/cache/clear"
+# Chat Cache (clear after code changes) — PowerShell:
+Invoke-WebRequest -Uri "http://localhost:8000/api/v1/chat/cache/clear" -Method POST
 
 # Scraping
 cd scrapers
@@ -49,16 +48,36 @@ python scheduler.py                  # Scheduled scraping (APScheduler)
 cd ../scripts
 python daily_sync.py                 # Daily sync script
 
-# Instagram Scraping (API-based)
+# Instagram Engagement Fix
 cd backend
-python scripts/update_instagram_engagement.py  # Fix 0-like posts
-python -m app.services.scraping.instagram_api_scraper --users USERNAME --max-posts 50
+python scripts/update_instagram_engagement.py              # Fix 0-like posts
+python scripts/update_instagram_engagement.py --suspicious # Fix suspicious ratios (high comments, low likes)
+python scripts/update_instagram_engagement.py --all        # Both modes
+
+# Start Brave for CDP scraping
+python scripts/start_brave.py        # Launches Brave on ports 9222 (Twitter) + 9226 (Instagram)
 
 # Docker
 docker-compose up --build
 ```
 
 ## Architecture
+
+### Directory Structure
+
+```
+SAM/
+├── backend/             # FastAPI Python backend
+├── frontend/            # Next.js 14 TypeScript frontend
+├── scrapers/            # CDP-based standalone scrapers
+├── scripts/             # Utility scripts (start_brave.py, daily_sync.py)
+├── tests/               # Test suite
+│   ├── scrapers/        # CDP scraper tests (test_instagram_3.py, test_twitter_3.py)
+│   └── test_scrapers.py # Mock-mode scraper tests
+├── docs/                # Documentation & screenshots
+├── data/                # Root-level data files
+└── .github/workflows/   # CI/CD (backend-ci.yml, frontend-ci.yml)
+```
 
 ### Backend Structure
 
@@ -70,14 +89,14 @@ backend/app/
 │   ├── agents/          # A-RAG Agent System (meta_agent orchestrates retriever, classifier, summarizer, reranker)
 │   ├── analysis/        # LLM analysis (TweetAnalyzer, prompts, schemas, chat_prompts)
 │   ├── chat/            # Chat with Tweets v6 - Modern RAG System
-│   │   ├── chat_handler.py      # Main orchestrator with ensemble intent detection
+│   │   ├── chat_handler.py       # Main orchestrator with ensemble intent detection
 │   │   ├── semantic_retriever.py # Embedding-based search with sentence-transformers
-│   │   ├── query_reasoner.py    # Political context understanding (GPT-4o)
-│   │   ├── turkish_nlp.py       # Turkish NLP (stemming, synonyms, stopwords)
-│   │   ├── intent_parser.py     # Rule-based intent parsing
-│   │   ├── response_generator.py # LLM response generation
-│   │   ├── session_manager.py   # Chat session persistence
-│   │   └── query_cache.py       # TTL-based caching (30min responses, 1hr intents)
+│   │   ├── query_reasoner.py     # Political context understanding (GPT-4o)
+│   │   ├── turkish_nlp.py        # Turkish NLP (stemming, synonyms, stopwords)
+│   │   ├── intent_parser.py      # Rule-based intent parsing
+│   │   ├── response_generator.py # LLM response generation + citation link injection
+│   │   ├── session_manager.py    # Chat session persistence
+│   │   └── query_cache.py        # TTL-based caching (30min responses, 1hr intents)
 │   ├── reporting/       # Report generation
 │   └── scraping/        # Instagram scrapers (selenium legacy, instaloader API recommended)
 └── utils/               # Logger, retry helpers
@@ -85,13 +104,14 @@ backend/app/
 scrapers/
 ├── batch_parallel.py    # Parallel batch scraping (Twitter + Instagram concurrent)
 ├── batch_twitter.py     # Twitter batch scraper (CDP-based)
-├── batch_instagram.py   # Instagram batch scraper
+├── batch_instagram.py   # Instagram batch scraper (CDP port 9226)
 ├── twitter_scraper.py   # Core Twitter scraper (CDP/Selenium)
 ├── cdp_browser.py       # Chrome DevTools Protocol browser manager
 ├── migrate_schema.py    # Idempotent DB schema migration (adds missing columns)
 └── scheduler.py         # APScheduler-based scraping scheduler
 
 scripts/
+├── start_brave.py       # Launch Brave on CDP ports 9222 (Twitter) + 9226 (Instagram)
 └── daily_sync.py        # Daily sync: scrape all platforms + update stats
 ```
 
@@ -99,7 +119,7 @@ scripts/
 
 ```
 frontend/src/
-├── app/                 # Next.js pages (dashboard, analytics, reports, chat, comparison, users, tweets, instagram, system)
+├── app/                 # Next.js pages (dashboard, analytics, reports, chat, comparison, users, tweets, instagram)
 ├── components/          # UI components (charts/, layout/, ui/)
 └── lib/api.ts           # Typed API client
 ```
@@ -111,6 +131,7 @@ frontend/src/
 - **Party Normalization**: `normalize_party_name()` handles Turkish chars (AK Parti variants, etc.)
 - **LLM Cleanup**: `_clean_json_response()` removes JSON-LD artifacts
 - **API Client**: `lib/api.ts` - typed fetch wrapper with error handling
+- **Citation Links**: `_add_citation_links()` in `response_generator.py` converts `[N]` to markdown links
 
 ### Analysis Framework (Green-Red-Grey Teams)
 
@@ -141,11 +162,20 @@ User Query → QueryReasoner (GPT-4o) → IntentParser (Rules) → SemanticRetri
 - **Topic-First Search**: Detect topic → Get keywords → Determine intent (not reverse)
 - **Criticism Concepts**: hükümet_eleştirisi, chp_eleştirisi (separate from topics)
 - **Query Cache**: 30min TTL for responses, 1hr for intents
+- **Citation Links**: `[N]` references in responses automatically link to tweet/post URLs
 
 **Important Design Decisions:**
 - Economy topic ≠ criticism (explicit keywords required)
 - Sentiment filter only for explicit criticism queries
 - Tweets sorted by engagement (likes + retweets)
+
+### Instagram Scraping — Known Behavior
+
+The CDP scraper (`batch_instagram.py`) sometimes captures low like counts (1-3) when the SPA hasn't fully rendered. Two safeguards are in place:
+
+1. **`save_post_to_db`**: Uses `MAX(new, existing)` for likes — never overwrites a higher count
+2. **Retry logic**: Waits for `likes > 5` or `timestamp present` before accepting page data
+3. **Engagement updater**: Run `--suspicious` flag to fix posts where `comments > likes * 10`
 
 ## Configuration
 
@@ -212,12 +242,13 @@ ChatMessage: id, session_id (FK), role, content, metadata (JSON), created_at
 | CORS error | Check CORS_ORIGINS in .env |
 | Old report | Clear report cache |
 | User not analyzed | Needs >= 1 tweet |
-| Instagram 0 likes | Run `python scripts/update_instagram_engagement.py` |
+| Instagram wrong likes | Run `python scripts/update_instagram_engagement.py --suspicious` |
 | Instagram 403 | Rate limited - wait 5 min, script auto-retries |
-| Chat old response | Clear chat cache: `POST /api/v1/chat/cache/clear` |
+| Chat old response | Restart backend server (in-memory cache clears on restart) |
 | Chat wrong results | Restart server to reload code changes |
 | DB malformed schema | DB corrupted — restore from git: `git show <commit>:data/sam.db > data/sam.db` then re-run migration |
 | Migration emoji error | Windows cp1254 encoding — use `PYTHONIOENCODING=utf-8 python scrapers/migrate_schema.py` |
+| curl not working (Windows) | Use `Invoke-WebRequest -Uri "..." -Method POST` instead of `curl -X POST` |
 
 ## API Reference
 
@@ -233,3 +264,5 @@ Key endpoints:
 - `GET /api/v1/chat/sessions` - List chat sessions
 - `POST /api/v1/chat/sessions` - Create new session
 - `POST /api/v1/analytics/compare/llm` - AI comparison
+- `GET /api/v1/analytics/tweets/top` - Top tweets (returns tweet_url)
+- `GET /api/v1/analytics/posts/top` - Top Instagram posts (returns post_url)

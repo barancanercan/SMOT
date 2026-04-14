@@ -14,10 +14,9 @@ Usage:
 """
 import argparse
 import os
+import random
 import sys
 import time
-import random
-from datetime import datetime
 
 # Add parent directory for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -133,7 +132,7 @@ def process_posts(loader, conn, posts: list, label: str) -> tuple[int, int]:
     updated = 0
     failed = 0
 
-    for i, (post_id, username, post_url, caption, old_likes, old_comments) in enumerate(posts, 1):
+    for i, (post_id, username, post_url, _caption, old_likes, old_comments) in enumerate(posts, 1):
         shortcode = extract_shortcode(post_url)
         if not shortcode:
             logger.warning(f"[{i}] Invalid URL: {post_url}")

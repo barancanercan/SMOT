@@ -44,6 +44,7 @@ mcp_server.log
 *.db.old
 *.db-shm
 *.db-wal
+meclis.db
 !data/.gitkeep
 !data/sam.db
 !data/smot.db
@@ -98,6 +99,13 @@ temp_*.py
 debug_*.py
 *_debug.py
 test.py
+
+# Root-level scripts (moved to scripts/)
+/start_brave.py
+
+# Scraper test files (moved to tests/scrapers/)
+/scrapers/test_instagram_3.py
+/scrapers/test_twitter_3.py
 
 # Claude (keep CLAUDE.md tracked)
 .claude/*

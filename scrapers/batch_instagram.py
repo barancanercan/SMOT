@@ -31,7 +31,7 @@ from datetime import datetime, timedelta, timezone
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
-from scrapers.cdp_browser import CDPBrowser
+from scrapers.cdp_browser import CDPBrowser  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -739,7 +739,7 @@ def scrape_user_posts(browser: CDPBrowser, ig_username: str, max_posts: int, day
                     # Ensure timezone-aware for comparison with UTC cutoff
                     if post_date.tzinfo is None:
                         post_date = post_date.replace(tzinfo=timezone.utc)
-                except:
+                except Exception:
                     pass
 
             if post_date and post_date < cutoff:
@@ -786,9 +786,9 @@ def main():
         browser.ensure_running()
     except Exception as e:
         logger.error(f"Chrome baglantisi kurulamadi: {e}")
-        logger.error(f"Brave'i su sekilde baslat:")
+        logger.error("Brave'i su sekilde baslat:")
         logger.error(f'  Start-Process "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe" -ArgumentList "--remote-debugging-port={IG_CDP_PORT}","--remote-allow-origins=*","--user-data-dir=C:\\tmp\\chrome-ig"')
-        logger.error(f"Sonra instagram.com'a giris yap ve tekrar calistir.")
+        logger.error("Sonra instagram.com'a giris yap ve tekrar calistir.")
         return
 
     # Cookie inject
@@ -822,7 +822,7 @@ def main():
                 logger.info(f"  OK: {len(posts)} post ({new_count} yeni) | {total_likes:,} like")
             else:
                 skip += 1
-                logger.warning(f"  SKIP: 0 post")
+                logger.warning("  SKIP: 0 post")
 
             if i < len(users):
                 time.sleep(random.uniform(3, 6))
@@ -836,7 +836,7 @@ def main():
             time.sleep(5)
 
     logger.info(f"\n{'='*60}")
-    logger.info(f"BATCH TAMAMLANDI")
+    logger.info("BATCH TAMAMLANDI")
     logger.info(f"  Basarili: {success}/{len(users)}")
     logger.info(f"  Skip: {skip}")
     logger.info(f"  Hata: {fail}")
