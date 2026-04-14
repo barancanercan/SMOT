@@ -12,6 +12,8 @@ AI-powered political intelligence platform analyzing Turkish council members' so
 
 **Ports**: Backend: 8000 | Frontend: 3000
 
+**Production**: Frontend → Vercel (https://stratejik-analiz-merkezi.vercel.app) | Backend → Render (https://smot-vwin.onrender.com) | DB → Render PostgreSQL (sam-db, Frankfurt)
+
 ## Quick Commands
 
 ```bash
@@ -53,6 +55,9 @@ cd backend
 python scripts/update_instagram_engagement.py              # Fix 0-like posts
 python scripts/update_instagram_engagement.py --suspicious # Fix suspicious ratios (high comments, low likes)
 python scripts/update_instagram_engagement.py --all        # Both modes
+
+# Render (Production) PostgreSQL Cleanup
+python scripts/cleanup_render_db.py "<External Database URL>"  # Remove wrong posts + duplicates
 
 # Start Brave for CDP scraping
 python scripts/start_brave.py        # Launches Brave on ports 9222 (Twitter) + 9226 (Instagram)
@@ -111,8 +116,9 @@ scrapers/
 └── scheduler.py         # APScheduler-based scraping scheduler
 
 scripts/
-├── start_brave.py       # Launch Brave on CDP ports 9222 (Twitter) + 9226 (Instagram)
-└── daily_sync.py        # Daily sync: scrape all platforms + update stats
+├── start_brave.py           # Launch Brave on CDP ports 9222 (Twitter) + 9226 (Instagram)
+├── daily_sync.py            # Daily sync: scrape all platforms + update stats
+└── cleanup_render_db.py     # One-time cleanup: remove wrong posts + duplicates from Render PostgreSQL
 ```
 
 ### Frontend Structure
@@ -243,6 +249,8 @@ ChatMessage: id, session_id (FK), role, content, metadata (JSON), created_at
 | Old report | Clear report cache |
 | User not analyzed | Needs >= 1 tweet |
 | Instagram wrong likes | Run `python scripts/update_instagram_engagement.py --suspicious` |
+| Instagram duplicate posts | Run `python scripts/cleanup_render_db.py "<DB_URL>"` — caused by `/USERNAME/p/ID/` vs `/p/ID/` URL format |
+| Instagram wrong account data | Check `councilors.instagram_username` — Twitter username ≠ Instagram username |
 | Instagram 403 | Rate limited - wait 5 min, script auto-retries |
 | Chat old response | Restart backend server (in-memory cache clears on restart) |
 | Chat wrong results | Restart server to reload code changes |

@@ -19,6 +19,7 @@ Kullanim:
        python -m scrapers.batch_instagram
 """
 
+import re
 import sqlite3
 import os
 import sys
@@ -534,6 +535,18 @@ def get_all_instagram_users() -> list:
     return [(r[0], r[1], r[2]) for r in rows]
 
 
+def _normalize_ig_url(url: str) -> str:
+    """Normalize Instagram post URL to canonical /p/SHORTCODE/ form.
+
+    Instagram sometimes returns /USERNAME/p/SHORTCODE/ or /p/SHORTCODE/ for
+    the same post. Normalize to /p/SHORTCODE/ to prevent duplicate inserts.
+    """
+    m = re.search(r"/p/([A-Za-z0-9_-]+)", url)
+    if m:
+        return f"https://www.instagram.com/p/{m.group(1)}/"
+    return url
+
+
 def save_post_to_db(post: dict, ig_username: str) -> bool:
     """Tek post kaydet/guncelle"""
     conn = sqlite3.connect(DB_PATH)
@@ -541,7 +554,7 @@ def save_post_to_db(post: dict, ig_username: str) -> bool:
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA synchronous=OFF")
 
-        post_url = post.get("post_url", "")
+        post_url = _normalize_ig_url(post.get("post_url", ""))
         existing = conn.execute(
             "SELECT id, likes FROM instagram_posts WHERE post_url = ?", (post_url,)
         ).fetchone()

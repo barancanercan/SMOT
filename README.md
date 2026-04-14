@@ -182,7 +182,7 @@
 | Yazilim | Minimum Versiyon |
 |---------|-----------------|
 | Python | 3.10+ |
-| Node.js | 20+ |
+| Node.js | 24+ |
 | Git | 2.0+ |
 
 ### 30 Saniyede Basla
@@ -653,22 +653,27 @@ SAM/
 ├── scrapers/                 # CDP tabanlı veri toplama katmanı
 │   ├── batch_parallel.py     # Ana koordinatör (Twitter + Instagram)
 │   ├── batch_twitter.py      # Twitter batch scraper
-│   ├── batch_instagram.py    # Instagram batch scraper
+│   ├── batch_instagram.py    # Instagram batch scraper (URL normalizasyonu dahil)
 │   ├── twitter_scraper.py    # Çekirdek Twitter scraper (CDP)
 │   ├── cdp_browser.py        # Chrome DevTools Protocol yöneticisi
 │   ├── migrate_schema.py     # İdempotent DB migrasyon
-│   ├── scheduler.py          # APScheduler zamanlayıcı
-│   ├── login_session.py      # Cookie kaydetme
-│   ├── test_twitter_3.py     # Twitter test + DB doğrulama
-│   └── test_instagram_3.py   # Instagram test + birim testleri
+│   └── scheduler.py          # APScheduler zamanlayıcı
+├── tests/
+│   └── scrapers/
+│       ├── test_twitter_3.py     # Twitter test + DB doğrulama
+│       └── test_instagram_3.py   # Instagram test + birim testleri
 ├── frontend/
 │   ├── src/
 │   │   ├── app/              # Next.js sayfaları
 │   │   ├── components/       # UI bileşenleri
 │   │   └── lib/api.ts        # Typed API istemcisi
 │   └── package.json
-├── data/                     # Veritabanı
-│   └── sam.db                # SQLite (86 meclis üyesi, ~17K tweet, ~1.5K IG post)
+├── scripts/
+│   ├── start_brave.py            # Brave CDP portlarıyla başlat (9222/9226)
+│   ├── daily_sync.py             # Günlük scrape + istatistik güncelleme
+│   └── cleanup_render_db.py      # Render PostgreSQL temizleme scripti
+├── data/                     # Yerel geliştirme veritabanı
+│   └── sam.db                # SQLite (86 meclis üyesi, ~17K tweet, ~1.3K IG post)
 ├── requirements.txt          # Python bağımlılıkları
 ├── render.yaml               # Render deployment
 ├── docker-compose.yml
@@ -787,12 +792,13 @@ python scrapers/test_twitter_3.py
 </details>
 
 <details>
-<summary><b>Instagram 0 Like Sorunu</b></summary>
+<summary><b>Render PostgreSQL — Yanlış/Duplicate Post</b></summary>
 
 ```bash
-cd backend
-python scripts/update_instagram_engagement.py
+pip install psycopg2-binary
+python scripts/cleanup_render_db.py "<External Database URL>"
 ```
+Yanlış hesaba atanmış postları ve URL format farklılığından kaynaklanan duplicate kayıtları temizler.
 </details>
 
 ---

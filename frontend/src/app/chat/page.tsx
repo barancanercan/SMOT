@@ -907,7 +907,8 @@ function AssistantMessage({
 
 // Tweet card
 function TweetCard({ tweet }: { tweet: ChatTweetResult }) {
-  const isInstagram = tweet.platform === "instagram";
+  // post_url is exclusively set for Instagram; use it as primary signal
+  const isInstagram = !!tweet.post_url || tweet.platform === "instagram";
   // Always construct a URL — fallback to profile page if specific post URL unavailable
   const postLink = isInstagram
     ? (tweet.post_url || `https://www.instagram.com/${tweet.username}/`)
