@@ -296,13 +296,17 @@ export default function InstagramPage() {
         <div className="space-y-3">
           {posts.map((post, index) => {
             const engagementLevel = getEngagementLevel(post.engagement || 0);
+            const postLink = post.post_url || `https://www.instagram.com/${post.username}/`;
 
             return (
-              <div
+              <a
                 key={post.id || index}
+                href={postLink}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="group relative bg-[#1A1A1A] border border-[#E1306C]/10 rounded-lg p-5
                          hover:border-[#E1306C]/30 hover:bg-[#1A1A1A]/80
-                         transition-all duration-300"
+                         transition-all duration-300 block cursor-pointer"
               >
                 {/* Hover glow effect */}
                 <div className="absolute inset-0 bg-gradient-to-br from-[#E1306C]/0 to-[#833AB4]/0
@@ -425,7 +429,7 @@ export default function InstagramPage() {
 
                 {/* Bottom accent line */}
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#E1306C]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
+              </a>
             );
           })}
         </div>

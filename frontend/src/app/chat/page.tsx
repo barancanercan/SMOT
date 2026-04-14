@@ -908,13 +908,14 @@ function AssistantMessage({
 // Tweet card
 function TweetCard({ tweet }: { tweet: ChatTweetResult }) {
   const isInstagram = tweet.platform === "instagram";
-  const postLink = isInstagram ? tweet.post_url : tweet.tweet_url;
+  // Always construct a URL — fallback to profile page if specific post URL unavailable
+  const postLink = isInstagram
+    ? (tweet.post_url || `https://www.instagram.com/${tweet.username}/`)
+    : (tweet.tweet_url || `https://x.com/${tweet.username}`);
 
   const cardClass =
     "block bg-[#1A1A1A]/70 rounded-xl px-4 py-3 border border-white/5 transition-all" +
-    (postLink
-      ? " hover:border-white/20 hover:bg-[#1E1E1E] cursor-pointer"
-      : " hover:border-white/10");
+    " hover:border-white/20 hover:bg-[#1E1E1E] cursor-pointer";
 
   const inner = (
     <div className="flex items-start gap-3">
@@ -986,18 +987,15 @@ function TweetCard({ tweet }: { tweet: ChatTweetResult }) {
     </div>
   );
 
-  if (postLink) {
-    return (
-      <a
-        href={postLink}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={cardClass + " group"}
-        title={isInstagram ? "Instagram'da Gör" : "X'de Gör"}
-      >
-        {inner}
-      </a>
-    );
-  }
-  return <div className={cardClass}>{inner}</div>;
+  return (
+    <a
+      href={postLink}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cardClass + " group"}
+      title={isInstagram ? "Instagram'da Gör" : "X'de Gör"}
+    >
+      {inner}
+    </a>
+  );
 }
