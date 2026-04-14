@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
 """
 Instagram Engagement Updater - Instaloader API Based
-Updates likes/comments for posts with missing engagement data (0 likes)
+Updates likes/comments for posts with:
+  - 0 likes (failed scrape)
+  - Suspicious ratio: many comments but very few likes (likely scraping error)
 
 Uses instaloader which is 100% reliable for engagement data.
+
+Usage:
+    python update_instagram_engagement.py              # Only 0-like posts
+    python update_instagram_engagement.py --suspicious # Also fix suspicious ratios
+    python update_instagram_engagement.py --all        # Both modes
 """
+import argparse
 import os
 import sys
 import time
@@ -52,6 +60,27 @@ def get_posts_needing_update(conn, limit: int = 100):
     return cursor.fetchall()
 
 
+def get_posts_suspicious_engagement(conn, limit: int = 200):
+    """
+    Get posts with suspicious engagement ratio:
+    comments >> likes suggests likes were not scraped correctly.
+
+    Threshold: comments > likes * 10 AND likes < 50 AND comments >= 5
+    (e.g. 66 comments but only 3 likes is clearly wrong)
+    """
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id, username, post_url, caption, likes, comments
+        FROM instagram_posts
+        WHERE comments >= 5
+          AND (likes IS NULL OR likes < 50)
+          AND comments > COALESCE(likes, 0) * 10
+        ORDER BY comments DESC, post_date DESC
+        LIMIT ?
+    """, (limit,))
+    return cursor.fetchall()
+
+
 def extract_shortcode(post_url: str) -> str:
     """Extract shortcode from Instagram URL"""
     # https://www.instagram.com/p/ABC123/ -> ABC123
@@ -92,7 +121,63 @@ def update_post_in_db(conn, post_id: int, data: dict):
     conn.commit()
 
 
+def process_posts(loader, conn, posts: list, label: str) -> tuple[int, int]:
+    """Process a list of posts and update their engagement data. Returns (updated, failed)."""
+    if not posts:
+        print(f"\nNo {label} found.")
+        return 0, 0
+
+    print(f"\nFound {len(posts)} {label}")
+    print("-" * 60)
+
+    updated = 0
+    failed = 0
+
+    for i, (post_id, username, post_url, caption, old_likes, old_comments) in enumerate(posts, 1):
+        shortcode = extract_shortcode(post_url)
+        if not shortcode:
+            logger.warning(f"[{i}] Invalid URL: {post_url}")
+            failed += 1
+            continue
+
+        print(f"[{i}/{len(posts)}] @{username} - {shortcode}  (was: {old_likes} likes, {old_comments} comments)")
+
+        try:
+            data = update_engagement_instaloader(loader, shortcode)
+
+            if data:
+                update_post_in_db(conn, post_id, data)
+                print(f"  -> Updated: {data['likes']} likes, {data['comments']} comments")
+                updated += 1
+            else:
+                failed += 1
+
+        except Exception as e:
+            logger.error(f"  -> Error: {e}")
+            failed += 1
+
+        # Rate limiting - Instagram is strict
+        if i < len(posts):
+            delay = random.uniform(2, 4)
+            time.sleep(delay)
+
+        # Progress checkpoint every 20 posts
+        if i % 20 == 0:
+            print(f"\n--- Progress: {i}/{len(posts)} | Updated: {updated} | Failed: {failed} ---\n")
+
+    return updated, failed
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Update Instagram engagement data")
+    parser.add_argument("--suspicious", action="store_true",
+                        help="Also fix posts with suspicious engagement ratio (high comments, very low likes)")
+    parser.add_argument("--all", dest="all_modes", action="store_true",
+                        help="Run both 0-likes and suspicious-ratio checks")
+    parser.add_argument("--limit", type=int, default=200,
+                        help="Max posts to process per mode (default: 200)")
+    args = parser.parse_args()
+
     if not INSTALOADER_AVAILABLE:
         print("ERROR: instaloader not installed!")
         print("Run: pip install instaloader")
@@ -121,55 +206,35 @@ def main():
     # Get database connection
     conn = get_db_connection()
 
-    # Get posts needing update
-    posts = get_posts_needing_update(conn, limit=200)
+    total_updated = 0
+    total_failed = 0
 
-    if not posts:
-        print("\nNo posts with 0 likes found. Database is up to date!")
-        return
+    # Mode 1: 0-likes posts (always run)
+    posts_zero = get_posts_needing_update(conn, limit=args.limit)
+    u, f = process_posts(loader, conn, posts_zero, "posts with 0 likes (failed scrape)")
+    total_updated += u
+    total_failed += f
 
-    print(f"\nFound {len(posts)} posts with missing engagement data")
-    print("-" * 60)
-
-    updated = 0
-    failed = 0
-
-    for i, (post_id, username, post_url, caption, old_likes, old_comments) in enumerate(posts, 1):
-        shortcode = extract_shortcode(post_url)
-        if not shortcode:
-            logger.warning(f"[{i}] Invalid URL: {post_url}")
-            failed += 1
-            continue
-
-        print(f"[{i}/{len(posts)}] @{username} - {shortcode}")
-
-        try:
-            data = update_engagement_instaloader(loader, shortcode)
-
-            if data:
-                update_post_in_db(conn, post_id, data)
-                print(f"  -> Updated: {data['likes']} likes, {data['comments']} comments")
-                updated += 1
-            else:
-                failed += 1
-
-        except Exception as e:
-            logger.error(f"  -> Error: {e}")
-            failed += 1
-
-        # Rate limiting - Instagram is strict
-        if i < len(posts):
-            delay = random.uniform(2, 4)
-            time.sleep(delay)
-
-        # Progress checkpoint every 20 posts
-        if i % 20 == 0:
-            print(f"\n--- Progress: {i}/{len(posts)} | Updated: {updated} | Failed: {failed} ---\n")
+    # Mode 2: suspicious engagement ratio (opt-in)
+    if args.suspicious or args.all_modes:
+        print("\n" + "=" * 60)
+        print("Checking suspicious engagement ratios (high comments, very low likes)...")
+        posts_suspicious = get_posts_suspicious_engagement(conn, limit=args.limit)
+        u, f = process_posts(loader, conn, posts_suspicious, "posts with suspicious engagement ratio")
+        total_updated += u
+        total_failed += f
+    else:
+        # Show hint about suspicious posts
+        suspicious = get_posts_suspicious_engagement(conn, limit=args.limit)
+        if suspicious:
+            print(f"\nHint: Found {len(suspicious)} posts with suspicious engagement ratio")
+            print("      (e.g. many comments but very few likes — likely scraping error)")
+            print("      Run with --suspicious to fix these too.")
 
     conn.close()
 
     print("\n" + "=" * 60)
-    print(f"DONE: Updated {updated}, Failed {failed}")
+    print(f"DONE: Updated {total_updated}, Failed {total_failed}")
     print("=" * 60)
 
 
