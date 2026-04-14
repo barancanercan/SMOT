@@ -543,18 +543,24 @@ def save_post_to_db(post: dict, ig_username: str) -> bool:
 
         post_url = post.get("post_url", "")
         existing = conn.execute(
-            "SELECT id FROM instagram_posts WHERE post_url = ?", (post_url,)
+            "SELECT id, likes FROM instagram_posts WHERE post_url = ?", (post_url,)
         ).fetchone()
 
         if existing:
+            existing_id, existing_likes = existing
+            new_likes = post.get("likes", 0)
+            # Never overwrite a higher like count with a lower scraped value.
+            # CDP sometimes returns 1-3 likes when the page hasn't fully rendered;
+            # keeping MAX ensures previously verified data isn't corrupted.
+            final_likes = max(new_likes, existing_likes or 0)
             conn.execute("""
                 UPDATE instagram_posts
                 SET likes=?, comments=?, video_views=?, post_type=?
                 WHERE id=?
             """, (
-                post.get("likes", 0), post.get("comments", 0),
+                final_likes, post.get("comments", 0),
                 post.get("video_views", 0), post.get("post_type", "photo"),
-                existing[0]
+                existing_id
             ))
             conn.commit()
             return False  # Updated, not new
@@ -699,7 +705,19 @@ def scrape_user_posts(browser: CDPBrowser, ig_username: str, max_posts: int, day
             raw = None
             for attempt in range(3):
                 raw = browser.evaluate(POST_DETAIL_JS, timeout=12)
-                if raw and (raw.get("timestamp") or raw.get("likes") != "0"):
+                likes_val = parse_ig_metric(raw.get("likes", "0")) if raw else 0
+                comments_val = parse_ig_metric(raw.get("comments", "0")) if raw else 0
+                # Consider data "real" only when:
+                # - timestamp present, OR
+                # - likes > 5, OR
+                # - comments > 0 AND likes > 0 (page partially loaded)
+                # Avoids accepting likes=1/2 from DOM placeholders before page renders
+                page_ready = raw and (
+                    raw.get("timestamp") or
+                    likes_val > 5 or
+                    (comments_val > 0 and likes_val > 0)
+                )
+                if page_ready:
                     break  # Got real data
                 time.sleep(2)  # Wait more for SPA render
 
