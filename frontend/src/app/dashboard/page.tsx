@@ -15,6 +15,7 @@ import {
   Zap,
   Camera,
   Video,
+  ExternalLink,
 } from "lucide-react";
 import { SkeletonMetricCard } from "@/components/ui/skeleton";
 import { PartyBadge } from "@/components/ui/badge";
@@ -453,30 +454,37 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {topTweets?.tweets?.map((tweet: any, index: number) => (
-                  <div key={tweet.id} className="group flex gap-3 p-3 rounded-lg bg-[#0B0B0B]/50 border border-white/5 hover:border-[#4DA3FF]/30 transition-all">
-                    <div className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-[#4DA3FF]/10 text-[#4DA3FF] text-sm font-bold">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-white truncate">{tweet.name}</span>
-                        <PartyBadge party={tweet.party || "BAGIMSIZ"} />
+                {topTweets?.tweets?.map((tweet: any, index: number) => {
+                  const Tag = tweet.tweet_url ? "a" : "div";
+                  const linkProps = tweet.tweet_url
+                    ? { href: tweet.tweet_url, target: "_blank", rel: "noopener noreferrer" }
+                    : {};
+                  return (
+                    <Tag key={tweet.id} {...linkProps} className="group flex gap-3 p-3 rounded-lg bg-[#0B0B0B]/50 border border-white/5 hover:border-[#4DA3FF]/30 transition-all block">
+                      <div className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-[#4DA3FF]/10 text-[#4DA3FF] text-sm font-bold">
+                        {index + 1}
                       </div>
-                      <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">{tweet.tweet_text}</p>
-                    </div>
-                    <div className="flex-shrink-0 text-right">
-                      <div className="flex items-center gap-1 text-pink-400">
-                        <Heart className="h-3 w-3" />
-                        <span className="text-xs font-semibold">{tweet.likes?.toLocaleString("tr-TR")}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium text-white truncate">{tweet.name}</span>
+                          <PartyBadge party={tweet.party || "BAGIMSIZ"} />
+                          {tweet.tweet_url && <ExternalLink className="h-3 w-3 text-gray-600 group-hover:text-[#4DA3FF] transition-colors flex-shrink-0 ml-auto" />}
+                        </div>
+                        <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">{tweet.tweet_text}</p>
                       </div>
-                      <div className="flex items-center gap-1 text-green-400 mt-1">
-                        <Repeat2 className="h-3 w-3" />
-                        <span className="text-xs">{tweet.retweets?.toLocaleString("tr-TR")}</span>
+                      <div className="flex-shrink-0 text-right">
+                        <div className="flex items-center gap-1 text-pink-400">
+                          <Heart className="h-3 w-3" />
+                          <span className="text-xs font-semibold">{tweet.likes?.toLocaleString("tr-TR")}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-green-400 mt-1">
+                          <Repeat2 className="h-3 w-3" />
+                          <span className="text-xs">{tweet.retweets?.toLocaleString("tr-TR")}</span>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    </Tag>
+                  );
+                })}
                 {(!topTweets?.tweets || topTweets.tweets.length === 0) && (
                   <div className="h-[200px] flex items-center justify-center text-gray-500 text-sm">
                     Veri bulunamadı
@@ -512,31 +520,38 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {topPosts?.posts?.map((post: any, index: number) => (
-                  <div key={post.id} className="group flex gap-3 p-3 rounded-lg bg-[#0B0B0B]/50 border border-white/5 hover:border-[#E1306C]/30 transition-all">
-                    <div className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-[#E1306C]/10 text-[#E1306C] text-sm font-bold">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-white truncate">{post.name || post.username}</span>
-                        <PartyBadge party={post.party || "BAGIMSIZ"} />
-                        {post.is_video && <Video className="h-3 w-3 text-gray-400 flex-shrink-0" />}
+                {topPosts?.posts?.map((post: any, index: number) => {
+                  const Tag = post.post_url ? "a" : "div";
+                  const linkProps = post.post_url
+                    ? { href: post.post_url, target: "_blank", rel: "noopener noreferrer" }
+                    : {};
+                  return (
+                    <Tag key={post.id} {...linkProps} className="group flex gap-3 p-3 rounded-lg bg-[#0B0B0B]/50 border border-white/5 hover:border-[#E1306C]/30 transition-all block">
+                      <div className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-[#E1306C]/10 text-[#E1306C] text-sm font-bold">
+                        {index + 1}
                       </div>
-                      <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">{post.caption || "—"}</p>
-                    </div>
-                    <div className="flex-shrink-0 text-right">
-                      <div className="flex items-center gap-1 text-pink-400">
-                        <Heart className="h-3 w-3" />
-                        <span className="text-xs font-semibold">{post.likes?.toLocaleString("tr-TR")}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium text-white truncate">{post.name || post.username}</span>
+                          <PartyBadge party={post.party || "BAGIMSIZ"} />
+                          {post.is_video && <Video className="h-3 w-3 text-gray-400 flex-shrink-0" />}
+                          {post.post_url && <ExternalLink className="h-3 w-3 text-gray-600 group-hover:text-[#E1306C] transition-colors flex-shrink-0 ml-auto" />}
+                        </div>
+                        <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">{post.caption || "—"}</p>
                       </div>
-                      <div className="flex items-center gap-1 text-purple-400 mt-1">
-                        <MessageCircle className="h-3 w-3" />
-                        <span className="text-xs">{post.comments?.toLocaleString("tr-TR")}</span>
+                      <div className="flex-shrink-0 text-right">
+                        <div className="flex items-center gap-1 text-pink-400">
+                          <Heart className="h-3 w-3" />
+                          <span className="text-xs font-semibold">{post.likes?.toLocaleString("tr-TR")}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-purple-400 mt-1">
+                          <MessageCircle className="h-3 w-3" />
+                          <span className="text-xs">{post.comments?.toLocaleString("tr-TR")}</span>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    </Tag>
+                  );
+                })}
                 {(!topPosts?.posts || topPosts.posts.length === 0) && (
                   <div className="h-[200px] flex items-center justify-center text-gray-500 text-sm">
                     Veri bulunamadı
