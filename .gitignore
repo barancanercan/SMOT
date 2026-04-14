@@ -42,6 +42,8 @@ mcp_server.log
 # Database
 *.db.bak
 *.db.old
+*.db-shm
+*.db-wal
 !data/.gitkeep
 !data/sam.db
 !data/smot.db
@@ -64,6 +66,7 @@ node_modules/
 out/
 frontend/.next/
 frontend/node_modules/
+**/tsconfig.tsbuildinfo
 
 # Scraping
 x_cookies.pkl
